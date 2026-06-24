@@ -1,4 +1,4 @@
-package uk.ac.york.cs.puml2emf.llm;
+package uk.ac.york.cs.puml2emfatic.llm;
 
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;

@@ -9,7 +9,7 @@ MODELSET="$(readlink -f "$BASEDIR/../modelset")"
 "$BASEDIR/gradlew" build
 
 puml2emfatic() {
-  java -jar "$BASEDIR/build/libs/puml2emfatic-*-all.jar" "$@"
+  java -jar "$BASEDIR"/build/libs/puml2emfatic-*-all.jar "$@"
 }
 
 for PUML in "$MODELSET"/*/plantuml.txt; do

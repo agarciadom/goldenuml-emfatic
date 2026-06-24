@@ -1,11 +1,11 @@
-package uk.ac.york.cs.puml2emf.cmd;
+package uk.ac.york.cs.puml2emfatic.cmd;
 
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.AiServices;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
-import uk.ac.york.cs.puml2emf.llm.ConverterAssistant;
+import uk.ac.york.cs.puml2emfatic.llm.ConverterAssistant;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -15,7 +15,7 @@ import java.nio.file.Files;
 
 @Command(name="ecore", mixinStandardHelpOptions = true,
     description="Converts PlantUML source code to Ecore XMI using an LLM")
-public class ConvertToEcore extends LLMCommand {
+public class PlantUMLToEcore extends LLMCommand {
 
   @Parameters(index="0", description="The PlantUML file to convert.")
   private File plantUmlFile;
@@ -58,7 +58,7 @@ public class ConvertToEcore extends LLMCommand {
   }
 
   public static void main(String... args) {
-    int exitCode = new CommandLine(new ConvertToEcore()).execute(args);
+    int exitCode = new CommandLine(new PlantUMLToEcore()).execute(args);
     System.exit(exitCode);
   }
 }

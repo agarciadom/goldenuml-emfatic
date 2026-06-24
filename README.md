@@ -8,7 +8,7 @@ The Golden UML ModelSet is available from Zenodo:
 
 ## Repository structure
 
-* `modelset`: Local copy of the ModelSet, extended with Ecore metamodels derived from the PlantUML descriptions using an LLM (currently, Claude Sonnet 4.6).
+* `modelset`: Local copy of the ModelSet, extended with Ecore metamodels initially derived from the PlantUML descriptions using an LLM (currently, Claude Sonnet 4.6) and then manually checked and cleaned up.
 * `puml2emfatic`: Java application automating the LLM-driven conversion of PlantUML to Ecore, and the deterministic conversion of Ecore to Emfatic.
 
 ## Building and running puml2emfatic
@@ -27,7 +27,7 @@ java -jar build/libs/puml2emfatic-*-all.jar
 ```
 
 To see specific help on a subcommand, use `--help`.
-For exampe, for the `ecore` subcommand:
+For example, for the `ecore` subcommand:
 
 ```shell
 java -jar build/libs/puml2emfatic-*-all.jar ecore --help
