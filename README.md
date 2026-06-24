@@ -42,9 +42,9 @@ cp .env.template .env
 # customise .env as appropriate
 ```
 
-## Batch rerun the conversion
+## Batch rerun PlantUML-to-Emfatic conversion
 
-First, delete the `converted.ecore` files.
+First, delete the `converted.ecore` files you want to convert again using an LLM.
 The following command deletes them all - you can delete only some (conversion will be skipped for existing files):
 
 ```shell
@@ -57,3 +57,15 @@ Then, run the convenience script inside `puml2emfatic`:
 cd puml2emfatic
 ./convert-ecore-all.sh
 ```
+
+## Batch rerun Ecore-to-Emfatic conversion
+
+Since this is deterministic and local-only, the script always regenerates all Emfatic files from each `converted.ecore` file:
+
+```shell
+cd puml2emfatic
+./convert-emfatic-all.sh
+```
+
+If the conversion fails due to the Ecore file not being well-formed, this is logged in the console and an `emfatic-stderr.txt` file is created with the error message.
+A successful conversion will delete any `emfatic-stderr.txt` files from previous runs.
