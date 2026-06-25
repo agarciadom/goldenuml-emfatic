@@ -2,6 +2,7 @@ package uk.ac.york.cs.puml2emfatic.cmd;
 
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.service.AiServices;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -34,6 +35,9 @@ public class PlantUMLToEcore extends LLMCommand {
       "generation that many times using validation feedback")
   private int retries;
 
+  @CommandLine.Option(names={ "--max-output-tokens" }, defaultValue = "32000")
+  private int maximumOutputTokens;
+
   @Override
   public Integer call() throws Exception {
     if (retries < 0) {
@@ -61,10 +65,13 @@ public class PlantUMLToEcore extends LLMCommand {
         System.out.println();
       }
 
+      ChatRequestParameters params = ChatRequestParameters.builder()
+          .maxOutputTokens(maximumOutputTokens)
+          .build();
       if (attempt == 0) {
-        llmOutput = assistant.toEcore(fileContents);
+        llmOutput = assistant.toEcore(fileContents, params);
       } else {
-        llmOutput = assistant.retryToEcore(feedback);
+        llmOutput = assistant.retryToEcore(feedback, params);
         feedback = null;
       }
       System.out.println(llmOutput);

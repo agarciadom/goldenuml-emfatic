@@ -1,14 +1,15 @@
 package uk.ac.york.cs.puml2emfatic.llm;
 
+import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
 
 public interface ConverterAssistant {
 
   @UserMessage(fromResource = "prompts/plantuml-to-ecore.txt")
-  String toEcore(@V("plantUmlCode") String plantUmlCode);
+  String toEcore(@V("plantUmlCode") String plantUmlCode, ChatRequestParameters parameters);
 
   @UserMessage(fromResource = "prompts/plantuml-to-ecore-retry.txt")
-  String retryToEcore(@V("feedback") String feedback);
+  String retryToEcore(@V("feedback") String feedback, ChatRequestParameters parameters);
 
 }
