@@ -8,4 +8,7 @@ public interface ConverterAssistant {
   @UserMessage(fromResource = "prompts/plantuml-to-ecore.txt")
   String toEcore(@V("plantUmlCode") String plantUmlCode);
 
+  @UserMessage(fromResource = "prompts/plantuml-to-ecore-retry.txt")
+  String retryToEcore(@V("feedback") String feedback);
+
 }

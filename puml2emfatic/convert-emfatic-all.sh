@@ -20,8 +20,8 @@ for ECORE in "$MODELSET"/*/converted.ecore; do
   echo -n "Converting ${ECORE} to Emfatic... "
   if puml2emfatic emfatic "$ECORE" > "$CONVERTED" 2> "$CONVERSION_STDERR"; then
     echo "success"
+    # delete empty stderr files if successful
     if ! test -s "$CONVERSION_STDERR"; then
-      # delete empty stderr files if successful
       rm "$CONVERSION_STDERR"
     fi
   else
