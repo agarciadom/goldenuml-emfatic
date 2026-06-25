@@ -61,7 +61,7 @@ public class PlantUMLToEcore extends LLMCommand {
     for (int attempt = 0; attempt <= retries; attempt++) {
       if (attempt > 0) {
         System.out.println();
-        System.out.println(String.format("# Retry %d", 1 + attempt));
+        System.out.printf("# Retry %d%n", 1 + attempt);
         System.out.println();
       }
 
@@ -109,7 +109,7 @@ public class PlantUMLToEcore extends LLMCommand {
     try (BufferedReader br = new BufferedReader(new StringReader(llmOutput))) {
       String line;
       // Skip ahead until we reach the first fenced block
-      while ((line = br.readLine()) != null && !line.startsWith("```"));
+      while ((line = br.readLine()) != null && !line.startsWith("```")) {}
       // Append all lines until we reach the end of the fenced block
       while ((line = br.readLine()) != null && !line.startsWith("```")) {
         sb.append(line);

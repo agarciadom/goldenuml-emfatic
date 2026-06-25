@@ -1,13 +1,11 @@
 package uk.ac.york.cs.puml2emfatic.cmd;
 
-import org.eclipse.emf.common.util.Diagnostic;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EPackage;
 import org.eclipse.emf.ecore.EcorePackage;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.emf.ecore.resource.impl.ResourceSetImpl;
-import org.eclipse.emf.ecore.util.Diagnostician;
 import org.eclipse.emf.ecore.xmi.impl.EcoreResourceFactoryImpl;
 import org.eclipse.emf.emfatic.core.EmfaticResourceFactory;
 import picocli.CommandLine;
@@ -30,7 +28,7 @@ public class EcoreToEmfatic implements Callable<Integer> {
     System.out.println(generateEmfatic(ecoreResource));
 
     var validator = new EPackageValidator();
-    var diagnostics = validator.validate((EPackage) ecoreResource.getContents().get(0));
+    var diagnostics = validator.validate((EPackage) ecoreResource.getContents().getFirst());
     if (diagnostics.isEmpty()) {
       return 0;
     } else {
@@ -39,20 +37,9 @@ public class EcoreToEmfatic implements Callable<Integer> {
     }
   }
 
-  protected String formatSeverity(int severity) {
-    if (severity < Diagnostic.WARNING) {
-      return "INFO";
-    } else if (severity < Diagnostic.ERROR) {
-      return "WARNING";
-    } else {
-      return "ERROR";
-    }
-  }
-
   protected String generateEmfatic(Resource ecoreResource) {
     var emfaticWriter = new org.eclipse.emf.emfatic.core.generator.emfatic.Writer();
-    String emfaticSource = emfaticWriter.write(ecoreResource, null, null);
-    return emfaticSource;
+    return emfaticWriter.write(ecoreResource, null, null);
   }
 
   protected Resource loadEcore() {
@@ -60,8 +47,7 @@ public class EcoreToEmfatic implements Callable<Integer> {
     Map<String, Object> extMap = resourceSet.getResourceFactoryRegistry().getExtensionToFactoryMap();
     extMap.put("*", new EcoreResourceFactoryImpl());
     extMap.put("emf", new EmfaticResourceFactory());
-    Resource ecoreResource = resourceSet.getResource(URI.createFileURI(ecoreFile.getAbsolutePath()), true);
-    return ecoreResource;
+    return resourceSet.getResource(URI.createFileURI(ecoreFile.getAbsolutePath()), true);
   }
 
 }
