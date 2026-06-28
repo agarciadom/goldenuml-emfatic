@@ -1,15 +1,10 @@
 I'll analyze the PlantUML diagram and convert it to an Ecore metamodel. Let me identify the key elements:
 
 1. Classes: Song, Artist, User, RegularUser, BusinessUser, Single, Hit, Track, Album (implied)
-2. Inheritances: Hit and Single extend Song; BusinessUser and RegularUser extend User
-3. Associations including an association class (Track for Hit-Album)
-4. Constraints: {total; disjoint} for Song subclasses, {total; overlap} for User subclasses
-
-Key observations:
-- `Album` is referenced but not defined — I need to define it
-- `Track` is an association class between `Hit` and `Album`
-- A root container class is needed
-- `Date` type maps to `EDate`
+2. Inheritance: Hit and Single extend Song; RegularUser and BusinessUser extend User
+3. Associations: Artist-Song, Hit-Album (with Track as association class), Song-BusinessUser, Single-RegularUser, RegularUser-Album (compose and suggestion)
+4. Track is an association class between Hit and Album
+5. Need a root container class
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -18,31 +13,23 @@ Key observations:
     xmlns:xmi="http://www.omg.org/XMI"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore"
-    name="musicmodel"
-    nsURI="http://www.example.org/musicmodel"
-    nsPrefix="musicmodel">
+    name="music"
+    nsURI="http://www.example.org/music"
+    nsPrefix="music">
 
-  <!--
-    Root container class holding all top-level instances.
-    Acts as the entry point of the metamodel.
-  -->
+  <!-- Root container class -->
   <eClassifiers xsi:type="ecore:EClass" name="MusicCatalog">
-    <eStructuralFeatures xsi:type="ecore:EReference" name="songs"
-        eType="#//Song" containment="true" upperBound="-1"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="artists"
         eType="#//Artist" containment="true" upperBound="-1"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="songs"
+        eType="#//Song" containment="true" upperBound="-1"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="users"
         eType="#//User" containment="true" upperBound="-1"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="albums"
         eType="#//Album" containment="true" upperBound="-1"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="tracks"
-        eType="#//Track" containment="true" upperBound="-1"/>
   </eClassifiers>
 
-  <!--
-    Song class with basic attributes.
-    Subclasses: Hit {total; disjoint}, Single
-  -->
+  <!-- Song class -->
   <eClassifiers xsi:type="ecore:EClass" name="Song">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="title"
         eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
@@ -52,41 +39,95 @@ Key observations:
         eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="genre"
         eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
-    <!--
-      Song "* - 1" BusinessUser: a Song is published/owned by one BusinessUser.
-    -->
-    <eStructuralFeatures xsi:type="ecore:EReference" name="businessUser"
-        eType="#//BusinessUser"
+    <!-- Song "*"-"1" BusinessUser -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="publishedBy"
+        eType="#//BusinessUser" upperBound="-1"
         eOpposite="#//BusinessUser/songs"/>
   </eClassifiers>
 
-  <!--
-    Hit extends Song. Associated with Album via Track association class.
-    Constraint: {total; disjoint} with Single under Song.
-  -->
-  <eClassifiers xsi:type="ecore:EClass" name="Hit" eSuperTypes="#//Song">
-    <!--
-      Hit "* - *" Album, but mediated by Track association class.
-      So Hit references Track only.
-    -->
-    <eStructuralFeatures xsi:type="ecore:EReference" name="tracks"
-        eType="#//Track" upperBound="-1"
-        eOpposite="#//Track/hit"/>
+  <!-- Artist class -->
+  <eClassifiers xsi:type="ecore:EClass" name="Artist">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="birthDate"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDate"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="website"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <!-- Artist "1"--"*" Song -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="songs"
+        eType="#//Song" upperBound="-1"
+        eOpposite="#//Song/artist"/>
   </eClassifiers>
 
-  <!--
-    Single extends Song.
-    Single "* - *" RegularUser
-  -->
+  <!-- User class -->
+  <eClassifiers xsi:type="ecore:EClass" name="User">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="userID"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="address"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+
+  <!-- RegularUser class -->
+  <eClassifiers xsi:type="ecore:EClass" name="RegularUser" eSuperTypes="#//User">
+    <!-- Single "*"-"*" RegularUser -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="singles"
+        eType="#//Single" upperBound="-1"
+        eOpposite="#//Single/regularUsers"/>
+    <!-- RegularUser "1"--"*" Album : compose -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="composedAlbums"
+        eType="#//Album" upperBound="-1" containment="true"
+        eOpposite="#//Album/composer"/>
+    <!-- RegularUser "*"--"*" Album : suggestion -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="suggestedAlbums"
+        eType="#//Album" upperBound="-1"
+        eOpposite="#//Album/suggestedBy"/>
+  </eClassifiers>
+
+  <!-- BusinessUser class -->
+  <eClassifiers xsi:type="ecore:EClass" name="BusinessUser" eSuperTypes="#//User">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="vATnumber"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    <!-- Song "*"-"1" BusinessUser (opposite side) -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="songs"
+        eType="#//Song" upperBound="-1"
+        eOpposite="#//Song/publishedBy"/>
+  </eClassifiers>
+
+  <!-- Single class (subclass of Song) -->
   <eClassifiers xsi:type="ecore:EClass" name="Single" eSuperTypes="#//Song">
+    <!-- Single "*"-"*" RegularUser -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="regularUsers"
         eType="#//RegularUser" upperBound="-1"
         eOpposite="#//RegularUser/singles"/>
   </eClassifiers>
 
-  <!--
-    Track is the association class between Hit and Album.
-  -->
+  <!-- Hit class (subclass of Song) -->
+  <eClassifiers xsi:type="ecore:EClass" name="Hit" eSuperTypes="#//Song">
+    <!-- Hit side of Hit-Album association via Track -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="tracks"
+        eType="#//Track" upperBound="-1" containment="true"
+        eOpposite="#//Track/hit"/>
+  </eClassifiers>
+
+  <!-- Album class (implied by diagram) -->
+  <eClassifiers xsi:type="ecore:EClass" name="Album">
+    <!-- Album side of Hit-Album association via Track -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="tracks"
+        eType="#//Track" upperBound="-1"
+        eOpposite="#//Track/album"/>
+    <!-- RegularUser "1"--"*" Album : compose (opposite) -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="composer"
+        eType="#//RegularUser"
+        eOpposite="#//RegularUser/composedAlbums"/>
+    <!-- RegularUser "*"--"*" Album : suggestion (opposite) -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="suggestedBy"
+        eType="#//RegularUser" upperBound="-1"
+        eOpposite="#//RegularUser/suggestedAlbums"/>
+  </eClassifiers>
+
+  <!-- Track class (association class between Hit and Album) -->
   <eClassifiers xsi:type="ecore:EClass" name="Track">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="trackNumber"
         eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
@@ -98,34 +139,66 @@ Key observations:
         eOpposite="#//Album/tracks"/>
   </eClassifiers>
 
+  <!-- Back-reference from Song to Artist -->
+  <!-- Note: added as eOpposite on Song side -->
+
+</ecore:EPackage>
+```
+
+Wait, I need to add the `artist` reference back on `Song` to complete the `Artist-Song` bidirectional association. Let me provide the corrected final version:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage
+    xmi:version="2.0"
+    xmlns:xmi="http://www.omg.org/XMI"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore"
+    name="music"
+    nsURI="http://www.example.org/music"
+    nsPrefix="music">
+
   <!--
-    Album class (implied by the diagram).
-    Composed and suggested by RegularUser.
-    Associated with Hit via Track.
+    Root container: MusicCatalog
+    Holds top-level instances of Artist, User, Album.
+    Songs are contained by Artist (via the "songs" reference).
   -->
-  <eClassifiers xsi:type="ecore:EClass" name="Album">
-    <!--
-      Album side of the Track association class
-    -->
-    <eStructuralFeatures xsi:type="ecore:EReference" name="tracks"
-        eType="#//Track" upperBound="-1"
-        eOpposite="#//Track/album"/>
-    <!--
-      RegularUser "1 - *" Album : compose (RegularUser is the container)
-    -->
-    <eStructuralFeatures xsi:type="ecore:EReference" name="composer"
-        eType="#//RegularUser"
-        eOpposite="#//RegularUser/composedAlbums"/>
-    <!--
-      RegularUser "* - *" Album : suggestion
-    -->
-    <eStructuralFeatures xsi:type="ecore:EReference" name="suggestedBy"
-        eType="#//RegularUser" upperBound="-1"
-        eOpposite="#//RegularUser/suggestedAlbums"/>
+  <eClassifiers xsi:type="ecore:EClass" name="MusicCatalog">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="artists"
+        eType="#//Artist" containment="true" upperBound="-1"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="users"
+        eType="#//User" containment="true" upperBound="-1"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="albums"
+        eType="#//Album" containment="true" upperBound="-1"/>
   </eClassifiers>
 
   <!--
-    Artist class. One artist has many songs.
+    Song class
+    - title, year, length, genre attributes
+    - artist: back-reference to Artist (opposite of Artist/songs)
+    - publishedBy: reference to BusinessUser (Song "*"-"1" BusinessUser)
+  -->
+  <eClassifiers xsi:type="ecore:EClass" name="Song">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="title"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="year"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="length"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="genre"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="artist"
+        eType="#//Artist"
+        eOpposite="#//Artist/songs"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="publishedBy"
+        eType="#//BusinessUser"
+        eOpposite="#//BusinessUser/songs"/>
+  </eClassifiers>
+
+  <!--
+    Artist class
+    - birthDate (EDate), name, website attributes
+    - songs: contained songs by this artist (opposite of Song/artist)
   -->
   <eClassifiers xsi:type="ecore:EClass" name="Artist">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="birthDate"
@@ -135,15 +208,16 @@ Key observations:
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="website"
         eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="songs"
-        eType="#//Song" upperBound="-1"
+        eType="#//Song" containment="true" upperBound="-1"
         eOpposite="#//Song/artist"/>
   </eClassifiers>
 
   <!--
-    User base class.
-    Subclasses: BusinessUser {total; overlap}, RegularUser
+    User class (abstract, with {total} constraint implying all users
+    are either RegularUser or BusinessUser)
+    - userID, name, address attributes
   -->
-  <eClassifiers xsi:type="ecore:EClass" name="User">
+  <eClassifiers xsi:type="ecore:EClass" name="User" abstract="true">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="userID"
         eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"
@@ -153,54 +227,107 @@ Key observations:
   </eClassifiers>
 
   <!--
-    RegularUser extends User.
-    Composes albums (1 RegularUser - * Albums).
-    Suggests albums (* RegularUser - * Albums).
-    Accesses Singles (* RegularUser - * Single).
+    RegularUser class (subclass of User)
+    - singles: associated singles (opposite of Single/regularUsers)
+    - composedAlbums: albums composed/owned by this user (containment,
+        opposite of Album/composer)
+    - suggestedAlbums: albums suggested by this user (opposite of
+        Album/suggestedBy)
   -->
   <eClassifiers xsi:type="ecore:EClass" name="RegularUser" eSuperTypes="#//User">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="singles"
+        eType="#//Single" upperBound="-1"
+        eOpposite="#//Single/regularUsers"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="composedAlbums"
-        eType="#//Album" upperBound="-1"
-        containment="true"
+        eType="#//Album" upperBound="-1" containment="true"
         eOpposite="#//Album/composer"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="suggestedAlbums"
         eType="#//Album" upperBound="-1"
         eOpposite="#//Album/suggestedBy"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="singles"
-        eType="#//Single" upperBound="-1"
-        eOpposite="#//Single/regularUsers"/>
   </eClassifiers>
 
   <!--
-    BusinessUser extends User.
-    Owns/publishes Songs (1 BusinessUser - * Songs).
-    Constraint: {total; overlap} with User.
+    BusinessUser class (subclass of User, {overlap} so can also be RegularUser)
+    - vATnumber attribute
+    - songs: songs published by this business user (opposite of Song/publishedBy)
   -->
   <eClassifiers xsi:type="ecore:EClass" name="BusinessUser" eSuperTypes="#//User">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="vATnumber"
         eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="songs"
         eType="#//Song" upperBound="-1"
-        eOpposite="#//Song/businessUser"/>
+        eOpposite="#//Song/publishedBy"/>
+  </eClassifiers>
+
+  <!--
+    Single class (subclass of Song, {disjoint} from Hit)
+    - regularUsers: users who own/follow this single
+        (opposite of RegularUser/singles)
+  -->
+  <eClassifiers xsi:type="ecore:EClass" name="Single" eSuperTypes="#//Song">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="regularUsers"
+        eType="#//RegularUser" upperBound="-1"
+        eOpposite="#//RegularUser/singles"/>
+  </eClassifiers>
+
+  <!--
+    Hit class (subclass of Song, {disjoint} from Single)
+    - tracks: Track instances linking this Hit to Albums
+        (containment, opposite of Track/hit)
+  -->
+  <eClassifiers xsi:type="ecore:EClass" name="Hit" eSuperTypes="#//Song">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="tracks"
+        eType="#//Track" containment="true" upperBound="-1"
+        eOpposite="#//Track/hit"/>
+  </eClassifiers>
+
+  <!--
+    Album class (implied by the diagram)
+    - tracks: Track instances linking this Album to Hits
+        (opposite of Track/album)
+    - composer: the RegularUser who composed this album
+        (opposite of RegularUser/composedAlbums)
+    - suggestedBy: RegularUsers who suggested this album
+        (opposite of RegularUser/suggestedAlbums)
+  -->
+  <eClassifiers xsi:type="ecore:EClass" name="Album">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="tracks"
+        eType="#//Track" upperBound="-1"
+        eOpposite="#//Track/album"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="composer"
+        eType="#//RegularUser"
+        eOpposite="#//RegularUser/composedAlbums"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="suggestedBy"
+        eType="#//RegularUser" upperBound="-1"
+        eOpposite="#//RegularUser/suggestedAlbums"/>
+  </eClassifiers>
+
+  <!--
+    Track class (association class between Hit and Album)
+    - trackNumber attribute
+    - hit: the Hit this track belongs to (opposite of Hit/tracks)
+    - album: the Album this track belongs to (opposite of Album/tracks)
+  -->
+  <eClassifiers xsi:type="ecore:EClass" name="Track">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="trackNumber"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="hit"
+        eType="#//Hit"
+        eOpposite="#//Hit/tracks"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="album"
+        eType="#//Album"
+        eOpposite="#//Album/tracks"/>
   </eClassifiers>
 
 </ecore:EPackage>
 ```
 
-> **Notes:**
-> - `Album` was not defined in the PlantUML but is clearly referenced; it has been added.
-> - `Track` is treated as an association class between `Hit` and `Album`, so both ends reference `Track` rather than each other directly.
-> - The `artist` back-reference on `Song` is implied by the `Artist "1"--"*" Song` association.
-> - `{total; disjoint}` and `{total; overlap}` are UML constraints that cannot be directly encoded in Ecore structural features; they are noted in comments.
-> - The `compose` relationship between `RegularUser` and `Album` is modelled as `containment="true"`.
-> - `MusicCatalog` serves as the root container.
-
 Found problems in output:
-org.eclipse.emf.ecore.resource.impl.ResourceSetImpl$1DiagnosticWrappedException: org.eclipse.emf.ecore.xmi.UnresolvedReferenceException: Unresolved reference '//Song/artist'. (file:/Volumes/Sources/goldenuml-emfatic/modelset/Musicmatic/converted.ecore, 125, 37)
+org.eclipse.emf.ecore.resource.impl.ResourceSetImpl$1DiagnosticWrappedException: org.xml.sax.SAXParseExceptionpublicId: file:/Volumes/Sources/goldenuml-emfatic/modelset/Musicmatic/converted.ecore; systemId: file:/Volumes/Sources/goldenuml-emfatic/modelset/Musicmatic/converted.ecore; lineNumber: 47; columnNumber: 22; The string "--" is not permitted within comments.
 
 # Retry 2
 
-The error is caused by a missing `artist` reference on the `Song` class — I defined the opposite on `Artist` but never added the corresponding reference on `Song`. Let me fix that.
+The issue is that XML comments containing `--` are not allowed. Let me fix all comments by replacing `--` with `-` or rephrasing them.
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -209,29 +336,29 @@ The error is caused by a missing `artist` reference on the `Song` class — I de
     xmlns:xmi="http://www.omg.org/XMI"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore"
-    name="musicmodel"
-    nsURI="http://www.example.org/musicmodel"
-    nsPrefix="musicmodel">
+    name="music"
+    nsURI="http://www.example.org/music"
+    nsPrefix="music">
 
   <!--
-    Root container class holding all top-level instances.
+    Root container: MusicCatalog
+    Holds top-level instances of Artist, User, Album.
+    Songs are contained by Artist (via the "songs" reference).
   -->
   <eClassifiers xsi:type="ecore:EClass" name="MusicCatalog">
-    <eStructuralFeatures xsi:type="ecore:EReference" name="songs"
-        eType="#//Song" containment="true" upperBound="-1"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="artists"
         eType="#//Artist" containment="true" upperBound="-1"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="users"
         eType="#//User" containment="true" upperBound="-1"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="albums"
         eType="#//Album" containment="true" upperBound="-1"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="tracks"
-        eType="#//Track" containment="true" upperBound="-1"/>
   </eClassifiers>
 
   <!--
-    Song class with basic attributes.
-    Subclasses: Hit {total; disjoint}, Single
+    Song class
+    - title, year, length, genre attributes
+    - artist: back-reference to Artist (opposite of Artist/songs)
+    - publishedBy: reference to BusinessUser (Song many to one BusinessUser)
   -->
   <eClassifiers xsi:type="ecore:EClass" name="Song">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="title"
@@ -242,37 +369,82 @@ The error is caused by a missing `artist` reference on the `Song` class — I de
         eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="genre"
         eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
-    <!--
-      Back-reference to the Artist who authored this Song.
-    -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="artist"
         eType="#//Artist"
         eOpposite="#//Artist/songs"/>
-    <!--
-      Song "* - 1" BusinessUser: a Song is published/owned by one BusinessUser.
-    -->
-    <eStructuralFeatures xsi:type="ecore:EReference" name="businessUser"
+    <eStructuralFeatures xsi:type="ecore:EReference" name="publishedBy"
         eType="#//BusinessUser"
         eOpposite="#//BusinessUser/songs"/>
   </eClassifiers>
 
   <!--
-    Hit extends Song. Associated with Album via Track association class.
-    Constraint: {total; disjoint} with Single under Song.
+    Artist class
+    - birthDate (EDate), name, website attributes
+    - songs: contained songs by this artist (opposite of Song/artist)
   -->
-  <eClassifiers xsi:type="ecore:EClass" name="Hit" eSuperTypes="#//Song">
-    <!--
-      Hit "* - *" Album mediated by Track association class.
-      So Hit references Track only.
-    -->
-    <eStructuralFeatures xsi:type="ecore:EReference" name="tracks"
-        eType="#//Track" upperBound="-1"
-        eOpposite="#//Track/hit"/>
+  <eClassifiers xsi:type="ecore:EClass" name="Artist">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="birthDate"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDate"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="website"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="songs"
+        eType="#//Song" containment="true" upperBound="-1"
+        eOpposite="#//Song/artist"/>
   </eClassifiers>
 
   <!--
-    Single extends Song.
-    Single "* - *" RegularUser
+    User class (abstract, with {total} constraint implying all users
+    are either RegularUser or BusinessUser)
+    - userID, name, address attributes
+  -->
+  <eClassifiers xsi:type="ecore:EClass" name="User" abstract="true">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="userID"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="address"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+
+  <!--
+    RegularUser class (subclass of User)
+    - singles: associated singles (opposite of Single/regularUsers)
+    - composedAlbums: albums composed/owned by this user (containment,
+        opposite of Album/composer)
+    - suggestedAlbums: albums suggested by this user (opposite of
+        Album/suggestedBy)
+  -->
+  <eClassifiers xsi:type="ecore:EClass" name="RegularUser" eSuperTypes="#//User">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="singles"
+        eType="#//Single" upperBound="-1"
+        eOpposite="#//Single/regularUsers"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="composedAlbums"
+        eType="#//Album" upperBound="-1" containment="true"
+        eOpposite="#//Album/composer"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="suggestedAlbums"
+        eType="#//Album" upperBound="-1"
+        eOpposite="#//RegularUser/suggestedAlbums"/>
+  </eClassifiers>
+
+  <!--
+    BusinessUser class (subclass of User, {overlap} so can also be RegularUser)
+    - vATnumber attribute
+    - songs: songs published by this business user (opposite of Song/publishedBy)
+  -->
+  <eClassifiers xsi:type="ecore:EClass" name="BusinessUser" eSuperTypes="#//User">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="vATnumber"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="songs"
+        eType="#//Song" upperBound="-1"
+        eOpposite="#//Song/publishedBy"/>
+  </eClassifiers>
+
+  <!--
+    Single class (subclass of Song, disjoint from Hit)
+    - regularUsers: users who own/follow this single
+        (opposite of RegularUser/singles)
   -->
   <eClassifiers xsi:type="ecore:EClass" name="Single" eSuperTypes="#//Song">
     <eStructuralFeatures xsi:type="ecore:EReference" name="regularUsers"
@@ -281,7 +453,42 @@ The error is caused by a missing `artist` reference on the `Song` class — I de
   </eClassifiers>
 
   <!--
-    Track is the association class between Hit and Album.
+    Hit class (subclass of Song, disjoint from Single)
+    - tracks: Track instances linking this Hit to Albums
+        (containment, opposite of Track/hit)
+  -->
+  <eClassifiers xsi:type="ecore:EClass" name="Hit" eSuperTypes="#//Song">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="tracks"
+        eType="#//Track" containment="true" upperBound="-1"
+        eOpposite="#//Track/hit"/>
+  </eClassifiers>
+
+  <!--
+    Album class (implied by the diagram)
+    - tracks: Track instances linking this Album to Hits
+        (opposite of Track/album)
+    - composer: the RegularUser who composed this album
+        (opposite of RegularUser/composedAlbums)
+    - suggestedBy: RegularUsers who suggested this album
+        (opposite of RegularUser/suggestedAlbums)
+  -->
+  <eClassifiers xsi:type="ecore:EClass" name="Album">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="tracks"
+        eType="#//Track" upperBound="-1"
+        eOpposite="#//Track/album"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="composer"
+        eType="#//RegularUser"
+        eOpposite="#//RegularUser/composedAlbums"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="suggestedBy"
+        eType="#//RegularUser" upperBound="-1"
+        eOpposite="#//RegularUser/suggestedAlbums"/>
+  </eClassifiers>
+
+  <!--
+    Track class (association class between Hit and Album)
+    - trackNumber attribute
+    - hit: the Hit this track belongs to (opposite of Hit/tracks)
+    - album: the Album this track belongs to (opposite of Album/tracks)
   -->
   <eClassifiers xsi:type="ecore:EClass" name="Track">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="trackNumber"
@@ -294,34 +501,65 @@ The error is caused by a missing `artist` reference on the `Song` class — I de
         eOpposite="#//Album/tracks"/>
   </eClassifiers>
 
-  <!--
-    Album class (implied by the diagram).
-    Composed and suggested by RegularUser.
-    Associated with Hit via Track.
-  -->
-  <eClassifiers xsi:type="ecore:EClass" name="Album">
-    <!--
-      Album side of the Track association class.
-    -->
-    <eStructuralFeatures xsi:type="ecore:EReference" name="tracks"
-        eType="#//Track" upperBound="-1"
-        eOpposite="#//Track/album"/>
-    <!--
-      RegularUser "1 - *" Album : compose (RegularUser is the container).
-    -->
-    <eStructuralFeatures xsi:type="ecore:EReference" name="composer"
-        eType="#//RegularUser"
-        eOpposite="#//RegularUser/composedAlbums"/>
-    <!--
-      RegularUser "* - *" Album : suggestion
-    -->
-    <eStructuralFeatures xsi:type="ecore:EReference" name="suggestedBy"
-        eType="#//RegularUser" upperBound="-1"
-        eOpposite="#//RegularUser/suggestedAlbums"/>
+</ecore:EPackage>
+```
+
+Found problems in output:
+ERROR: The opposite must be a feature of the reference's type
+ERROR: The opposite of the opposite may not be a reference different from this one
+
+# Retry 3
+
+The errors are caused by incorrect `eOpposite` references. Let me carefully fix all bidirectional references so that each pair correctly points to each other.
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage
+    xmi:version="2.0"
+    xmlns:xmi="http://www.omg.org/XMI"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore"
+    name="music"
+    nsURI="http://www.example.org/music"
+    nsPrefix="music">
+
+  <!-- Root container: MusicCatalog -->
+  <eClassifiers xsi:type="ecore:EClass" name="MusicCatalog">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="artists"
+        eType="#//Artist" containment="true" upperBound="-1"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="users"
+        eType="#//User" containment="true" upperBound="-1"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="albums"
+        eType="#//Album" containment="true" upperBound="-1"/>
   </eClassifiers>
 
   <!--
-    Artist class. One artist has many songs.
+    Song class
+    - title, year, length, genre attributes
+    - artist: back-reference to Artist (opposite of Artist/songs)
+    - publishedBy: reference to BusinessUser (many Songs to one BusinessUser)
+  -->
+  <eClassifiers xsi:type="ecore:EClass" name="Song">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="title"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="year"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="length"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="genre"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="artist"
+        eType="#//Artist"
+        eOpposite="#//Artist/songs"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="publishedBy"
+        eType="#//BusinessUser"
+        eOpposite="#//BusinessUser/songs"/>
+  </eClassifiers>
+
+  <!--
+    Artist class
+    - birthDate (EDate), name, website attributes
+    - songs: contained songs by this artist (opposite of Song/artist)
   -->
   <eClassifiers xsi:type="ecore:EClass" name="Artist">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="birthDate"
@@ -331,15 +569,16 @@ The error is caused by a missing `artist` reference on the `Song` class — I de
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="website"
         eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="songs"
-        eType="#//Song" upperBound="-1"
+        eType="#//Song" containment="true" upperBound="-1"
         eOpposite="#//Song/artist"/>
   </eClassifiers>
 
   <!--
-    User base class.
-    Subclasses: BusinessUser {total; overlap}, RegularUser
+    User class (abstract, with {total} constraint meaning all users
+    are either RegularUser or BusinessUser)
+    - userID, name, address attributes
   -->
-  <eClassifiers xsi:type="ecore:EClass" name="User">
+  <eClassifiers xsi:type="ecore:EClass" name="User" abstract="true">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="userID"
         eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"
@@ -349,35 +588,96 @@ The error is caused by a missing `artist` reference on the `Song` class — I de
   </eClassifiers>
 
   <!--
-    RegularUser extends User.
-    Composes albums (1 RegularUser - * Albums).
-    Suggests albums (* RegularUser - * Albums).
-    Accesses Singles (* RegularUser - * Single).
+    RegularUser class (subclass of User)
+    - singles: associated singles (opposite of Single/regularUsers)
+    - composedAlbums: albums composed by this user (containment,
+        opposite of Album/composer)
+    - suggestedAlbums: albums suggested by this user
+        (opposite of Album/suggestedBy)
   -->
   <eClassifiers xsi:type="ecore:EClass" name="RegularUser" eSuperTypes="#//User">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="singles"
+        eType="#//Single" upperBound="-1"
+        eOpposite="#//Single/regularUsers"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="composedAlbums"
-        eType="#//Album" upperBound="-1"
-        containment="true"
+        eType="#//Album" upperBound="-1" containment="true"
         eOpposite="#//Album/composer"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="suggestedAlbums"
         eType="#//Album" upperBound="-1"
         eOpposite="#//Album/suggestedBy"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="singles"
-        eType="#//Single" upperBound="-1"
-        eOpposite="#//Single/regularUsers"/>
   </eClassifiers>
 
   <!--
-    BusinessUser extends User.
-    Owns/publishes Songs (1 BusinessUser - * Songs).
-    Constraint: {total; overlap} with User.
+    BusinessUser class (subclass of User, {overlap} so can also be RegularUser)
+    - vATnumber attribute
+    - songs: songs published by this business user (opposite of Song/publishedBy)
   -->
   <eClassifiers xsi:type="ecore:EClass" name="BusinessUser" eSuperTypes="#//User">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="vATnumber"
         eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="songs"
         eType="#//Song" upperBound="-1"
-        eOpposite="#//Song/businessUser"/>
+        eOpposite="#//Song/publishedBy"/>
+  </eClassifiers>
+
+  <!--
+    Single class (subclass of Song, disjoint from Hit)
+    - regularUsers: users who own/follow this single
+        (opposite of RegularUser/singles)
+  -->
+  <eClassifiers xsi:type="ecore:EClass" name="Single" eSuperTypes="#//Song">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="regularUsers"
+        eType="#//RegularUser" upperBound="-1"
+        eOpposite="#//RegularUser/singles"/>
+  </eClassifiers>
+
+  <!--
+    Hit class (subclass of Song, disjoint from Single)
+    - tracks: Track instances linking this Hit to Albums
+        (containment, opposite of Track/hit)
+  -->
+  <eClassifiers xsi:type="ecore:EClass" name="Hit" eSuperTypes="#//Song">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="tracks"
+        eType="#//Track" containment="true" upperBound="-1"
+        eOpposite="#//Track/hit"/>
+  </eClassifiers>
+
+  <!--
+    Album class (implied by the diagram)
+    - tracks: Track instances linking this Album to Hits
+        (opposite of Track/album)
+    - composer: the RegularUser who composed this album
+        (opposite of RegularUser/composedAlbums)
+    - suggestedBy: RegularUsers who suggested this album
+        (opposite of RegularUser/suggestedAlbums)
+  -->
+  <eClassifiers xsi:type="ecore:EClass" name="Album">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="tracks"
+        eType="#//Track" upperBound="-1"
+        eOpposite="#//Track/album"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="composer"
+        eType="#//RegularUser"
+        eOpposite="#//RegularUser/composedAlbums"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="suggestedBy"
+        eType="#//RegularUser" upperBound="-1"
+        eOpposite="#//RegularUser/suggestedAlbums"/>
+  </eClassifiers>
+
+  <!--
+    Track class (association class between Hit and Album)
+    - trackNumber attribute
+    - hit: the Hit this track belongs to (opposite of Hit/tracks)
+    - album: the Album this track belongs to (opposite of Album/tracks)
+  -->
+  <eClassifiers xsi:type="ecore:EClass" name="Track">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="trackNumber"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="hit"
+        eType="#//Hit"
+        eOpposite="#//Hit/tracks"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="album"
+        eType="#//Album"
+        eOpposite="#//Album/tracks"/>
   </eClassifiers>
 
 </ecore:EPackage>

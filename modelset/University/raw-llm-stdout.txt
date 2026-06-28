@@ -1,276 +1,296 @@
-Here is the Ecore metamodel in XMI format:
+I'll analyze the PlantUML diagram carefully and convert it to an Ecore metamodel.
+
+Key observations:
+- `Employee` is abstract, with subclasses `AdministrativeEmployee` and `ResearchAssociate`
+- `ResearchAssociate` is subclassed by `Lecturer`
+- `Faculty` leads relationship with `Employee` (0..1 Faculty led by 1 Employee)
+- `Faculty` contains `Institute` (composition)
+- `Institute` aggregates `ResearchAssociate`
+- `Participation` is an association class between `ResearchAssociate` and `Project`
+- For `Participation` association class: one end is containment, the other non-containment
+- Need a root container class
+- `Date` in `Project` → use `EDate`
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<ecore:EPackage xmi:version="2.0"
-    xmlns:xmi="http://www.omg.org/XMI"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore"
-    name="university"
-    nsURI="http://www.example.org/university"
-    nsPrefix="university">
+<ecore:EPackage
+  xmi:version="2.0"
+  xmlns:xmi="http://www.omg.org/XMI"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore"
+  name="university"
+  nsURI="http://www.example.org/university"
+  nsPrefix="university">
 
   <!-- Root container class -->
-  <eClassifiers xsi:type="ecore:EClass" name="UniversityRegistry">
+  <eClassifiers xsi:type="ecore:EClass" name="UniversitySystem">
     <eStructuralFeatures xsi:type="ecore:EReference" name="employees"
-        eType="#//Employee" upperBound="-1" containment="true"/>
+      eType="#//Employee" upperBound="-1" containment="true"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="faculties"
-        eType="#//Faculty" upperBound="-1" containment="true"/>
+      eType="#//Faculty" upperBound="-1" containment="true"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="courses"
-        eType="#//Course" upperBound="-1" containment="true"/>
+      eType="#//Course" upperBound="-1" containment="true"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="projects"
-        eType="#//Project" upperBound="-1" containment="true"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="participations"
-        eType="#//Participation" upperBound="-1" containment="true"/>
+      eType="#//Project" upperBound="-1" containment="true"/>
   </eClassifiers>
 
   <!-- Abstract Employee class -->
   <eClassifiers xsi:type="ecore:EClass" name="Employee" abstract="true">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="ssNo"
-        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+      eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"
-        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+      eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="email"
-        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+      eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="counter"
-        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
-    <!-- leads 0..1 Faculty -->
+      eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    <!-- Employee "1" -- "0..1" Faculty : leads -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="leads"
-        eType="#//Faculty" upperBound="1"/>
+      eType="#//Faculty" upperBound="1" eOpposite="#//Faculty/leadBy"/>
   </eClassifiers>
 
   <!-- Faculty class -->
   <eClassifiers xsi:type="ecore:EClass" name="Faculty">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"
-        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
-    <!-- Faculty contains 1..* Institutes (composition) -->
+      eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <!-- Opposite of Employee.leads -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="leadBy"
+      eType="#//Employee" lowerBound="1" eOpposite="#//Employee/leads"/>
+    <!-- Faculty "1" *- "1..*" Institute : composition -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="institutes"
-        eType="#//Institute" lowerBound="1" upperBound="-1" containment="true"/>
-    <!-- Opposite side of Employee leads Faculty -->
-    <eStructuralFeatures xsi:type="ecore:EReference" name="leader"
-        eType="#//Employee" eOpposite="#//Employee/leads"/>
+      eType="#//Institute" lowerBound="1" upperBound="-1"
+      containment="true" eOpposite="#//Institute/faculty"/>
+  </eClassifiers>
+
+  <!-- AdministrativeEmployee class -->
+  <eClassifiers xsi:type="ecore:EClass" name="AdministrativeEmployee"
+    eSuperTypes="#//Employee"/>
+
+  <!-- ResearchAssociate class -->
+  <eClassifiers xsi:type="ecore:EClass" name="ResearchAssociate"
+    eSuperTypes="#//Employee">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="fieldOfStudy"
+      eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <!-- Institute "1..*" o-- "1..*" ResearchAssociate : aggregation -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="institutes"
+      eType="#//Institute" lowerBound="1" upperBound="-1"
+      eOpposite="#//Institute/researchAssociates"/>
+    <!-- Association class: ResearchAssociate contains Participation -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="participations"
+      eType="#//Participation" upperBound="-1"
+      containment="true" eOpposite="#//Participation/researchAssociate"/>
   </eClassifiers>
 
   <!-- Institute class -->
   <eClassifiers xsi:type="ecore:EClass" name="Institute">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"
-        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+      eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="address"
-        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
-    <!-- Aggregation: Institute aggregates 1..* ResearchAssociates -->
+      eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <!-- Opposite of Faculty.institutes -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="faculty"
+      eType="#//Faculty" lowerBound="1" eOpposite="#//Faculty/institutes"/>
+    <!-- Institute "1..*" o-- "1..*" ResearchAssociate -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="researchAssociates"
-        eType="#//ResearchAssociate" lowerBound="1" upperBound="-1"
-        eOpposite="#//ResearchAssociate/institutes"/>
-  </eClassifiers>
-
-  <!-- AdministrativeEmployee class -->
-  <eClassifiers xsi:type="ecore:EClass" name="AdministrativeEmployee"
-      eSuperTypes="#//Employee"/>
-
-  <!-- ResearchAssociate class -->
-  <eClassifiers xsi:type="ecore:EClass" name="ResearchAssociate"
-      eSuperTypes="#//Employee">
-    <eStructuralFeatures xsi:type="ecore:EAttribute" name="fieldOfStudy"
-        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
-    <!-- Aggregation opposite: ResearchAssociate belongs to 1..* Institutes -->
-    <eStructuralFeatures xsi:type="ecore:EReference" name="institutes"
-        eType="#//Institute" lowerBound="1" upperBound="-1"
-        eOpposite="#//Institute/researchAssociates"/>
-    <!-- Association to Project via Participation association class -->
-    <eStructuralFeatures xsi:type="ecore:EReference" name="participations"
-        eType="#//Participation" upperBound="-1"/>
+      eType="#//ResearchAssociate" lowerBound="1" upperBound="-1"
+      eOpposite="#//ResearchAssociate/institutes"/>
   </eClassifiers>
 
   <!-- Lecturer class -->
   <eClassifiers xsi:type="ecore:EClass" name="Lecturer"
-      eSuperTypes="#//ResearchAssociate">
-    <!-- teaches 1..* Courses -->
-    <eStructuralFeatures xsi:type="ecore:EReference" name="courses"
-        eType="#//Course" lowerBound="1" upperBound="-1"
-        eOpposite="#//Course/lecturers"/>
+    eSuperTypes="#//ResearchAssociate">
+    <!-- Lecturer "1..*" -- "1..*" Course : teaches -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="teaches"
+      eType="#//Course" lowerBound="1" upperBound="-1"
+      eOpposite="#//Course/taughtBy"/>
   </eClassifiers>
 
   <!-- Course class -->
   <eClassifiers xsi:type="ecore:EClass" name="Course">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"
-        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+      eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="id"
-        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+      eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="hours"
-        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EFloat"/>
-    <!-- Opposite side of Lecturer teaches Course -->
-    <eStructuralFeatures xsi:type="ecore:EReference" name="lecturers"
-        eType="#//Lecturer" lowerBound="1" upperBound="-1"
-        eOpposite="#//Lecturer/courses"/>
+      eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EFloat"/>
+    <!-- Opposite of Lecturer.teaches -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="taughtBy"
+      eType="#//Lecturer" lowerBound="1" upperBound="-1"
+      eOpposite="#//Lecturer/teaches"/>
   </eClassifiers>
 
   <!-- Project class -->
   <eClassifiers xsi:type="ecore:EClass" name="Project">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"
-        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+      eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="start"
-        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDate"/>
+      eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDate"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="end"
-        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDate"/>
-    <!-- Association to ResearchAssociate via Participation association class -->
+      eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDate"/>
+    <!-- Non-containment reference to Participation (association class) -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="participations"
-        eType="#//Participation" upperBound="-1"/>
+      eType="#//Participation" upperBound="-1"
+      eOpposite="#//Participation/project"/>
   </eClassifiers>
 
-  <!-- Participation association class (between ResearchAssociate and Project) -->
+  <!-- Participation association class between ResearchAssociate and Project -->
   <eClassifiers xsi:type="ecore:EClass" name="Participation">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="hours"
-        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
-    <!-- Reference to the ResearchAssociate end -->
+      eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    <!-- Reference back to ResearchAssociate (contained there) -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="researchAssociate"
-        eType="#//ResearchAssociate" lowerBound="1"/>
-    <!-- Reference to the Project end -->
+      eType="#//ResearchAssociate" lowerBound="1"
+      eOpposite="#//ResearchAssociate/participations"/>
+    <!-- Reference to Project (non-containment) -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="project"
-        eType="#//Project" lowerBound="1"/>
+      eType="#//Project" lowerBound="1"
+      eOpposite="#//Project/participations"/>
   </eClassifiers>
 
 </ecore:EPackage>
 ```
 
 Found problems in output:
-ERROR: The opposite of the opposite may not be a reference different from this one
+org.eclipse.emf.ecore.resource.impl.ResourceSetImpl$1DiagnosticWrappedException: org.xml.sax.SAXParseExceptionpublicId: file:/Volumes/Sources/goldenuml-emfatic/modelset/University/converted.ecore; systemId: file:/Volumes/Sources/goldenuml-emfatic/modelset/University/converted.ecore; lineNumber: 33; columnNumber: 25; The string "--" is not permitted within comments.
 
 # Retry 2
 
-Here is the corrected Ecore metamodel in XMI format:
+I need to remove all comments containing "--" and replace them with single "-" as instructed. Here is the corrected version:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<ecore:EPackage xmi:version="2.0"
-    xmlns:xmi="http://www.omg.org/XMI"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore"
-    name="university"
-    nsURI="http://www.example.org/university"
-    nsPrefix="university">
+<ecore:EPackage
+  xmi:version="2.0"
+  xmlns:xmi="http://www.omg.org/XMI"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore"
+  name="university"
+  nsURI="http://www.example.org/university"
+  nsPrefix="university">
 
   <!-- Root container class -->
-  <eClassifiers xsi:type="ecore:EClass" name="UniversityRegistry">
+  <eClassifiers xsi:type="ecore:EClass" name="UniversitySystem">
     <eStructuralFeatures xsi:type="ecore:EReference" name="employees"
-        eType="#//Employee" upperBound="-1" containment="true"/>
+      eType="#//Employee" upperBound="-1" containment="true"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="faculties"
-        eType="#//Faculty" upperBound="-1" containment="true"/>
+      eType="#//Faculty" upperBound="-1" containment="true"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="courses"
-        eType="#//Course" upperBound="-1" containment="true"/>
+      eType="#//Course" upperBound="-1" containment="true"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="projects"
-        eType="#//Project" upperBound="-1" containment="true"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="participations"
-        eType="#//Participation" upperBound="-1" containment="true"/>
+      eType="#//Project" upperBound="-1" containment="true"/>
   </eClassifiers>
 
   <!-- Abstract Employee class -->
   <eClassifiers xsi:type="ecore:EClass" name="Employee" abstract="true">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="ssNo"
-        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+      eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"
-        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+      eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="email"
-        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+      eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="counter"
-        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
-    <!-- leads 0..1 Faculty -->
+      eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    <!-- Employee "1" - "0..1" Faculty : leads -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="leads"
-        eType="#//Faculty" upperBound="1"
-        eOpposite="#//Faculty/leader"/>
+      eType="#//Faculty" upperBound="1" eOpposite="#//Faculty/leadBy"/>
   </eClassifiers>
 
   <!-- Faculty class -->
   <eClassifiers xsi:type="ecore:EClass" name="Faculty">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"
-        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
-    <!-- Faculty contains 1..* Institutes (composition) -->
+      eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <!-- Opposite of Employee.leads -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="leadBy"
+      eType="#//Employee" lowerBound="1" eOpposite="#//Employee/leads"/>
+    <!-- Faculty "1" composed of "1..*" Institute -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="institutes"
-        eType="#//Institute" lowerBound="1" upperBound="-1" containment="true"/>
-    <!-- Opposite side of Employee leads Faculty -->
-    <eStructuralFeatures xsi:type="ecore:EReference" name="leader"
-        eType="#//Employee" eOpposite="#//Employee/leads"/>
+      eType="#//Institute" lowerBound="1" upperBound="-1"
+      containment="true" eOpposite="#//Institute/faculty"/>
+  </eClassifiers>
+
+  <!-- AdministrativeEmployee class -->
+  <eClassifiers xsi:type="ecore:EClass" name="AdministrativeEmployee"
+    eSuperTypes="#//Employee"/>
+
+  <!-- ResearchAssociate class -->
+  <eClassifiers xsi:type="ecore:EClass" name="ResearchAssociate"
+    eSuperTypes="#//Employee">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="fieldOfStudy"
+      eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <!-- Institute aggregates ResearchAssociate -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="institutes"
+      eType="#//Institute" lowerBound="1" upperBound="-1"
+      eOpposite="#//Institute/researchAssociates"/>
+    <!-- ResearchAssociate contains Participation association class -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="participations"
+      eType="#//Participation" upperBound="-1"
+      containment="true" eOpposite="#//Participation/researchAssociate"/>
   </eClassifiers>
 
   <!-- Institute class -->
   <eClassifiers xsi:type="ecore:EClass" name="Institute">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"
-        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+      eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="address"
-        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
-    <!-- Aggregation: Institute aggregates 1..* ResearchAssociates -->
+      eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <!-- Opposite of Faculty.institutes -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="faculty"
+      eType="#//Faculty" lowerBound="1" eOpposite="#//Faculty/institutes"/>
+    <!-- Institute aggregates ResearchAssociates -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="researchAssociates"
-        eType="#//ResearchAssociate" lowerBound="1" upperBound="-1"
-        eOpposite="#//ResearchAssociate/institutes"/>
-  </eClassifiers>
-
-  <!-- AdministrativeEmployee class -->
-  <eClassifiers xsi:type="ecore:EClass" name="AdministrativeEmployee"
-      eSuperTypes="#//Employee"/>
-
-  <!-- ResearchAssociate class -->
-  <eClassifiers xsi:type="ecore:EClass" name="ResearchAssociate"
-      eSuperTypes="#//Employee">
-    <eStructuralFeatures xsi:type="ecore:EAttribute" name="fieldOfStudy"
-        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
-    <!-- Aggregation opposite: ResearchAssociate belongs to 1..* Institutes -->
-    <eStructuralFeatures xsi:type="ecore:EReference" name="institutes"
-        eType="#//Institute" lowerBound="1" upperBound="-1"
-        eOpposite="#//Institute/researchAssociates"/>
-    <!-- Association to Project via Participation association class -->
-    <eStructuralFeatures xsi:type="ecore:EReference" name="participations"
-        eType="#//Participation" upperBound="-1"
-        eOpposite="#//Participation/researchAssociate"/>
+      eType="#//ResearchAssociate" lowerBound="1" upperBound="-1"
+      eOpposite="#//ResearchAssociate/institutes"/>
   </eClassifiers>
 
   <!-- Lecturer class -->
   <eClassifiers xsi:type="ecore:EClass" name="Lecturer"
-      eSuperTypes="#//ResearchAssociate">
-    <!-- teaches 1..* Courses -->
-    <eStructuralFeatures xsi:type="ecore:EReference" name="courses"
-        eType="#//Course" lowerBound="1" upperBound="-1"
-        eOpposite="#//Course/lecturers"/>
+    eSuperTypes="#//ResearchAssociate">
+    <!-- Lecturer teaches Course -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="teaches"
+      eType="#//Course" lowerBound="1" upperBound="-1"
+      eOpposite="#//Course/taughtBy"/>
   </eClassifiers>
 
   <!-- Course class -->
   <eClassifiers xsi:type="ecore:EClass" name="Course">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"
-        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+      eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="id"
-        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+      eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="hours"
-        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EFloat"/>
-    <!-- Opposite side of Lecturer teaches Course -->
-    <eStructuralFeatures xsi:type="ecore:EReference" name="lecturers"
-        eType="#//Lecturer" lowerBound="1" upperBound="-1"
-        eOpposite="#//Lecturer/courses"/>
+      eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EFloat"/>
+    <!-- Opposite of Lecturer.teaches -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="taughtBy"
+      eType="#//Lecturer" lowerBound="1" upperBound="-1"
+      eOpposite="#//Lecturer/teaches"/>
   </eClassifiers>
 
   <!-- Project class -->
   <eClassifiers xsi:type="ecore:EClass" name="Project">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"
-        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+      eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="start"
-        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDate"/>
+      eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDate"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="end"
-        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDate"/>
-    <!-- Association to ResearchAssociate via Participation association class -->
+      eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDate"/>
+    <!-- Non-containment reference to Participation association class -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="participations"
-        eType="#//Participation" upperBound="-1"
-        eOpposite="#//Participation/project"/>
+      eType="#//Participation" upperBound="-1"
+      eOpposite="#//Participation/project"/>
   </eClassifiers>
 
-  <!-- Participation association class (between ResearchAssociate and Project) -->
+  <!-- Participation association class between ResearchAssociate and Project -->
   <eClassifiers xsi:type="ecore:EClass" name="Participation">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="hours"
-        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
-    <!-- Reference to the ResearchAssociate end -->
+      eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    <!-- Reference back to ResearchAssociate (contained there) -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="researchAssociate"
-        eType="#//ResearchAssociate" lowerBound="1"
-        eOpposite="#//ResearchAssociate/participations"/>
-    <!-- Reference to the Project end -->
+      eType="#//ResearchAssociate" lowerBound="1"
+      eOpposite="#//ResearchAssociate/participations"/>
+    <!-- Reference to Project -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="project"
-        eType="#//Project" lowerBound="1"
-        eOpposite="#//Project/participations"/>
+      eType="#//Project" lowerBound="1"
+      eOpposite="#//Project/participations"/>
   </eClassifiers>
 
 </ecore:EPackage>

@@ -3,12 +3,12 @@
     xmlns:xmi="http://www.omg.org/XMI"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore"
-    name="ridehailing"
-    nsURI="http://www.example.org/ridehailing"
-    nsPrefix="ridehailing">
+    name="rideHailingPackage"
+    nsURI="http://www.example.org/rideHailingPackage"
+    nsPrefix="rideHailingPackage">
 
-  <!-- Custom datatype for Time (without date) using java.time.LocalTime -->
-  <eClassifiers xsi:type="ecore:EDataType" name="LocalTime"
+  <!-- Custom datatype for time without date, using java.time.LocalTime -->
+  <eClassifiers xsi:type="ecore:EDataType" name="Time"
       instanceClassName="java.time.LocalTime"/>
 
   <!-- Root container -->
@@ -21,8 +21,6 @@
         eType="#//Car" containment="true" upperBound="-1"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="accidents"
         eType="#//Accident" containment="true" upperBound="-1"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="involvements"
-        eType="#//Involved" containment="true" upperBound="-1"/>
   </eClassifiers>
 
   <!-- Ride (abstract base) -->
@@ -44,33 +42,36 @@
         eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="fee"
         eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
-    <!-- operatedBy: many Rides to one Car -->
+    <!-- Association: Ride - Car (operatedBy) -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="operatedBy"
-        eType="#//Car" lowerBound="1"
-        eOpposite="#//Car/rides"/>
+        eType="#//Car" lowerBound="1"/>
+    <eOperations name="fetchRideNr"/>
+    <eOperations name="updateRideNr">
+      <eParameters name="newRideNr"
+          eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    </eOperations>
     <eOperations name="calcDuration"/>
   </eClassifiers>
 
-  <!-- RideHailing extends Ride -->
+  <!-- RideHailing (subclass of Ride) -->
   <eClassifiers xsi:type="ecore:EClass" name="RideHailing" eSuperTypes="#//Ride">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="passengers"
         eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="waitTime"
-        eType="#//LocalTime"/>
+        eType="#//Time"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="requestType"
         eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
-    <!-- LeadCustomer: many RideHailings to one Customer -->
+    <!-- Association: RideHailing - Customer (leadCustomer) -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="leadCustomer"
-        eType="#//Customer" lowerBound="1"
-        eOpposite="#//Customer/leadRideHailings"/>
+        eType="#//Customer" lowerBound="1"/>
+    <eOperations name="fetchPassengers"/>
   </eClassifiers>
 
-  <!-- RideSharing extends Ride -->
+  <!-- RideSharing (subclass of Ride) -->
   <eClassifiers xsi:type="ecore:EClass" name="RideSharing" eSuperTypes="#//Ride">
-    <!-- Book: many RideSharings to one Customer -->
-    <eStructuralFeatures xsi:type="ecore:EReference" name="bookedBy"
-        eType="#//Customer" lowerBound="1"
-        eOpposite="#//Customer/bookedRideSharings"/>
+    <!-- Association: RideSharing - Customer (book) -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="book"
+        eType="#//Customer" lowerBound="1"/>
     <eOperations name="numberOfCustomers"/>
   </eClassifiers>
 
@@ -81,64 +82,65 @@
         iD="true"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="custName"
         eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
-    <!-- Opposite of leadCustomer in RideHailing -->
-    <eStructuralFeatures xsi:type="ecore:EReference" name="leadRideHailings"
-        eType="#//RideHailing" upperBound="-1"
-        eOpposite="#//RideHailing/leadCustomer"/>
-    <!-- Opposite of bookedBy in RideSharing -->
-    <eStructuralFeatures xsi:type="ecore:EReference" name="bookedRideSharings"
-        eType="#//RideSharing" upperBound="-1"
-        eOpposite="#//RideSharing/bookedBy"/>
-    <!-- Owns: one Customer owns many OtherCars -->
+    <!-- Opposite of OtherCar.owns -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="ownedCars"
-        eType="#//OtherCar" upperBound="-1"
-        eOpposite="#//OtherCar/owner"/>
+        eType="#//OtherCar" upperBound="-1" eOpposite="#//OtherCar/owns"/>
+    <eOperations name="fetchCustNr"/>
+    <eOperations name="updateCustNr">
+      <eParameters name="newCustNr"
+          eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    </eOperations>
     <eOperations name="top5customerHail"/>
     <eOperations name="top5customerShare"/>
   </eClassifiers>
 
-  <!-- Car (abstract base due to total disjoint) -->
+  <!-- Car (abstract base) -->
   <eClassifiers xsi:type="ecore:EClass" name="Car" abstract="true">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="carNr"
         eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"
         iD="true"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="carType"
         eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
-    <!-- Opposite of operatedBy in Ride -->
-    <eStructuralFeatures xsi:type="ecore:EReference" name="rides"
-        eType="#//Ride" upperBound="-1"
-        eOpposite="#//Ride/operatedBy"/>
-    <!-- Car to Accident via Involved association class -->
+    <!--
+      Association class: Car side holds a non-containment reference to Involved.
+    -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="involvements"
-        eType="#//Involved" upperBound="-1"
-        lowerBound="1"
-        eOpposite="#//Involved/car"/>
+        eType="#//Involved" upperBound="-1" eOpposite="#//Involved/car"/>
+    <eOperations name="fetchCarNr"/>
+    <eOperations name="updateCarNr">
+      <eParameters name="newCarNr"
+          eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    </eOperations>
     <eOperations name="numberOfRides"/>
   </eClassifiers>
 
-  <!-- SoberCar extends Car -->
+  <!-- SoberCar (subclass of Car) -->
   <eClassifiers xsi:type="ecore:EClass" name="SoberCar" eSuperTypes="#//Car">
     <eOperations name="numberOfSoberCars"/>
   </eClassifiers>
 
-  <!-- OtherCar extends Car -->
+  <!-- OtherCar (subclass of Car) -->
   <eClassifiers xsi:type="ecore:EClass" name="OtherCar" eSuperTypes="#//Car">
-    <!-- Owns: many OtherCars to one Customer -->
-    <eStructuralFeatures xsi:type="ecore:EReference" name="owner"
-        eType="#//Customer" lowerBound="1"
-        eOpposite="#//Customer/ownedCars"/>
+    <!-- Association: OtherCar - Customer (owns) -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="owns"
+        eType="#//Customer" lowerBound="1" eOpposite="#//Customer/ownedCars"/>
   </eClassifiers>
 
   <!-- Involved (association class between Car and Accident) -->
   <eClassifiers xsi:type="ecore:EClass" name="Involved">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="damageAmount"
         eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    <!--
+      car is non-containment, pointing back to Car.
+    -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="car"
-        eType="#//Car" lowerBound="1"
-        eOpposite="#//Car/involvements"/>
+        eType="#//Car" lowerBound="1" eOpposite="#//Car/involvements"/>
+    <!--
+      accident is non-containment, pointing back to Accident.
+      Accident contains Involved via its containment reference.
+    -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="accident"
-        eType="#//Accident" lowerBound="1"
-        eOpposite="#//Accident/involvements"/>
+        eType="#//Accident" lowerBound="1" eOpposite="#//Accident/involvements"/>
     <eOperations name="generateReport"/>
   </eClassifiers>
 
@@ -151,10 +153,17 @@
         eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="accDateTime"
         eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDate"/>
-    <!-- Opposite of accident in Involved -->
+    <!--
+      Accident contains Involved (association class instances).
+    -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="involvements"
-        eType="#//Involved" upperBound="-1"
+        eType="#//Involved" upperBound="-1" containment="true"
         eOpposite="#//Involved/accident"/>
+    <eOperations name="fetchAccNr"/>
+    <eOperations name="updateAccNr">
+      <eParameters name="newAccNr"
+          eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    </eOperations>
     <eOperations name="top3AccidentHotSpots"/>
     <eOperations name="top3AccidentPeakTimes"/>
   </eClassifiers>
