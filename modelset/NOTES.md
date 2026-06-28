@@ -21,10 +21,8 @@ There is no clear root container in many of the cases.
 
 # Per case (second batch after rerun for general container class)
 
-* AirTravel:
-  * Employee not contained anywhere (should be in Airline).
-* BankAccount:
-  * Customer not contained anywhere (should be in a new top-level container).
+Many of the issues come from the PlantUML diagrams not modelling a clear containment hierarchy, requiring the LLM to guess which association ends should become containment references.
+
 * Boeing:
   * Employee inside AirlineRegistry instead of Airline.
 * CardGameApp:
@@ -47,6 +45,8 @@ There is no clear root container in many of the cases.
 * HelpingHands:
   * Pickup / drop-off routes are modelled in the wrong direction (from Route to Item, rather than the other way).
   * Dates are contained in the root container, rather than where they are used (`Volunteer` and `Route`).
+* HotelBookingManager:
+  * Booking is contained in the main container, instead of being inside Hotel.
 * Kinepolis:
   * AlternativeOffer contained in `OnlineTicket` (should be in `Show`), although this is hard to know from just the PlantUML sources.
 * LabTracker:
@@ -71,6 +71,3 @@ There is no clear root container in many of the cases.
   * RuntimeElement uses a LocalTime instead of a full timestamp (type name was used over attribute name).
 * TransportCompany:
   * Several typos got fixed here.
-* TreatmentPlan:
-  * Both Diagnosis and TreatmentPlan can contain Treatment. TreatmentPlan should not contain Treatment.
-  * Consultation is not contained anywhere.

@@ -1,0 +1,30 @@
+pre {
+  var uncontained = EClass.all.asSet();
+  for (ref in EReference.all.select(r|r.containment)) {
+    uncontained.remove(ref.eType);
+    uncontained.removeAll(ref.eType.eAllSubTypes());
+  }
+}
+
+context EClass {
+  constraint MustHaveContainer {
+    guard : uncontained.size() > 1 and not self.eAttributes.isEmpty() and not self.abstract
+    check : not uncontained.contains(self)
+    message : self.name + ' should be contained somewhere'
+  }
+
+  constraint OnlyOneContainmentEOpposite {
+    check {
+      var opposites = self.eReferences.select(r|r.eOpposite.isDefined() and r.eOpposite.containment);
+      return opposites.size() <= 1;
+    }
+    message {
+      var refList = opposites.map(opp | opp.eContainer.name + '.' + opp.name).concat(', ');
+      return self.name + ' has more than one eOpposite containment reference (' + refList + '): it should only have one at most';
+    }
+  }
+}
+
+operation EClass eAllSubTypes() {
+  return EClass.all.select(st|st.eAllSuperTypes.contains(self));
+}

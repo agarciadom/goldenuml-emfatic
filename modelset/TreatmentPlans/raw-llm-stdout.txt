@@ -1,60 +1,75 @@
-I'll analyze the PlantUML diagram and convert it to an Ecore metamodel in XMI format.
+I'll analyze the PlantUML diagram and convert it to an Ecore metamodel. Let me identify the key elements:
 
-Key observations:
-- There's an association class `AdvisedExaminationType` between `TreatmentPlan` and `ExaminationType`
-- Need a root container class since none exists
-- All associations need to be mapped to EReferences with proper containment
+1. Classes and their attributes
+2. Associations (including the association class `AdvisedExaminationType` between `TreatmentPlan` and `ExaminationType`)
+3. Multiplicities
+4. A root container class is needed
+
+For the association class `AdvisedExaminationType` linking `TreatmentPlan` and `ExaminationType`:
+- One end will contain `AdvisedExaminationType` (from `TreatmentPlan`)
+- The other end will reference `AdvisedExaminationType` (from `ExaminationType`)
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<ecore:EPackage xmi:version="2.0"
+<ecore:EPackage
+    xmi:version="2.0"
     xmlns:xmi="http://www.omg.org/XMI"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore"
-    name="healthcareSystem"
-    nsURI="http://www.example.org/healthcareSystem"
-    nsPrefix="healthcareSystem">
+    name="medicalSystem"
+    nsURI="http://www.example.org/medicalSystem"
+    nsPrefix="medicalSystem">
 
   <!-- Root container -->
-  <eClassifiers xsi:type="ecore:EClass" name="HealthcareSystem">
+  <eClassifiers xsi:type="ecore:EClass" name="MedicalSystem">
     <eStructuralFeatures xsi:type="ecore:EReference" name="problemTypes"
         eType="#//ProblemType" containment="true" upperBound="-1"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="examinationTypes"
+        eType="#//ExaminationType" containment="true" upperBound="-1"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="patients"
         eType="#//Patient" containment="true" upperBound="-1"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="doctors"
         eType="#//Doctor" containment="true" upperBound="-1"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="hospitals"
         eType="#//Hospital" containment="true" upperBound="-1"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="examinationTypes"
-        eType="#//ExaminationType" containment="true" upperBound="-1"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="consultations"
+        eType="#//Consultation" containment="true" upperBound="-1"/>
   </eClassifiers>
 
   <!-- ProblemType -->
   <eClassifiers xsi:type="ecore:EClass" name="ProblemType">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="type"
         eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <!-- ProblemType "1" - "0..1" TreatmentPlan -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="treatmentPlan"
-        eType="#//TreatmentPlan" containment="true" upperBound="1" lowerBound="0"/>
+        eType="#//TreatmentPlan" containment="true" upperBound="1"/>
+    <!-- ProblemType "1" -- "0..*" Diagnosis -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="diagnoses"
         eType="#//Diagnosis" containment="true" upperBound="-1"/>
   </eClassifiers>
 
   <!-- TreatmentPlan -->
   <eClassifiers xsi:type="ecore:EClass" name="TreatmentPlan">
+    <!-- Association class end: TreatmentPlan contains AdvisedExaminationType -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="advisedExaminationTypes"
         eType="#//AdvisedExaminationType" containment="true" upperBound="-1"/>
+    <!-- TreatmentPlan "1" -- "0..*" Treatment -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="treatments"
         eType="#//Treatment" containment="true" upperBound="-1"/>
+    <!-- Opposite back-reference to ProblemType -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="problemType"
         eType="#//ProblemType" eOpposite="#//ProblemType/treatmentPlan"/>
   </eClassifiers>
 
   <!-- AdvisedExaminationType (association class between TreatmentPlan and ExaminationType) -->
   <eClassifiers xsi:type="ecore:EClass" name="AdvisedExaminationType">
+    <!-- Non-containment reference back to TreatmentPlan -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="treatmentPlan"
         eType="#//TreatmentPlan" eOpposite="#//TreatmentPlan/advisedExaminationTypes"/>
+    <!-- Non-containment reference to ExaminationType -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="examinationType"
         eType="#//ExaminationType" eOpposite="#//ExaminationType/advisedExaminationTypes"/>
+    <!-- AdvisedExaminationType "1" -- "0..*" AdvisedExamination -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="advisedExaminations"
         eType="#//AdvisedExamination" containment="true" upperBound="-1"/>
   </eClassifiers>
@@ -63,30 +78,38 @@ Key observations:
   <eClassifiers xsi:type="ecore:EClass" name="ExaminationType">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="type"
         eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <!-- Non-containment reference to AdvisedExaminationType (association class) -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="advisedExaminationTypes"
         eType="#//AdvisedExaminationType" upperBound="-1"
         eOpposite="#//AdvisedExaminationType/examinationType"/>
+    <!-- ExaminationType "1" -- "0..*" Permission -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="permissions"
-        eType="#//Permission" upperBound="-1"
-        eOpposite="#//Permission/examinationType"/>
+        eType="#//Permission" upperBound="-1" eOpposite="#//Permission/examinationType"/>
   </eClassifiers>
 
   <!-- Diagnosis -->
   <eClassifiers xsi:type="ecore:EClass" name="Diagnosis">
+    <!-- Diagnosis "1" - "0..*" Treatment -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="treatments"
         eType="#//Treatment" containment="true" upperBound="-1"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="consultation"
-        eType="#//Consultation" eOpposite="#//Consultation/diagnoses"/>
+    <!-- Opposite back-reference to ProblemType -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="problemType"
         eType="#//ProblemType" eOpposite="#//ProblemType/diagnoses"/>
+    <!-- Opposite back-reference to Consultation -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="consultation"
+        eType="#//Consultation" eOpposite="#//Consultation/diagnoses"/>
   </eClassifiers>
 
   <!-- Treatment -->
   <eClassifiers xsi:type="ecore:EClass" name="Treatment">
+    <!-- Treatment "1" - "0..*" AdvisedExamination -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="advisedExaminations"
-        eType="#//AdvisedExamination" containment="true" upperBound="-1"/>
+        eType="#//AdvisedExamination" upperBound="-1"
+        eOpposite="#//AdvisedExamination/treatment"/>
+    <!-- Treatment "1" -- "0..*" FreeExamination -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="freeExaminations"
         eType="#//FreeExamination" containment="true" upperBound="-1"/>
+    <!-- Opposite back-references -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="diagnosis"
         eType="#//Diagnosis" eOpposite="#//Diagnosis/treatments"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="treatmentPlan"
@@ -95,64 +118,75 @@ Key observations:
 
   <!-- AdvisedExamination -->
   <eClassifiers xsi:type="ecore:EClass" name="AdvisedExamination">
-    <eStructuralFeatures xsi:type="ecore:EReference" name="permission"
-        eType="#//Permission" eOpposite="#//Permission/advisedExaminations"/>
+    <!-- Opposite back-reference to AdvisedExaminationType -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="advisedExaminationType"
         eType="#//AdvisedExaminationType"
         eOpposite="#//AdvisedExaminationType/advisedExaminations"/>
+    <!-- AdvisedExamination "0..*" - "1" Permission -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="permission"
+        eType="#//Permission" eOpposite="#//Permission/advisedExaminations"/>
+    <!-- Back-reference to Treatment -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="treatment"
         eType="#//Treatment" eOpposite="#//Treatment/advisedExaminations"/>
   </eClassifiers>
 
   <!-- FreeExamination -->
   <eClassifiers xsi:type="ecore:EClass" name="FreeExamination">
+    <!-- FreeExamination "0..*" -- "1" Permission -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="permission"
         eType="#//Permission" eOpposite="#//Permission/freeExaminations"/>
+    <!-- Back-reference to Treatment -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="treatment"
         eType="#//Treatment" eOpposite="#//Treatment/freeExaminations"/>
   </eClassifiers>
 
   <!-- Permission -->
   <eClassifiers xsi:type="ecore:EClass" name="Permission">
+    <!-- Permission "0..*" -- "1" Hospital -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="hospital"
+        eType="#//Hospital" eOpposite="#//Hospital/permissions"/>
+    <!-- ExaminationType "1" -- "0..*" Permission -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="examinationType"
+        eType="#//ExaminationType" eOpposite="#//ExaminationType/permissions"/>
+    <!-- AdvisedExamination "0..*" - "1" Permission -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="advisedExaminations"
-        eType="#//AdvisedExamination" upperBound="-1"
+        eType="#//AdvisedExamination" containment="true" upperBound="-1"
         eOpposite="#//AdvisedExamination/permission"/>
+    <!-- FreeExamination "0..*" -- "1" Permission -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="freeExaminations"
         eType="#//FreeExamination" upperBound="-1"
         eOpposite="#//FreeExamination/permission"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="examinationType"
-        eType="#//ExaminationType" eOpposite="#//ExaminationType/permissions"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="hospital"
-        eType="#//Hospital" eOpposite="#//Hospital/permissions"/>
   </eClassifiers>
 
   <!-- Consultation -->
   <eClassifiers xsi:type="ecore:EClass" name="Consultation">
-    <eStructuralFeatures xsi:type="ecore:EReference" name="diagnoses"
-        eType="#//Diagnosis" upperBound="-1"
-        eOpposite="#//Diagnosis/consultation"/>
+    <!-- Consultation "0..*" -- "1" Affiliation -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="affiliation"
         eType="#//Affiliation" eOpposite="#//Affiliation/consultations"/>
+    <!-- Consultation "0..*" -- "1" Patient -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="patient"
         eType="#//Patient" eOpposite="#//Patient/consultations"/>
+    <!-- Consultation "0..*" -- "1" Diagnosis via Diagnosis side -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="diagnoses"
+        eType="#//Diagnosis" upperBound="-1" eOpposite="#//Diagnosis/consultation"/>
   </eClassifiers>
 
   <!-- Patient -->
   <eClassifiers xsi:type="ecore:EClass" name="Patient">
     <eStructuralFeatures xsi:type="ecore:EReference" name="consultations"
-        eType="#//Consultation" upperBound="-1"
-        eOpposite="#//Consultation/patient"/>
+        eType="#//Consultation" upperBound="-1" eOpposite="#//Consultation/patient"/>
   </eClassifiers>
 
   <!-- Affiliation -->
   <eClassifiers xsi:type="ecore:EClass" name="Affiliation">
-    <eStructuralFeatures xsi:type="ecore:EReference" name="consultations"
-        eType="#//Consultation" upperBound="-1"
-        eOpposite="#//Consultation/affiliation"/>
+    <!-- Affiliation "0..*" -- "1" Doctor -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="doctor"
         eType="#//Doctor" eOpposite="#//Doctor/affiliations"/>
+    <!-- Affiliation "0..*" -- "1" Hospital -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="hospital"
         eType="#//Hospital" eOpposite="#//Hospital/affiliations"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="consultations"
+        eType="#//Consultation" upperBound="-1" eOpposite="#//Consultation/affiliation"/>
   </eClassifiers>
 
   <!-- Doctor -->
@@ -165,8 +199,7 @@ Key observations:
   <!-- Hospital -->
   <eClassifiers xsi:type="ecore:EClass" name="Hospital">
     <eStructuralFeatures xsi:type="ecore:EReference" name="affiliations"
-        eType="#//Affiliation" containment="true" upperBound="-1"
-        eOpposite="#//Affiliation/hospital"/>
+        eType="#//Affiliation" upperBound="-1" eOpposite="#//Affiliation/hospital"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="permissions"
         eType="#//Permission" containment="true" upperBound="-1"
         eOpposite="#//Permission/hospital"/>
@@ -176,184 +209,190 @@ Key observations:
 ```
 
 Found problems in output:
-ERROR: The opposite of the opposite may not be a reference different from this one
-ERROR: The opposite of the opposite may not be a reference different from this one
-ERROR: The opposite of the opposite may not be a reference different from this one
-ERROR: The opposite of the opposite may not be a reference different from this one
-ERROR: The opposite of the opposite may not be a reference different from this one
-ERROR: The opposite of the opposite may not be a reference different from this one
-ERROR: The opposite of the opposite may not be a reference different from this one
-ERROR: The opposite of the opposite may not be a reference different from this one
+org.eclipse.emf.ecore.resource.impl.ResourceSetImpl$1DiagnosticWrappedException: org.xml.sax.SAXParseExceptionpublicId: file:/Volumes/Sources/goldenuml-emfatic/modelset/TreatmentPlans/converted.ecore; systemId: file:/Volumes/Sources/goldenuml-emfatic/modelset/TreatmentPlans/converted.ecore; lineNumber: 34; columnNumber: 28; The string "--" is not permitted within comments.
 
 # Retry 2
 
-The errors are caused by bidirectional opposite references that don't correctly point back to each other. I need to carefully audit every `eOpposite` pair to ensure they are truly mutual. Let me fix all of them.
+The issue is that I used `--` inside XML comments. Let me fix all occurrences by replacing `--` with `-` in comments.
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<ecore:EPackage xmi:version="2.0"
+<ecore:EPackage
+    xmi:version="2.0"
     xmlns:xmi="http://www.omg.org/XMI"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore"
-    name="healthcareSystem"
-    nsURI="http://www.example.org/healthcareSystem"
-    nsPrefix="healthcareSystem">
+    name="medicalSystem"
+    nsURI="http://www.example.org/medicalSystem"
+    nsPrefix="medicalSystem">
 
   <!-- Root container -->
-  <eClassifiers xsi:type="ecore:EClass" name="HealthcareSystem">
+  <eClassifiers xsi:type="ecore:EClass" name="MedicalSystem">
     <eStructuralFeatures xsi:type="ecore:EReference" name="problemTypes"
         eType="#//ProblemType" containment="true" upperBound="-1"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="examinationTypes"
+        eType="#//ExaminationType" containment="true" upperBound="-1"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="patients"
         eType="#//Patient" containment="true" upperBound="-1"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="doctors"
         eType="#//Doctor" containment="true" upperBound="-1"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="hospitals"
         eType="#//Hospital" containment="true" upperBound="-1"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="examinationTypes"
-        eType="#//ExaminationType" containment="true" upperBound="-1"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="consultations"
+        eType="#//Consultation" containment="true" upperBound="-1"/>
   </eClassifiers>
 
   <!-- ProblemType -->
   <eClassifiers xsi:type="ecore:EClass" name="ProblemType">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="type"
         eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <!-- ProblemType "1" - "0..1" TreatmentPlan -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="treatmentPlan"
         eType="#//TreatmentPlan" containment="true" upperBound="1"/>
+    <!-- ProblemType "1" - "0..*" Diagnosis -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="diagnoses"
         eType="#//Diagnosis" containment="true" upperBound="-1"/>
   </eClassifiers>
 
   <!-- TreatmentPlan -->
   <eClassifiers xsi:type="ecore:EClass" name="TreatmentPlan">
+    <!-- Association class end: TreatmentPlan contains AdvisedExaminationType -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="advisedExaminationTypes"
-        eType="#//AdvisedExaminationType" containment="true" upperBound="-1"
-        eOpposite="#//AdvisedExaminationType/treatmentPlan"/>
+        eType="#//AdvisedExaminationType" containment="true" upperBound="-1"/>
+    <!-- TreatmentPlan "1" - "0..*" Treatment -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="treatments"
-        eType="#//Treatment" containment="true" upperBound="-1"
-        eOpposite="#//Treatment/treatmentPlan"/>
+        eType="#//Treatment" containment="true" upperBound="-1"/>
+    <!-- Opposite back-reference to ProblemType -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="problemType"
+        eType="#//ProblemType" eOpposite="#//ProblemType/treatmentPlan"/>
   </eClassifiers>
 
   <!-- AdvisedExaminationType (association class between TreatmentPlan and ExaminationType) -->
   <eClassifiers xsi:type="ecore:EClass" name="AdvisedExaminationType">
+    <!-- Non-containment reference back to TreatmentPlan -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="treatmentPlan"
-        eType="#//TreatmentPlan"
-        eOpposite="#//TreatmentPlan/advisedExaminationTypes"/>
+        eType="#//TreatmentPlan" eOpposite="#//TreatmentPlan/advisedExaminationTypes"/>
+    <!-- Non-containment reference to ExaminationType -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="examinationType"
-        eType="#//ExaminationType"
-        eOpposite="#//ExaminationType/advisedExaminationTypes"/>
+        eType="#//ExaminationType" eOpposite="#//ExaminationType/advisedExaminationTypes"/>
+    <!-- AdvisedExaminationType "1" - "0..*" AdvisedExamination -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="advisedExaminations"
-        eType="#//AdvisedExamination" upperBound="-1"
-        eOpposite="#//AdvisedExamination/advisedExaminationType"/>
+        eType="#//AdvisedExamination" containment="true" upperBound="-1"/>
   </eClassifiers>
 
   <!-- ExaminationType -->
   <eClassifiers xsi:type="ecore:EClass" name="ExaminationType">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="type"
         eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <!-- Non-containment reference to AdvisedExaminationType (association class) -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="advisedExaminationTypes"
         eType="#//AdvisedExaminationType" upperBound="-1"
         eOpposite="#//AdvisedExaminationType/examinationType"/>
+    <!-- ExaminationType "1" - "0..*" Permission -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="permissions"
-        eType="#//Permission" upperBound="-1"
-        eOpposite="#//Permission/examinationType"/>
+        eType="#//Permission" upperBound="-1" eOpposite="#//Permission/examinationType"/>
   </eClassifiers>
 
   <!-- Diagnosis -->
   <eClassifiers xsi:type="ecore:EClass" name="Diagnosis">
+    <!-- Diagnosis "1" - "0..*" Treatment -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="treatments"
-        eType="#//Treatment" containment="true" upperBound="-1"
-        eOpposite="#//Treatment/diagnosis"/>
+        eType="#//Treatment" containment="true" upperBound="-1"/>
+    <!-- Opposite back-reference to ProblemType -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="problemType"
+        eType="#//ProblemType" eOpposite="#//ProblemType/diagnoses"/>
+    <!-- Opposite back-reference to Consultation -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="consultation"
-        eType="#//Consultation"
-        eOpposite="#//Consultation/diagnoses"/>
+        eType="#//Consultation" eOpposite="#//Consultation/diagnoses"/>
   </eClassifiers>
 
   <!-- Treatment -->
   <eClassifiers xsi:type="ecore:EClass" name="Treatment">
+    <!-- Treatment "1" - "0..*" AdvisedExamination -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="advisedExaminations"
-        eType="#//AdvisedExamination" containment="true" upperBound="-1"
+        eType="#//AdvisedExamination" upperBound="-1"
         eOpposite="#//AdvisedExamination/treatment"/>
+    <!-- Treatment "1" - "0..*" FreeExamination -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="freeExaminations"
-        eType="#//FreeExamination" containment="true" upperBound="-1"
-        eOpposite="#//FreeExamination/treatment"/>
+        eType="#//FreeExamination" containment="true" upperBound="-1"/>
+    <!-- Opposite back-references -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="diagnosis"
-        eType="#//Diagnosis"
-        eOpposite="#//Diagnosis/treatments"/>
+        eType="#//Diagnosis" eOpposite="#//Diagnosis/treatments"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="treatmentPlan"
-        eType="#//TreatmentPlan"
-        eOpposite="#//TreatmentPlan/treatments"/>
+        eType="#//TreatmentPlan" eOpposite="#//TreatmentPlan/treatments"/>
   </eClassifiers>
 
   <!-- AdvisedExamination -->
   <eClassifiers xsi:type="ecore:EClass" name="AdvisedExamination">
-    <eStructuralFeatures xsi:type="ecore:EReference" name="permission"
-        eType="#//Permission"
-        eOpposite="#//Permission/advisedExaminations"/>
+    <!-- Opposite back-reference to AdvisedExaminationType -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="advisedExaminationType"
         eType="#//AdvisedExaminationType"
         eOpposite="#//AdvisedExaminationType/advisedExaminations"/>
+    <!-- AdvisedExamination "0..*" - "1" Permission -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="permission"
+        eType="#//Permission" eOpposite="#//Permission/advisedExaminations"/>
+    <!-- Back-reference to Treatment -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="treatment"
-        eType="#//Treatment"
-        eOpposite="#//Treatment/advisedExaminations"/>
+        eType="#//Treatment" eOpposite="#//Treatment/advisedExaminations"/>
   </eClassifiers>
 
   <!-- FreeExamination -->
   <eClassifiers xsi:type="ecore:EClass" name="FreeExamination">
+    <!-- FreeExamination "0..*" - "1" Permission -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="permission"
-        eType="#//Permission"
-        eOpposite="#//Permission/freeExaminations"/>
+        eType="#//Permission" eOpposite="#//Permission/freeExaminations"/>
+    <!-- Back-reference to Treatment -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="treatment"
-        eType="#//Treatment"
-        eOpposite="#//Treatment/freeExaminations"/>
+        eType="#//Treatment" eOpposite="#//Treatment/freeExaminations"/>
   </eClassifiers>
 
   <!-- Permission -->
   <eClassifiers xsi:type="ecore:EClass" name="Permission">
+    <!-- Permission "0..*" - "1" Hospital -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="hospital"
+        eType="#//Hospital" eOpposite="#//Hospital/permissions"/>
+    <!-- ExaminationType "1" - "0..*" Permission -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="examinationType"
+        eType="#//ExaminationType" eOpposite="#//ExaminationType/permissions"/>
+    <!-- AdvisedExamination "0..*" - "1" Permission -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="advisedExaminations"
-        eType="#//AdvisedExamination" upperBound="-1"
+        eType="#//AdvisedExamination" containment="true" upperBound="-1"
         eOpposite="#//AdvisedExamination/permission"/>
+    <!-- FreeExamination "0..*" - "1" Permission -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="freeExaminations"
         eType="#//FreeExamination" upperBound="-1"
         eOpposite="#//FreeExamination/permission"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="examinationType"
-        eType="#//ExaminationType"
-        eOpposite="#//ExaminationType/permissions"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="hospital"
-        eType="#//Hospital"
-        eOpposite="#//Hospital/permissions"/>
   </eClassifiers>
 
   <!-- Consultation -->
   <eClassifiers xsi:type="ecore:EClass" name="Consultation">
-    <eStructuralFeatures xsi:type="ecore:EReference" name="diagnoses"
-        eType="#//Diagnosis" upperBound="-1"
-        eOpposite="#//Diagnosis/consultation"/>
+    <!-- Consultation "0..*" - "1" Affiliation -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="affiliation"
-        eType="#//Affiliation"
-        eOpposite="#//Affiliation/consultations"/>
+        eType="#//Affiliation" eOpposite="#//Affiliation/consultations"/>
+    <!-- Consultation "0..*" - "1" Patient -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="patient"
-        eType="#//Patient"
-        eOpposite="#//Patient/consultations"/>
+        eType="#//Patient" eOpposite="#//Patient/consultations"/>
+    <!-- Diagnosis "0..*" - "1" Consultation -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="diagnoses"
+        eType="#//Diagnosis" upperBound="-1" eOpposite="#//Diagnosis/consultation"/>
   </eClassifiers>
 
   <!-- Patient -->
   <eClassifiers xsi:type="ecore:EClass" name="Patient">
     <eStructuralFeatures xsi:type="ecore:EReference" name="consultations"
-        eType="#//Consultation" upperBound="-1"
-        eOpposite="#//Consultation/patient"/>
+        eType="#//Consultation" upperBound="-1" eOpposite="#//Consultation/patient"/>
   </eClassifiers>
 
   <!-- Affiliation -->
   <eClassifiers xsi:type="ecore:EClass" name="Affiliation">
-    <eStructuralFeatures xsi:type="ecore:EReference" name="consultations"
-        eType="#//Consultation" upperBound="-1"
-        eOpposite="#//Consultation/affiliation"/>
+    <!-- Affiliation "0..*" - "1" Doctor -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="doctor"
-        eType="#//Doctor"
-        eOpposite="#//Doctor/affiliations"/>
+        eType="#//Doctor" eOpposite="#//Doctor/affiliations"/>
+    <!-- Affiliation "0..*" - "1" Hospital -->
     <eStructuralFeatures xsi:type="ecore:EReference" name="hospital"
-        eType="#//Hospital"
-        eOpposite="#//Hospital/affiliations"/>
+        eType="#//Hospital" eOpposite="#//Hospital/affiliations"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="consultations"
+        eType="#//Consultation" upperBound="-1" eOpposite="#//Consultation/affiliation"/>
   </eClassifiers>
 
   <!-- Doctor -->
@@ -366,7 +405,234 @@ The errors are caused by bidirectional opposite references that don't correctly 
   <!-- Hospital -->
   <eClassifiers xsi:type="ecore:EClass" name="Hospital">
     <eStructuralFeatures xsi:type="ecore:EReference" name="affiliations"
+        eType="#//Affiliation" upperBound="-1" eOpposite="#//Affiliation/hospital"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="permissions"
+        eType="#//Permission" containment="true" upperBound="-1"
+        eOpposite="#//Permission/hospital"/>
+  </eClassifiers>
+
+</ecore:EPackage>
+```
+
+Found problems in output:
+java.lang.RuntimeException: Method 'map' not found for: OrderedSet {org.eclipse.emf.ecore.impl.EReferenceImpl@4b770e40 (name: diagnosis) (ordered: true, unique: true, lowerBound: 0, upperBound: 1) (changeable: true, volatile: false, transient: false, defaultValueLiteral: null, unsettable: false, derived: false) (containment: false, resolveProxies: true), org.eclipse.emf.ecore.impl.EReferenceImpl@78e16155 (name: treatmentPlan) (ordered: true, unique: true, lowerBound: 0, upperBound: 1) (changeable: true, volatile: false, transient: false, defaultValueLiteral: null, unsettable: false, derived: false) (containment: false, resolveProxies: true)}
+	at (jar:file:/Volumes/Sources/goldenuml-emfatic/puml2emfatic/build/libs/puml2emfatic-1.0-SNAPSHOT-all.jar!/evl/ecore.evl@22:20-22:77)
+	at (jar:file:/Volumes/Sources/goldenuml-emfatic/puml2emfatic/build/libs/puml2emfatic-1.0-SNAPSHOT-all.jar!/evl/ecore.evl@22:20-22:90)
+	at (jar:file:/Volumes/Sources/goldenuml-emfatic/puml2emfatic/build/libs/puml2emfatic-1.0-SNAPSHOT-all.jar!/evl/ecore.evl@22:6-22:91)
+	at (jar:file:/Volumes/Sources/goldenuml-emfatic/puml2emfatic/build/libs/puml2emfatic-1.0-SNAPSHOT-all.jar!/evl/ecore.evl@21:12-24:5)
+	at (jar:file:/Volumes/Sources/goldenuml-emfatic/puml2emfatic/build/libs/puml2emfatic-1.0-SNAPSHOT-all.jar!/evl/ecore.evl@16:2-25:3)
+	at (jar:file:/Volumes/Sources/goldenuml-emfatic/puml2emfatic/build/libs/puml2emfatic-1.0-SNAPSHOT-all.jar!/evl/ecore.evl@1:0-30:1)
+
+
+# Retry 3
+
+The error indicates that `Treatment` has two opposite references (`diagnosis` and `treatmentPlan`) pointing back to containers, which causes a validation issue - an element cannot have two potential containers. I need to ensure that `Treatment` only has one containment parent. Since `TreatmentPlan` contains `Treatment` and `Diagnosis` also contains `Treatment`, I need to pick one containment and make the other a non-containment reference, and remove the duplicate back-references that cause the conflict.
+
+Let me restructure: `Diagnosis` will contain `Treatment` (as per `Diagnosis "1" - "0..*" Treatment`), and `TreatmentPlan` will have a non-containment reference to `Treatment`.
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage
+    xmi:version="2.0"
+    xmlns:xmi="http://www.omg.org/XMI"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore"
+    name="medicalSystem"
+    nsURI="http://www.example.org/medicalSystem"
+    nsPrefix="medicalSystem">
+
+  <!-- Root container -->
+  <eClassifiers xsi:type="ecore:EClass" name="MedicalSystem">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="problemTypes"
+        eType="#//ProblemType" containment="true" upperBound="-1"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="examinationTypes"
+        eType="#//ExaminationType" containment="true" upperBound="-1"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="patients"
+        eType="#//Patient" containment="true" upperBound="-1"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="doctors"
+        eType="#//Doctor" containment="true" upperBound="-1"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="hospitals"
+        eType="#//Hospital" containment="true" upperBound="-1"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="consultations"
+        eType="#//Consultation" containment="true" upperBound="-1"/>
+  </eClassifiers>
+
+  <!-- ProblemType -->
+  <eClassifiers xsi:type="ecore:EClass" name="ProblemType">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="type"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <!-- ProblemType "1" - "0..1" TreatmentPlan -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="treatmentPlan"
+        eType="#//TreatmentPlan" containment="true" upperBound="1"
+        eOpposite="#//TreatmentPlan/problemType"/>
+    <!-- ProblemType "1" - "0..*" Diagnosis -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="diagnoses"
+        eType="#//Diagnosis" containment="true" upperBound="-1"
+        eOpposite="#//Diagnosis/problemType"/>
+  </eClassifiers>
+
+  <!-- TreatmentPlan -->
+  <eClassifiers xsi:type="ecore:EClass" name="TreatmentPlan">
+    <!-- Association class end: TreatmentPlan contains AdvisedExaminationType -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="advisedExaminationTypes"
+        eType="#//AdvisedExaminationType" containment="true" upperBound="-1"
+        eOpposite="#//AdvisedExaminationType/treatmentPlan"/>
+    <!-- TreatmentPlan "1" - "0..*" Treatment (non-containment, Diagnosis is the container) -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="treatments"
+        eType="#//Treatment" upperBound="-1"
+        eOpposite="#//Treatment/treatmentPlan"/>
+    <!-- Opposite back-reference to ProblemType -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="problemType"
+        eType="#//ProblemType" eOpposite="#//ProblemType/treatmentPlan"/>
+  </eClassifiers>
+
+  <!-- AdvisedExaminationType (association class between TreatmentPlan and ExaminationType) -->
+  <eClassifiers xsi:type="ecore:EClass" name="AdvisedExaminationType">
+    <!-- Non-containment reference back to TreatmentPlan -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="treatmentPlan"
+        eType="#//TreatmentPlan" eOpposite="#//TreatmentPlan/advisedExaminationTypes"/>
+    <!-- Non-containment reference to ExaminationType -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="examinationType"
+        eType="#//ExaminationType" eOpposite="#//ExaminationType/advisedExaminationTypes"/>
+    <!-- AdvisedExaminationType "1" - "0..*" AdvisedExamination -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="advisedExaminations"
+        eType="#//AdvisedExamination" containment="true" upperBound="-1"
+        eOpposite="#//AdvisedExamination/advisedExaminationType"/>
+  </eClassifiers>
+
+  <!-- ExaminationType -->
+  <eClassifiers xsi:type="ecore:EClass" name="ExaminationType">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="type"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <!-- Non-containment reference to AdvisedExaminationType (association class) -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="advisedExaminationTypes"
+        eType="#//AdvisedExaminationType" upperBound="-1"
+        eOpposite="#//AdvisedExaminationType/examinationType"/>
+    <!-- ExaminationType "1" - "0..*" Permission -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="permissions"
+        eType="#//Permission" upperBound="-1"
+        eOpposite="#//Permission/examinationType"/>
+  </eClassifiers>
+
+  <!-- Diagnosis -->
+  <eClassifiers xsi:type="ecore:EClass" name="Diagnosis">
+    <!-- Diagnosis "1" - "0..*" Treatment (Diagnosis is the container) -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="treatments"
+        eType="#//Treatment" containment="true" upperBound="-1"
+        eOpposite="#//Treatment/diagnosis"/>
+    <!-- Opposite back-reference to ProblemType -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="problemType"
+        eType="#//ProblemType" eOpposite="#//ProblemType/diagnoses"/>
+    <!-- Opposite back-reference to Consultation -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="consultation"
+        eType="#//Consultation" eOpposite="#//Consultation/diagnoses"/>
+  </eClassifiers>
+
+  <!-- Treatment -->
+  <eClassifiers xsi:type="ecore:EClass" name="Treatment">
+    <!-- Treatment "1" - "0..*" AdvisedExamination -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="advisedExaminations"
+        eType="#//AdvisedExamination" upperBound="-1"
+        eOpposite="#//AdvisedExamination/treatment"/>
+    <!-- Treatment "1" - "0..*" FreeExamination -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="freeExaminations"
+        eType="#//FreeExamination" containment="true" upperBound="-1"
+        eOpposite="#//FreeExamination/treatment"/>
+    <!-- Back-reference to Diagnosis (container) -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="diagnosis"
+        eType="#//Diagnosis" eOpposite="#//Diagnosis/treatments"/>
+    <!-- Non-containment back-reference to TreatmentPlan -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="treatmentPlan"
+        eType="#//TreatmentPlan" eOpposite="#//TreatmentPlan/treatments"/>
+  </eClassifiers>
+
+  <!-- AdvisedExamination -->
+  <eClassifiers xsi:type="ecore:EClass" name="AdvisedExamination">
+    <!-- Opposite back-reference to AdvisedExaminationType (container) -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="advisedExaminationType"
+        eType="#//AdvisedExaminationType"
+        eOpposite="#//AdvisedExaminationType/advisedExaminations"/>
+    <!-- AdvisedExamination "0..*" - "1" Permission -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="permission"
+        eType="#//Permission" eOpposite="#//Permission/advisedExaminations"/>
+    <!-- Non-containment back-reference to Treatment -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="treatment"
+        eType="#//Treatment" eOpposite="#//Treatment/advisedExaminations"/>
+  </eClassifiers>
+
+  <!-- FreeExamination -->
+  <eClassifiers xsi:type="ecore:EClass" name="FreeExamination">
+    <!-- FreeExamination "0..*" - "1" Permission -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="permission"
+        eType="#//Permission" eOpposite="#//Permission/freeExaminations"/>
+    <!-- Back-reference to Treatment (container) -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="treatment"
+        eType="#//Treatment" eOpposite="#//Treatment/freeExaminations"/>
+  </eClassifiers>
+
+  <!-- Permission -->
+  <eClassifiers xsi:type="ecore:EClass" name="Permission">
+    <!-- Permission "0..*" - "1" Hospital -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="hospital"
+        eType="#//Hospital" eOpposite="#//Hospital/permissions"/>
+    <!-- ExaminationType "1" - "0..*" Permission -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="examinationType"
+        eType="#//ExaminationType" eOpposite="#//ExaminationType/permissions"/>
+    <!-- AdvisedExamination "0..*" - "1" Permission (non-containment, AdvisedExaminationType is container) -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="advisedExaminations"
+        eType="#//AdvisedExamination" upperBound="-1"
+        eOpposite="#//AdvisedExamination/permission"/>
+    <!-- FreeExamination "0..*" - "1" Permission (non-containment, Treatment is container) -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="freeExaminations"
+        eType="#//FreeExamination" upperBound="-1"
+        eOpposite="#//FreeExamination/permission"/>
+  </eClassifiers>
+
+  <!-- Consultation -->
+  <eClassifiers xsi:type="ecore:EClass" name="Consultation">
+    <!-- Consultation "0..*" - "1" Affiliation -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="affiliation"
+        eType="#//Affiliation" eOpposite="#//Affiliation/consultations"/>
+    <!-- Consultation "0..*" - "1" Patient -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="patient"
+        eType="#//Patient" eOpposite="#//Patient/consultations"/>
+    <!-- Diagnosis "0..*" - "1" Consultation -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="diagnoses"
+        eType="#//Diagnosis" upperBound="-1"
+        eOpposite="#//Diagnosis/consultation"/>
+  </eClassifiers>
+
+  <!-- Patient -->
+  <eClassifiers xsi:type="ecore:EClass" name="Patient">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="consultations"
+        eType="#//Consultation" upperBound="-1"
+        eOpposite="#//Consultation/patient"/>
+  </eClassifiers>
+
+  <!-- Affiliation -->
+  <eClassifiers xsi:type="ecore:EClass" name="Affiliation">
+    <!-- Affiliation "0..*" - "1" Doctor -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="doctor"
+        eType="#//Doctor" eOpposite="#//Doctor/affiliations"/>
+    <!-- Affiliation "0..*" - "1" Hospital -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="hospital"
+        eType="#//Hospital" eOpposite="#//Hospital/affiliations"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="consultations"
+        eType="#//Consultation" upperBound="-1"
+        eOpposite="#//Consultation/affiliation"/>
+  </eClassifiers>
+
+  <!-- Doctor -->
+  <eClassifiers xsi:type="ecore:EClass" name="Doctor">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="affiliations"
         eType="#//Affiliation" containment="true" upperBound="-1"
+        eOpposite="#//Affiliation/doctor"/>
+  </eClassifiers>
+
+  <!-- Hospital -->
+  <eClassifiers xsi:type="ecore:EClass" name="Hospital">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="affiliations"
+        eType="#//Affiliation" upperBound="-1"
         eOpposite="#//Affiliation/hospital"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="permissions"
         eType="#//Permission" containment="true" upperBound="-1"
