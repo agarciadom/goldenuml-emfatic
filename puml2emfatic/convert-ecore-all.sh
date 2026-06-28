@@ -22,7 +22,7 @@ for PUML in "$MODELSET"/*/plantuml.txt; do
     echo "$CONVERTED already exists, skipping"
   else
     echo -n "Converting $(basename "$PUML_DIR")... "
-    if puml2emfatic ecore --retries 2 --xmi "${CONVERTED}" "${PUML}" >"$RAW_STDOUT" 2>"$RAW_STDERR"; then
+    if puml2emfatic puml2ecore --retries 2 --xmi "${CONVERTED}" "${PUML}" >"$RAW_STDOUT" 2>"$RAW_STDERR"; then
       echo "success"
     else
       echo "failed (see raw-llm-stderr.txt)"

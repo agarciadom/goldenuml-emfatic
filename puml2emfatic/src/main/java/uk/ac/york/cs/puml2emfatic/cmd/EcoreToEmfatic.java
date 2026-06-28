@@ -15,7 +15,7 @@ import java.io.File;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
-@CommandLine.Command(name="emfatic", description="Converts an Ecore file to Emfatic")
+@CommandLine.Command(name="ecore2emfatic", description="Converts an Ecore file to Emfatic")
 public class EcoreToEmfatic implements Callable<Integer> {
 
   @CommandLine.Parameters(index = "0")

@@ -17,7 +17,7 @@ import java.io.StringReader;
 import java.nio.file.Files;
 import java.util.List;
 
-@Command(name="ecore", mixinStandardHelpOptions = true,
+@Command(name="puml2ecore", mixinStandardHelpOptions = true,
     description="Converts PlantUML source code to Ecore XMI using an LLM")
 public class PlantUMLToEcore extends LLMCommand {
 
