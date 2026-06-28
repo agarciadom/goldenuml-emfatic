@@ -1,0 +1,138 @@
+I'll analyze the PlantUML diagram carefully before converting it.
+
+**Key observations:**
+1. `Person` (abstract) → `Student`, `Teacher`
+2. `Teacher` ↔ `School`: many-to-many (0..3 schools per teacher, * teachers per school)
+3. `TeacherAssignment` is an association class on the `Teacher`-`School` relationship, with `Hours` attribute
+4. `Teacher` → `School`: one-to-one "Principal" relationship (1 teacher, 0..1 school)
+5. `School` contains `Room` (composition, 1 to many)
+6. `Room` (abstract) → `ClassRoom`, `OtherRoom`
+7. `Student` ↔ `ClassGroup`: 10..31 students per group, aggregation on ClassGroup side
+8. `ClassGroup` → `ClassRoom`: 1-to-1
+9. No root container exists → create one (e.g., `SchoolSystem`)
+10. For the association class: `TeacherAssignment` links `Teacher` and `School`, so each end references `TeacherAssignment`
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage xmi:version="2.0"
+    xmlns:xmi="http://www.omg.org/XMI"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore"
+    name="schoolMM"
+    nsURI="http://www.example.org/schoolMM"
+    nsPrefix="schoolMM">
+
+  <!-- Root container -->
+  <eClassifiers xsi:type="ecore:EClass" name="SchoolSystem">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="schools"
+        eType="#//School" containment="true" upperBound="-1"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="persons"
+        eType="#//Person" containment="true" upperBound="-1"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="classGroups"
+        eType="#//ClassGroup" containment="true" upperBound="-1"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="teacherAssignments"
+        eType="#//TeacherAssignment" containment="true" upperBound="-1"/>
+  </eClassifiers>
+
+  <!-- Abstract Person -->
+  <eClassifiers xsi:type="ecore:EClass" name="Person" abstract="true">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="firstName"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="lastName"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+
+  <!-- Teacher -->
+  <eClassifiers xsi:type="ecore:EClass" name="Teacher" eSuperTypes="#//Person">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="email"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <!-- Teacher side of the Teacher-School association class (via TeacherAssignment) -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="teacherAssignments"
+        eType="#//TeacherAssignment" upperBound="-1"
+        eOpposite="#//TeacherAssignment/teacher"/>
+    <!-- Principal relationship: a teacher is principal of at most one school -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="principalOf"
+        eType="#//School" upperBound="1"
+        eOpposite="#//School/principal"/>
+  </eClassifiers>
+
+  <!-- Student -->
+  <eClassifiers xsi:type="ecore:EClass" name="Student" eSuperTypes="#//Person">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="classGroup"
+        eType="#//ClassGroup" upperBound="1"
+        eOpposite="#//ClassGroup/students"/>
+  </eClassifiers>
+
+  <!-- TeacherAssignment (association class for Teacher-School) -->
+  <eClassifiers xsi:type="ecore:EClass" name="TeacherAssignment">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="hours"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="teacher"
+        eType="#//Teacher" upperBound="1"
+        eOpposite="#//Teacher/teacherAssignments"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="school"
+        eType="#//School" upperBound="1"
+        eOpposite="#//School/teacherAssignments"/>
+  </eClassifiers>
+
+  <!-- School -->
+  <eClassifiers xsi:type="ecore:EClass" name="School">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <!-- School side of the Teacher-School association class -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="teacherAssignments"
+        eType="#//TeacherAssignment" upperBound="-1"
+        eOpposite="#//TeacherAssignment/school"/>
+    <!-- Principal: one school has at most one principal teacher -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="principal"
+        eType="#//Teacher" upperBound="1"
+        eOpposite="#//Teacher/principalOf"/>
+    <!-- Composition: school contains rooms -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="rooms"
+        eType="#//Room" containment="true" upperBound="-1"
+        eOpposite="#//Room/school"/>
+  </eClassifiers>
+
+  <!-- Abstract Room -->
+  <eClassifiers xsi:type="ecore:EClass" name="Room" abstract="true">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="school"
+        eType="#//School" upperBound="1"
+        eOpposite="#//School/rooms"/>
+  </eClassifiers>
+
+  <!-- ClassRoom -->
+  <eClassifiers xsi:type="ecore:EClass" name="ClassRoom" eSuperTypes="#//Room">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="capacity"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    <!-- Opposite of ClassGroup.classRoom -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="classGroup"
+        eType="#//ClassGroup" upperBound="1"
+        eOpposite="#//ClassGroup/classRoom"/>
+  </eClassifiers>
+
+  <!-- OtherRoom -->
+  <eClassifiers xsi:type="ecore:EClass" name="OtherRoom" eSuperTypes="#//Room">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="size"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDouble"/>
+  </eClassifiers>
+
+  <!-- ClassGroup -->
+  <eClassifiers xsi:type="ecore:EClass" name="ClassGroup">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <!-- Aggregation of 10..31 students -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="students"
+        eType="#//Student" upperBound="31" lowerBound="10"
+        eOpposite="#//Student/classGroup"/>
+    <!-- ClassGroup is assigned exactly one ClassRoom -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="classRoom"
+        eType="#//ClassRoom" upperBound="1" lowerBound="1"
+        eOpposite="#//ClassRoom/classGroup"/>
+  </eClassifiers>
+
+</ecore:EPackage>
+```
+
+INFO: XMI output is a valid EPackage

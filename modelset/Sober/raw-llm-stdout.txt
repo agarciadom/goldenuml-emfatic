@@ -1,0 +1,367 @@
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage xmi:version="2.0"
+    xmlns:xmi="http://www.omg.org/XMI"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore"
+    name="ridehailing"
+    nsURI="http://www.example.org/ridehailing"
+    nsPrefix="ridehailing">
+
+  <!-- Custom datatype for Time (without date) using java.time.LocalTime -->
+  <eClassifiers xsi:type="ecore:EDataType" name="LocalTime"
+      instanceClassName="java.time.LocalTime"/>
+
+  <!-- Root container -->
+  <eClassifiers xsi:type="ecore:EClass" name="RideHailingSystem">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="rides"
+        eType="#//Ride" containment="true" upperBound="-1"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="customers"
+        eType="#//Customer" containment="true" upperBound="-1"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="cars"
+        eType="#//Car" containment="true" upperBound="-1"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="accidents"
+        eType="#//Accident" containment="true" upperBound="-1"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="involvements"
+        eType="#//Involved" containment="true" upperBound="-1"/>
+  </eClassifiers>
+
+  <!-- Ride (abstract base) -->
+  <eClassifiers xsi:type="ecore:EClass" name="Ride" abstract="true">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="rideNr"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"
+        iD="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="pickupDateTime"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDate"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="dropoffDateTime"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDate"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="duration"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="pickupLocation"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="dropoffLocation"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="distance"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="fee"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    <!-- operatedBy: many Rides to one Car -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="operatedBy"
+        eType="#//Car" lowerBound="1"
+        eOpposite="#//Car/rides"/>
+    <eOperations name="getRideNr"/>
+    <eOperations name="setRideNr">
+      <eParameters name="newRideNr"
+          eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    </eOperations>
+    <eOperations name="calcDuration"/>
+  </eClassifiers>
+
+  <!-- RideHailing extends Ride -->
+  <eClassifiers xsi:type="ecore:EClass" name="RideHailing" eSuperTypes="#//Ride">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="passengers"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="waitTime"
+        eType="#//LocalTime"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="requestType"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <!-- LeadCustomer: many RideHailings to one Customer -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="leadCustomer"
+        eType="#//Customer" lowerBound="1"
+        eOpposite="#//Customer/leadRideHailings"/>
+    <eOperations name="getPassengers"/>
+  </eClassifiers>
+
+  <!-- RideSharing extends Ride -->
+  <eClassifiers xsi:type="ecore:EClass" name="RideSharing" eSuperTypes="#//Ride">
+    <!-- Book: many RideSharings to one Customer -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="bookedBy"
+        eType="#//Customer" lowerBound="1"
+        eOpposite="#//Customer/bookedRideSharings"/>
+    <eOperations name="numberOfCustomers"/>
+  </eClassifiers>
+
+  <!-- Customer -->
+  <eClassifiers xsi:type="ecore:EClass" name="Customer">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="custNr"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"
+        iD="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="custName"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <!-- Opposite of leadCustomer in RideHailing -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="leadRideHailings"
+        eType="#//RideHailing" upperBound="-1"
+        eOpposite="#//RideHailing/leadCustomer"/>
+    <!-- Opposite of bookedBy in RideSharing -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="bookedRideSharings"
+        eType="#//RideSharing" upperBound="-1"
+        eOpposite="#//RideSharing/bookedBy"/>
+    <!-- Owns: one Customer owns many OtherCars -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="ownedCars"
+        eType="#//OtherCar" upperBound="-1"
+        eOpposite="#//OtherCar/owner"/>
+    <eOperations name="getCustNr"/>
+    <eOperations name="setCustNr">
+      <eParameters name="newCustNr"
+          eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    </eOperations>
+    <eOperations name="top5customerHail"/>
+    <eOperations name="top5customerShare"/>
+  </eClassifiers>
+
+  <!-- Car (abstract base due to total disjoint) -->
+  <eClassifiers xsi:type="ecore:EClass" name="Car" abstract="true">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="carNr"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"
+        iD="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="carType"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <!-- Opposite of operatedBy in Ride -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="rides"
+        eType="#//Ride" upperBound="-1"
+        eOpposite="#//Ride/operatedBy"/>
+    <!-- Car to Accident via Involved association class -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="involvements"
+        eType="#//Involved" upperBound="-1"
+        lowerBound="1"
+        eOpposite="#//Involved/car"/>
+    <eOperations name="getCarNr"/>
+    <eOperations name="setCarNr">
+      <eParameters name="newCarNr"
+          eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    </eOperations>
+    <eOperations name="numberOfRides"/>
+  </eClassifiers>
+
+  <!-- SoberCar extends Car -->
+  <eClassifiers xsi:type="ecore:EClass" name="SoberCar" eSuperTypes="#//Car">
+    <eOperations name="numberOfSoberCars"/>
+  </eClassifiers>
+
+  <!-- OtherCar extends Car -->
+  <eClassifiers xsi:type="ecore:EClass" name="OtherCar" eSuperTypes="#//Car">
+    <!-- Owns: many OtherCars to one Customer -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="owner"
+        eType="#//Customer" lowerBound="1"
+        eOpposite="#//Customer/ownedCars"/>
+  </eClassifiers>
+
+  <!-- Involved (association class between Car and Accident) -->
+  <eClassifiers xsi:type="ecore:EClass" name="Involved">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="damageAmount"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="car"
+        eType="#//Car" lowerBound="1"
+        eOpposite="#//Car/involvements"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="accident"
+        eType="#//Accident" lowerBound="1"
+        eOpposite="#//Accident/involvements"/>
+    <eOperations name="generateReport"/>
+  </eClassifiers>
+
+  <!-- Accident -->
+  <eClassifiers xsi:type="ecore:EClass" name="Accident">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="accNr"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"
+        iD="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="accLocation"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="accDateTime"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDate"/>
+    <!-- Opposite of accident in Involved -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="involvements"
+        eType="#//Involved" upperBound="-1"
+        eOpposite="#//Involved/accident"/>
+    <eOperations name="getAccNr"/>
+    <eOperations name="setAccNr">
+      <eParameters name="newAccNr"
+          eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    </eOperations>
+    <eOperations name="top3AccidentHotSpots"/>
+    <eOperations name="top3AccidentPeakTimes"/>
+  </eClassifiers>
+
+</ecore:EPackage>
+```
+
+Found problems in output:
+ERROR: There may not be an operation 'org.eclipse.emf.ecore.impl.EOperationImpl@6754ef00{file:/Volumes/Sources/goldenuml-emfatic/modelset/Sober/converted.ecore#//Ride/getRideNr}' with the same signature as an accessor method for feature 'org.eclipse.emf.ecore.impl.EAttributeImpl@6f6a7463{file:/Volumes/Sources/goldenuml-emfatic/modelset/Sober/converted.ecore#//Ride/rideNr}'
+ERROR: There may not be an operation 'org.eclipse.emf.ecore.impl.EOperationImpl@619bd14c{file:/Volumes/Sources/goldenuml-emfatic/modelset/Sober/converted.ecore#//Ride/setRideNr}' with the same signature as an accessor method for feature 'org.eclipse.emf.ecore.impl.EAttributeImpl@6f6a7463{file:/Volumes/Sources/goldenuml-emfatic/modelset/Sober/converted.ecore#//Ride/rideNr}'
+ERROR: There may not be an operation 'org.eclipse.emf.ecore.impl.EOperationImpl@78e16155{file:/Volumes/Sources/goldenuml-emfatic/modelset/Sober/converted.ecore#//RideHailing/getPassengers}' with the same signature as an accessor method for feature 'org.eclipse.emf.ecore.impl.EAttributeImpl@53bc1328{file:/Volumes/Sources/goldenuml-emfatic/modelset/Sober/converted.ecore#//RideHailing/passengers}'
+ERROR: There may not be an operation 'org.eclipse.emf.ecore.impl.EOperationImpl@6a175569{file:/Volumes/Sources/goldenuml-emfatic/modelset/Sober/converted.ecore#//Customer/getCustNr}' with the same signature as an accessor method for feature 'org.eclipse.emf.ecore.impl.EAttributeImpl@3d526ad9{file:/Volumes/Sources/goldenuml-emfatic/modelset/Sober/converted.ecore#//Customer/custNr}'
+ERROR: There may not be an operation 'org.eclipse.emf.ecore.impl.EOperationImpl@11963225{file:/Volumes/Sources/goldenuml-emfatic/modelset/Sober/converted.ecore#//Customer/setCustNr}' with the same signature as an accessor method for feature 'org.eclipse.emf.ecore.impl.EAttributeImpl@3d526ad9{file:/Volumes/Sources/goldenuml-emfatic/modelset/Sober/converted.ecore#//Customer/custNr}'
+ERROR: There may not be an operation 'org.eclipse.emf.ecore.impl.EOperationImpl@49ef32e0{file:/Volumes/Sources/goldenuml-emfatic/modelset/Sober/converted.ecore#//Car/getCarNr}' with the same signature as an accessor method for feature 'org.eclipse.emf.ecore.impl.EAttributeImpl@63a5e46c{file:/Volumes/Sources/goldenuml-emfatic/modelset/Sober/converted.ecore#//Car/carNr}'
+ERROR: There may not be an operation 'org.eclipse.emf.ecore.impl.EOperationImpl@271f18d3{file:/Volumes/Sources/goldenuml-emfatic/modelset/Sober/converted.ecore#//Car/setCarNr}' with the same signature as an accessor method for feature 'org.eclipse.emf.ecore.impl.EAttributeImpl@63a5e46c{file:/Volumes/Sources/goldenuml-emfatic/modelset/Sober/converted.ecore#//Car/carNr}'
+ERROR: There may not be an operation 'org.eclipse.emf.ecore.impl.EOperationImpl@64b31700{file:/Volumes/Sources/goldenuml-emfatic/modelset/Sober/converted.ecore#//Accident/getAccNr}' with the same signature as an accessor method for feature 'org.eclipse.emf.ecore.impl.EAttributeImpl@7a34b7b8{file:/Volumes/Sources/goldenuml-emfatic/modelset/Sober/converted.ecore#//Accident/accNr}'
+ERROR: There may not be an operation 'org.eclipse.emf.ecore.impl.EOperationImpl@3b65e559{file:/Volumes/Sources/goldenuml-emfatic/modelset/Sober/converted.ecore#//Accident/setAccNr}' with the same signature as an accessor method for feature 'org.eclipse.emf.ecore.impl.EAttributeImpl@7a34b7b8{file:/Volumes/Sources/goldenuml-emfatic/modelset/Sober/converted.ecore#//Accident/accNr}'
+
+# Retry 2
+
+The errors occur because Ecore automatically generates getter/setter operations for structural features, so explicitly defining operations like `getRideNr`, `setRideNr`, etc. conflicts with those auto-generated accessors. I need to remove all getter/setter operations that correspond directly to structural features.
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage xmi:version="2.0"
+    xmlns:xmi="http://www.omg.org/XMI"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore"
+    name="ridehailing"
+    nsURI="http://www.example.org/ridehailing"
+    nsPrefix="ridehailing">
+
+  <!-- Custom datatype for Time (without date) using java.time.LocalTime -->
+  <eClassifiers xsi:type="ecore:EDataType" name="LocalTime"
+      instanceClassName="java.time.LocalTime"/>
+
+  <!-- Root container -->
+  <eClassifiers xsi:type="ecore:EClass" name="RideHailingSystem">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="rides"
+        eType="#//Ride" containment="true" upperBound="-1"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="customers"
+        eType="#//Customer" containment="true" upperBound="-1"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="cars"
+        eType="#//Car" containment="true" upperBound="-1"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="accidents"
+        eType="#//Accident" containment="true" upperBound="-1"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="involvements"
+        eType="#//Involved" containment="true" upperBound="-1"/>
+  </eClassifiers>
+
+  <!-- Ride (abstract base) -->
+  <eClassifiers xsi:type="ecore:EClass" name="Ride" abstract="true">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="rideNr"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"
+        iD="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="pickupDateTime"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDate"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="dropoffDateTime"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDate"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="duration"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="pickupLocation"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="dropoffLocation"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="distance"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="fee"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    <!-- operatedBy: many Rides to one Car -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="operatedBy"
+        eType="#//Car" lowerBound="1"
+        eOpposite="#//Car/rides"/>
+    <eOperations name="calcDuration"/>
+  </eClassifiers>
+
+  <!-- RideHailing extends Ride -->
+  <eClassifiers xsi:type="ecore:EClass" name="RideHailing" eSuperTypes="#//Ride">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="passengers"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="waitTime"
+        eType="#//LocalTime"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="requestType"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <!-- LeadCustomer: many RideHailings to one Customer -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="leadCustomer"
+        eType="#//Customer" lowerBound="1"
+        eOpposite="#//Customer/leadRideHailings"/>
+  </eClassifiers>
+
+  <!-- RideSharing extends Ride -->
+  <eClassifiers xsi:type="ecore:EClass" name="RideSharing" eSuperTypes="#//Ride">
+    <!-- Book: many RideSharings to one Customer -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="bookedBy"
+        eType="#//Customer" lowerBound="1"
+        eOpposite="#//Customer/bookedRideSharings"/>
+    <eOperations name="numberOfCustomers"/>
+  </eClassifiers>
+
+  <!-- Customer -->
+  <eClassifiers xsi:type="ecore:EClass" name="Customer">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="custNr"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"
+        iD="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="custName"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <!-- Opposite of leadCustomer in RideHailing -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="leadRideHailings"
+        eType="#//RideHailing" upperBound="-1"
+        eOpposite="#//RideHailing/leadCustomer"/>
+    <!-- Opposite of bookedBy in RideSharing -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="bookedRideSharings"
+        eType="#//RideSharing" upperBound="-1"
+        eOpposite="#//RideSharing/bookedBy"/>
+    <!-- Owns: one Customer owns many OtherCars -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="ownedCars"
+        eType="#//OtherCar" upperBound="-1"
+        eOpposite="#//OtherCar/owner"/>
+    <eOperations name="top5customerHail"/>
+    <eOperations name="top5customerShare"/>
+  </eClassifiers>
+
+  <!-- Car (abstract base due to total disjoint) -->
+  <eClassifiers xsi:type="ecore:EClass" name="Car" abstract="true">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="carNr"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"
+        iD="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="carType"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <!-- Opposite of operatedBy in Ride -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="rides"
+        eType="#//Ride" upperBound="-1"
+        eOpposite="#//Ride/operatedBy"/>
+    <!-- Car to Accident via Involved association class -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="involvements"
+        eType="#//Involved" upperBound="-1"
+        lowerBound="1"
+        eOpposite="#//Involved/car"/>
+    <eOperations name="numberOfRides"/>
+  </eClassifiers>
+
+  <!-- SoberCar extends Car -->
+  <eClassifiers xsi:type="ecore:EClass" name="SoberCar" eSuperTypes="#//Car">
+    <eOperations name="numberOfSoberCars"/>
+  </eClassifiers>
+
+  <!-- OtherCar extends Car -->
+  <eClassifiers xsi:type="ecore:EClass" name="OtherCar" eSuperTypes="#//Car">
+    <!-- Owns: many OtherCars to one Customer -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="owner"
+        eType="#//Customer" lowerBound="1"
+        eOpposite="#//Customer/ownedCars"/>
+  </eClassifiers>
+
+  <!-- Involved (association class between Car and Accident) -->
+  <eClassifiers xsi:type="ecore:EClass" name="Involved">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="damageAmount"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="car"
+        eType="#//Car" lowerBound="1"
+        eOpposite="#//Car/involvements"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="accident"
+        eType="#//Accident" lowerBound="1"
+        eOpposite="#//Accident/involvements"/>
+    <eOperations name="generateReport"/>
+  </eClassifiers>
+
+  <!-- Accident -->
+  <eClassifiers xsi:type="ecore:EClass" name="Accident">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="accNr"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"
+        iD="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="accLocation"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="accDateTime"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDate"/>
+    <!-- Opposite of accident in Involved -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="involvements"
+        eType="#//Involved" upperBound="-1"
+        eOpposite="#//Involved/accident"/>
+    <eOperations name="top3AccidentHotSpots"/>
+    <eOperations name="top3AccidentPeakTimes"/>
+  </eClassifiers>
+
+</ecore:EPackage>
+```
+
+INFO: XMI output is a valid EPackage

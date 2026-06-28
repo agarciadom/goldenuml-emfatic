@@ -1,0 +1,169 @@
+Here is the Ecore metamodel in XMI format based on the provided PlantUML class diagram:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage
+    xmi:version="2.0"
+    xmlns:xmi="http://www.omg.org/XMI"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore"
+    name="game"
+    nsURI="http://www.example.org/game"
+    nsPrefix="game">
+
+  <!-- Root container class -->
+  <eClassifiers xsi:type="ecore:EClass" name="GameWorld">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="gameAreas"
+        eType="#//GameArea"
+        containment="true"
+        upperBound="-1"/>
+  </eClassifiers>
+
+  <!-- GameArea class -->
+  <eClassifiers xsi:type="ecore:EClass" name="GameArea">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="gameCharacters"
+        eType="#//GameCharacter"
+        containment="true"
+        upperBound="2"
+        lowerBound="1"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="gameElements"
+        eType="#//GameElement"
+        containment="true"
+        upperBound="-1"
+        lowerBound="1"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="finalBoss"
+        eType="#//Enemy"
+        lowerBound="1"/>
+  </eClassifiers>
+
+  <!-- GameCharacter class -->
+  <eClassifiers xsi:type="ecore:EClass" name="GameCharacter"/>
+
+  <!-- GameElement class (abstract base) -->
+  <eClassifiers xsi:type="ecore:EClass" name="GameElement" abstract="true">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="x"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//ELong"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="y"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//ELong"/>
+  </eClassifiers>
+
+  <!-- Shape class -->
+  <eClassifiers xsi:type="ecore:EClass" name="Shape" eSuperTypes="#//GameElement">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="isConnectedWith"
+        eType="#//Shape"
+        upperBound="-1"
+        eOpposite="#//Shape/isConnectedWith"/>
+  </eClassifiers>
+
+  <!-- Item class -->
+  <eClassifiers xsi:type="ecore:EClass" name="Item" eSuperTypes="#//GameElement"/>
+
+  <!-- Enemy class -->
+  <eClassifiers xsi:type="ecore:EClass" name="Enemy" eSuperTypes="#//GameElement">
+    <eOperations name="toKill"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="numberOfLives"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+  </eClassifiers>
+
+</ecore:EPackage>
+```
+
+Key decisions made:
+
+1. **`GameWorld`** was added as a root container class to hold `GameArea` instances, since `GameArea` had no container in the original diagram.
+2. **`GameElement`** is marked as `abstract="true"` since it only appears as a parent class and is never instantiated directly.
+3. The **self-association** on `Shape` (`is_connected_with`) is modeled as a single `EReference` with `eOpposite` pointing to itself, representing the many-to-many relationship.
+4. The **`finalBoss`** reference from `GameArea` to `Enemy` is a non-containment reference (since `Enemy` is already contained via `gameElements`).
+5. The **`toKill()`** operation on `Enemy` is converted to an `EOperation`.
+6. Aggregations (`o--`) are modeled as **containment references**.
+
+Found problems in output:
+ERROR: The opposite may not be its own opposite
+
+# Retry 2
+
+The self-referential `eOpposite` on `Shape` is the problem. For a many-to-many self-association, we need two distinct references that point to each other as opposites. Here is the corrected Ecore metamodel:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage
+    xmi:version="2.0"
+    xmlns:xmi="http://www.omg.org/XMI"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore"
+    name="game"
+    nsURI="http://www.example.org/game"
+    nsPrefix="game">
+
+  <!-- Root container class -->
+  <eClassifiers xsi:type="ecore:EClass" name="GameWorld">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="gameAreas"
+        eType="#//GameArea"
+        containment="true"
+        upperBound="-1"/>
+  </eClassifiers>
+
+  <!-- GameArea class -->
+  <eClassifiers xsi:type="ecore:EClass" name="GameArea">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="gameCharacters"
+        eType="#//GameCharacter"
+        containment="true"
+        upperBound="2"
+        lowerBound="1"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="gameElements"
+        eType="#//GameElement"
+        containment="true"
+        upperBound="-1"
+        lowerBound="1"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="finalBoss"
+        eType="#//Enemy"
+        lowerBound="1"/>
+  </eClassifiers>
+
+  <!-- GameCharacter class -->
+  <eClassifiers xsi:type="ecore:EClass" name="GameCharacter"/>
+
+  <!-- GameElement class (abstract base) -->
+  <eClassifiers xsi:type="ecore:EClass" name="GameElement" abstract="true">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="x"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//ELong"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="y"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//ELong"/>
+  </eClassifiers>
+
+  <!-- Shape class -->
+  <eClassifiers xsi:type="ecore:EClass" name="Shape" eSuperTypes="#//GameElement">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="isConnectedWith"
+        eType="#//Shape"
+        upperBound="-1"
+        eOpposite="#//Shape/connectedFrom"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="connectedFrom"
+        eType="#//Shape"
+        upperBound="-1"
+        eOpposite="#//Shape/isConnectedWith"/>
+  </eClassifiers>
+
+  <!-- Item class -->
+  <eClassifiers xsi:type="ecore:EClass" name="Item" eSuperTypes="#//GameElement"/>
+
+  <!-- Enemy class -->
+  <eClassifiers xsi:type="ecore:EClass" name="Enemy" eSuperTypes="#//GameElement">
+    <eOperations name="toKill"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="numberOfLives"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+  </eClassifiers>
+
+</ecore:EPackage>
+```
+
+The key fix was splitting the single self-referential `isConnectedWith` reference into two distinct references:
+- **`isConnectedWith`**: points from a `Shape` to the shapes it is connected with.
+- **`connectedFrom`**: the opposite direction, pointing back to the shapes that connect to it.
+
+These two references now correctly reference each other as opposites without a reference being its own opposite.
+
+INFO: XMI output is a valid EPackage
