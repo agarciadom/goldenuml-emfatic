@@ -57,12 +57,15 @@ public class PlantUMLToEcore extends LLMCommand {
         .chatMemory(MessageWindowChatMemory.withMaxMessages(2 * (1 + retries)))
         .build();
 
+    System.out.println("Using model: " + chatModel.defaultRequestParameters().modelName());
     String llmOutput, feedback = null;
     for (int attempt = 0; attempt <= retries; attempt++) {
       if (attempt > 0) {
         System.out.println();
         System.out.printf("# Retry %d%n", 1 + attempt);
         System.out.println();
+      } else {
+        System.out.printf("# First response%n%n");
       }
 
       ChatRequestParameters params = ChatRequestParameters.builder()
