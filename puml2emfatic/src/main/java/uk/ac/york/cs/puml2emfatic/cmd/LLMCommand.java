@@ -4,6 +4,9 @@ import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import io.github.cdimascio.dotenv.Dotenv;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.StringReader;
 import java.util.concurrent.Callable;
 
 public abstract class LLMCommand implements Callable<Integer> {
@@ -21,5 +24,20 @@ public abstract class LLMCommand implements Callable<Integer> {
         .build();
 
     return chatModel;
+  }
+
+  protected String extractFirstFencedBlock(String llmOutput) throws IOException {
+    StringBuilder sb = new StringBuilder();
+    try (BufferedReader br = new BufferedReader(new StringReader(llmOutput))) {
+      String line;
+      // Skip ahead until we reach the first fenced block
+      while ((line = br.readLine()) != null && !line.startsWith("```")) {}
+      // Append all lines until we reach the end of the fenced block
+      while ((line = br.readLine()) != null && !line.startsWith("```")) {
+        sb.append(line);
+        sb.append(System.lineSeparator());
+      }
+    }
+    return sb.toString();
   }
 }

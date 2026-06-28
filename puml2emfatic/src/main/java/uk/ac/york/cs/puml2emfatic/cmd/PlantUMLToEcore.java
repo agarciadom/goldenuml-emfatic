@@ -10,10 +10,7 @@ import picocli.CommandLine.Parameters;
 import uk.ac.york.cs.puml2emfatic.llm.ConverterAssistant;
 import uk.ac.york.cs.puml2emfatic.util.EPackageValidator;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.IOException;
-import java.io.StringReader;
 import java.nio.file.Files;
 import java.util.List;
 
@@ -105,21 +102,6 @@ public class PlantUMLToEcore extends LLMCommand {
     }
 
     return feedback == null ? 0 : 1;
-  }
-
-  private String extractFirstFencedBlock(String llmOutput) throws IOException {
-    StringBuilder sb = new StringBuilder();
-    try (BufferedReader br = new BufferedReader(new StringReader(llmOutput))) {
-      String line;
-      // Skip ahead until we reach the first fenced block
-      while ((line = br.readLine()) != null && !line.startsWith("```")) {}
-      // Append all lines until we reach the end of the fenced block
-      while ((line = br.readLine()) != null && !line.startsWith("```")) {
-        sb.append(line);
-        sb.append(System.lineSeparator());
-      }
-    }
-    return sb.toString();
   }
 
   public static void main(String... args) {
