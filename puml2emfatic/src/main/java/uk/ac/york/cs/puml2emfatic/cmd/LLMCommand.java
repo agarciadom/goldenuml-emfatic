@@ -29,6 +29,8 @@ public abstract class LLMCommand implements Callable<Integer> {
   }
 
   protected String extractFirstFencedBlock(String llmOutput) throws IOException {
+    if (llmOutput == null || llmOutput.isEmpty()) return null;
+
     StringBuilder sb = new StringBuilder();
     try (BufferedReader br = new BufferedReader(new StringReader(llmOutput))) {
       String line;

@@ -1,0 +1,146 @@
+Using model: ~anthropic/claude-sonnet-latest
+# First response
+
+Result after 749 input + 2596 output tokens:
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage xmi:version="2.0"
+    xmlns:xmi="http://www.omg.org/XMI"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore"
+    name="musicmatic"
+    nsURI="http://www.example.org/musicmatic"
+    nsPrefix="musicmatic">
+
+  <!-- Custom datatype for song length (duration without date) -->
+  <eClassifiers xsi:type="ecore:EDataType" name="Duration"
+      instanceClassName="java.time.Duration"/>
+
+  <!-- Root container -->
+  <eClassifiers xsi:type="ecore:EClass" name="Musicmatic">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="songs"
+        eType="#//Song" upperBound="-1" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="artists"
+        eType="#//Artist" upperBound="-1" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="users"
+        eType="#//User" upperBound="-1" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="albums"
+        eType="#//Album" upperBound="-1" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="suggestions"
+        eType="#//Suggestion" upperBound="-1" containment="true"/>
+  </eClassifiers>
+
+  <!-- Artist -->
+  <eClassifiers xsi:type="ecore:EClass" name="Artist">
+    <!-- name is the unique identifier -->
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"
+        lowerBound="1"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="dateOfBirth"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDate"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="url"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="songs"
+        eType="#//Song" upperBound="-1" eOpposite="#//Song/artist"/>
+  </eClassifiers>
+
+  <!-- Song (abstract base for Single and Hit) -->
+  <eClassifiers xsi:type="ecore:EClass" name="Song" abstract="true">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="title"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"
+        lowerBound="1"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="year"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"
+        lowerBound="1"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="length"
+        eType="#//Duration"
+        lowerBound="1"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="genre"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="artist"
+        eType="#//Artist" lowerBound="1" eOpposite="#//Artist/songs"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="uploadedBy"
+        eType="#//BusinessUser" eOpposite="#//BusinessUser/uploadedSongs"/>
+  </eClassifiers>
+
+  <!-- Single: can be bought directly by regular users -->
+  <eClassifiers xsi:type="ecore:EClass" name="Single" eSuperTypes="#//Song">
+    <!-- Singles can be purchased by regular users -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="purchasedBy"
+        eType="#//RegularUser" upperBound="-1" eOpposite="#//RegularUser/purchasedSingles"/>
+  </eClassifiers>
+
+  <!-- Hit: can only appear in albums -->
+  <eClassifiers xsi:type="ecore:EClass" name="Hit" eSuperTypes="#//Song">
+    <!-- Hits appear in albums via AlbumTrack association class -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="albumTracks"
+        eType="#//AlbumTrack" upperBound="-1" eOpposite="#//AlbumTrack/hit"/>
+  </eClassifiers>
+
+  <!-- Association class between Album and Hit, storing track number -->
+  <eClassifiers xsi:type="ecore:EClass" name="AlbumTrack">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="trackNumber"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"
+        lowerBound="1"/>
+    <!-- containment side: Album contains AlbumTrack -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="album"
+        eType="#//Album" eOpposite="#//Album/albumTracks"/>
+    <!-- non-containment side: reference to Hit -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="hit"
+        eType="#//Hit" lowerBound="1" eOpposite="#//Hit/albumTracks"/>
+  </eClassifiers>
+
+  <!-- Album: composed of multiple hits -->
+  <eClassifiers xsi:type="ecore:EClass" name="Album">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="title"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <!-- Album contains AlbumTrack (containment side of the association class) -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="albumTracks"
+        eType="#//AlbumTrack" upperBound="-1" containment="true" eOpposite="#//AlbumTrack/album"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="purchasedBy"
+        eType="#//RegularUser" upperBound="-1" eOpposite="#//RegularUser/purchasedAlbums"/>
+  </eClassifiers>
+
+  <!-- Suggestion: an album turned into a suggestion to regular users with similar purchasing behavior -->
+  <eClassifiers xsi:type="ecore:EClass" name="Suggestion">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="album"
+        eType="#//Album" lowerBound="1"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="suggestedTo"
+        eType="#//RegularUser" upperBound="-1" eOpposite="#//RegularUser/suggestions"/>
+  </eClassifiers>
+
+  <!-- Abstract User base class -->
+  <eClassifiers xsi:type="ecore:EClass" name="User" abstract="true">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="id"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"
+        lowerBound="1" iD="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"
+        lowerBound="1"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="address"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+
+  <!-- RegularUser: can buy singles and albums, can receive suggestions -->
+  <eClassifiers xsi:type="ecore:EClass" name="RegularUser" eSuperTypes="#//User">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="purchasedSingles"
+        eType="#//Single" upperBound="-1" eOpposite="#//Single/purchasedBy"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="purchasedAlbums"
+        eType="#//Album" upperBound="-1" eOpposite="#//Album/purchasedBy"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="suggestions"
+        eType="#//Suggestion" upperBound="-1" eOpposite="#//Suggestion/suggestedTo"/>
+  </eClassifiers>
+
+  <!-- BusinessUser: can upload songs, has VAT number -->
+  <eClassifiers xsi:type="ecore:EClass" name="BusinessUser" eSuperTypes="#//User">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="vatNumber"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"
+        lowerBound="1"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="uploadedSongs"
+        eType="#//Song" upperBound="-1" eOpposite="#//Song/uploadedBy"/>
+  </eClassifiers>
+
+</ecore:EPackage>
+```
+
+INFO: XMI output is a valid EPackage

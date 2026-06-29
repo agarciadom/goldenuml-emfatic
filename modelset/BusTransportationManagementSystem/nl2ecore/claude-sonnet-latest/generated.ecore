@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage xmi:version="2.0"
+    xmlns:xmi="http://www.omg.org/XMI"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore"
+    name="btms"
+    nsURI="http://www.example.org/btms"
+    nsPrefix="btms">
+
+  <!-- Custom datatype for time without date, using java.time.LocalTime -->
+  <eClassifiers xsi:type="ecore:EDataType" name="LocalTime"
+      instanceClassName="java.time.LocalTime"/>
+
+  <!-- Enumeration for shift types -->
+  <eClassifiers xsi:type="ecore:EEnum" name="ShiftType">
+    <eLiterals name="MORNING" value="0"/>
+    <eLiterals name="AFTERNOON" value="1"/>
+    <eLiterals name="NIGHT" value="2"/>
+  </eClassifiers>
+
+  <!-- Root container class -->
+  <eClassifiers xsi:type="ecore:EClass" name="BTMS">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="drivers"
+        eType="#//Driver"
+        upperBound="-1"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="buses"
+        eType="#//Bus"
+        upperBound="-1"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="routes"
+        eType="#//BusRoute"
+        upperBound="-1"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="busAssignments"
+        eType="#//BusAssignment"
+        upperBound="-1"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="shifts"
+        eType="#//Shift"
+        upperBound="-1"
+        containment="true"/>
+    <!-- DailyOverview is contained by the root BTMS -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="dailyOverviews"
+        eType="#//DailyOverview"
+        upperBound="-1"
+        containment="true"/>
+  </eClassifiers>
+
+  <!-- Driver class -->
+  <eClassifiers xsi:type="ecore:EClass" name="Driver">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="driverId"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"
+        iD="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="onSickLeave"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
+    <!-- Non-containment reference back to shifts assigned to this driver -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="assignedShifts"
+        eType="#//DriverShiftAssignment"
+        upperBound="-1"
+        eOpposite="#//DriverShiftAssignment/driver"/>
+    <eOperations name="addDriver"/>
+    <eOperations name="deleteDriver"/>
+  </eClassifiers>
+
+  <!-- Bus class -->
+  <eClassifiers xsi:type="ecore:EClass" name="Bus">
+    <!-- Licence plate: up to 10 characters -->
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="licencePlate"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"
+        iD="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="inRepairShop"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
+    <!-- Non-containment reference back to bus assignments -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="busAssignments"
+        eType="#//BusAssignment"
+        upperBound="-1"
+        eOpposite="#//BusAssignment/bus"/>
+    <eOperations name="addBus"/>
+    <eOperations name="deleteBus"/>
+  </eClassifiers>
+
+  <!-- BusRoute class -->
+  <!-- Route number is up to 9999, identified by a unique number determined by city staff -->
+  <eClassifiers xsi:type="ecore:EClass" name="BusRoute">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="routeNumber"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"
+        iD="true"/>
+    <!-- Non-containment reference back to bus assignments for this route -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="busAssignments"
+        eType="#//BusAssignment"
+        upperBound="-1"
+        eOpposite="#//BusAssignment/route"/>
+    <!-- Non-containment reference back to shifts for this route -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="shifts"
+        eType="#//Shift"
+        upperBound="-1"
+        eOpposite="#//Shift/route"/>
+  </eClassifiers>
+
+  <!-- BusAssignment: association class between Bus and BusRoute for a specific day -->
+  <!-- Several buses may be assigned to a route per day; each bus serves at most one route per day -->
+  <eClassifiers xsi:type="ecore:EClass" name="BusAssignment">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="date"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDate"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="bus"
+        eType="#//Bus"
+        eOpposite="#//Bus/busAssignments"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="route"
+        eType="#//BusRoute"
+        eOpposite="#//BusRoute/busAssignments"/>
+    <!-- DriverShiftAssignments contained by this BusAssignment -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="driverShiftAssignments"
+        eType="#//DriverShiftAssignment"
+        upperBound="-1"
+        containment="true"
+        eOpposite="#//DriverShiftAssignment/busAssignment"/>
+  </eClassifiers>
+
+  <!-- Shift: represents a morning, afternoon, or night shift for a route -->
+  <eClassifiers xsi:type="ecore:EClass" name="Shift">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="shiftType"
+        eType="#//ShiftType"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="date"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDate"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="route"
+        eType="#//BusRoute"
+        eOpposite="#//BusRoute/shifts"/>
+    <!-- Non-containment reference back to driver-shift assignments -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="driverShiftAssignments"
+        eType="#//DriverShiftAssignment"
+        upperBound="-1"
+        eOpposite="#//DriverShiftAssignment/shift"/>
+  </eClassifiers>
+
+  <!-- DriverShiftAssignment: association class connecting a Driver, a Shift, and a BusAssignment -->
+  <!-- A driver is assigned to a shift for a particular bus on a particular day -->
+  <eClassifiers xsi:type="ecore:EClass" name="DriverShiftAssignment">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="driver"
+        eType="#//Driver"
+        eOpposite="#//Driver/assignedShifts"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="shift"
+        eType="#//Shift"
+        eOpposite="#//Shift/driverShiftAssignments"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="busAssignment"
+        eType="#//BusAssignment"
+        eOpposite="#//BusAssignment/driverShiftAssignments"/>
+  </eClassifiers>
+
+  <!-- DailyOverview: provides an overview for a given day, contained by BTMS -->
+  <eClassifiers xsi:type="ecore:EClass" name="DailyOverview">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="date"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDate"/>
+    <eOperations name="generateOverview">
+      <eParameters name="date"
+          eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDate"/>
+    </eOperations>
+  </eClassifiers>
+
+</ecore:EPackage>

@@ -22,14 +22,18 @@ for DESC in "$MODELSET"/*/description.md; do
   CONVERSION_STDOUT="$TARGET_DIR/nl2ecore-stdout.txt"
   CONVERSION_STDERR="$TARGET_DIR/nl2ecore-stderr.txt"
 
-  echo -n "Converting ${DESC} to Ecore... "
-  if puml2emfatic nl2ecore "$DESC" --xmi "$CONVERTED" --retries 2 > "$CONVERSION_STDOUT" 2> "$CONVERSION_STDERR"; then
-    echo "success"
-    # delete empty stderr files if successful
-    if ! test -s "$CONVERSION_STDERR"; then
-      rm "$CONVERSION_STDERR"
-    fi
+  if test -f "$CONVERTED"; then
+    echo "$CONVERTED already exists, skipping"
   else
-    echo "failed (see $CONVERSION_STDERR)"
+    echo -n "Converting ${DESC} to Ecore... "
+    if puml2emfatic nl2ecore "$DESC" --xmi "$CONVERTED" --retries 2 > "$CONVERSION_STDOUT" 2> "$CONVERSION_STDERR"; then
+      echo "success"
+      # delete empty stderr files if successful
+      if ! test -s "$CONVERSION_STDERR"; then
+        rm "$CONVERSION_STDERR"
+      fi
+    else
+      echo "failed (see $CONVERSION_STDERR)"
+    fi
   fi
 done

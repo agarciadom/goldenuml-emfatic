@@ -1,0 +1,316 @@
+Using model: ~anthropic/claude-sonnet-latest
+# First response
+
+Result after 554 input + 2518 output tokens:
+I'll analyze the description carefully and create an Ecore metamodel.
+
+Key concepts:
+- **University** (root container)
+- **Department** (belongs to university)
+- **ResearchGroup** (belongs to a department)
+- **Researcher** (belongs to exactly one ResearchGroup)
+- **Project** (decomposed into WorkPackages)
+- **WorkPackage** (has exactly one ResearchGroup as leader)
+- **WPAssignment** (association class linking Researcher to WorkPackage, needs to record which RG the researcher belonged to at time of assignment — for service delivery traceability)
+
+The "service delivery" traceability requires knowing which ResearchGroup the researcher belonged to *when* they were assigned. So `WPAssignment` should record the ResearchGroup at time of assignment. Assignments are terminated and re-created on group changes or WP leadership changes.
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage
+    xmi:version="2.0"
+    xmlns:xmi="http://www.omg.org/XMI"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore"
+    name="researchProjectManagement"
+    nsURI="http://www.example.org/researchProjectManagement"
+    nsPrefix="rpm">
+
+  <!-- Custom datatype for date/time if needed - using EDate for timestamps -->
+
+  <!-- Root container -->
+  <eClassifiers xsi:type="ecore:EClass" name="University">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="departments"
+        eType="#//Department"
+        containment="true" eOpposite="#//Department/university"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="projects"
+        eType="#//Project"
+        containment="true" eOpposite="#//Project/university"/>
+  </eClassifiers>
+
+  <!-- Department -->
+  <eClassifiers xsi:type="ecore:EClass" name="Department">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="university"
+        eType="#//University"
+        eOpposite="#//University/departments"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="researchGroups"
+        eType="#//ResearchGroup"
+        containment="true" eOpposite="#//ResearchGroup/department"/>
+  </eClassifiers>
+
+  <!-- ResearchGroup -->
+  <eClassifiers xsi:type="ecore:EClass" name="ResearchGroup">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="department"
+        eType="#//Department"
+        eOpposite="#//Department/researchGroups"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="members"
+        eType="#//Researcher"
+        eOpposite="#//Researcher/researchGroup"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="ledWorkPackages"
+        eType="#//WorkPackage"
+        eOpposite="#//WorkPackage/leader"/>
+    <!-- Service delivery: WPAssignments where the researcher belonged to this RG -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="recordedAssignments"
+        eType="#//WPAssignment"
+        eOpposite="#//WPAssignment/researchGroupAtAssignment"/>
+    <eOperations name="reassignResearcher">
+      <eParameters name="researcher" eType="#//Researcher"/>
+      <eParameters name="newGroup" eType="#//ResearchGroup"/>
+    </eOperations>
+  </eClassifiers>
+
+  <!-- Researcher -->
+  <eClassifiers xsi:type="ecore:EClass" name="Researcher">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="researchGroup"
+        eType="#//ResearchGroup"
+        eOpposite="#//ResearchGroup/members"/>
+    <!-- Association class end: Researcher side points to WPAssignment -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="wpAssignments"
+        eType="#//WPAssignment"
+        containment="true" eOpposite="#//WPAssignment/researcher"/>
+    <eOperations name="changeResearchGroup">
+      <eParameters name="newGroup" eType="#//ResearchGroup"/>
+    </eOperations>
+  </eClassifiers>
+
+  <!-- Project -->
+  <eClassifiers xsi:type="ecore:EClass" name="Project">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="description"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="university"
+        eType="#//University"
+        eOpposite="#//University/projects"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="workPackages"
+        eType="#//WorkPackage"
+        containment="true" eOpposite="#//WorkPackage/project"/>
+  </eClassifiers>
+
+  <!-- WorkPackage -->
+  <eClassifiers xsi:type="ecore:EClass" name="WorkPackage">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="description"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="project"
+        eType="#//Project"
+        eOpposite="#//Project/workPackages"/>
+    <!-- Exactly one ResearchGroup leads this WP -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="leader"
+        eType="#//ResearchGroup"
+        eOpposite="#//ResearchGroup/ledWorkPackages"/>
+    <!-- Association class end: WorkPackage side points to WPAssignment (non-containment) -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="wpAssignments"
+        eType="#//WPAssignment"
+        eOpposite="#//WPAssignment/workPackage"/>
+    <eOperations name="reassignLeader">
+      <eParameters name="newLeader" eType="#//ResearchGroup"/>
+    </eOperations>
+  </eClassifiers>
+
+  <!-- WPAssignment: association class between Researcher and WorkPackage -->
+  <!-- Records service delivery: which RG the researcher belonged to at assignment time -->
+  <eClassifiers xsi:type="ecore:EClass" name="WPAssignment">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="startDate"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDate"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="endDate"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDate"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="active"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
+    <!-- Back-reference to the Researcher who owns this (containment side) -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="researcher"
+        eType="#//Researcher"
+        eOpposite="#//Researcher/wpAssignments"/>
+    <!-- Non-containment reference to WorkPackage -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="workPackage"
+        eType="#//WorkPackage"
+        eOpposite="#//WorkPackage/wpAssignments"/>
+    <!-- Records the ResearchGroup the researcher belonged to at time of assignment -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="researchGroupAtAssignment"
+        eType="#//ResearchGroup"
+        eOpposite="#//ResearchGroup/recordedAssignments"/>
+    <eOperations name="terminate">
+      <eParameters name="endDate"
+          eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDate"/>
+    </eOperations>
+  </eClassifiers>
+
+</ecore:EPackage>
+```
+
+Found problems in output:
+ERROR: researchProjectManagement EPackage should have exactly one root container, but has (Researcher, University) instead
+ERROR: University should be contained somewhere
+ERROR: Researcher should be contained somewhere
+
+# Retry 2
+
+Result after 3136 input + 2440 output tokens:
+The errors indicate that:
+
+1. `University` is not contained anywhere (it should be the root container, but itself needs to be contained in the `EPackage` sense - actually there are **two** root containers: `University` and `Researcher`).
+2. `Researcher` is floating as a root container because it has `containment="true"` for `wpAssignments`, but `Researcher` itself is not contained in `University`.
+
+The fix: `Researcher` should be contained in `ResearchGroup` (not just referenced), and `University` is the single root container.
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage
+    xmi:version="2.0"
+    xmlns:xmi="http://www.omg.org/XMI"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore"
+    name="researchProjectManagement"
+    nsURI="http://www.example.org/researchProjectManagement"
+    nsPrefix="rpm">
+
+  <!-- Root container -->
+  <eClassifiers xsi:type="ecore:EClass" name="University">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="departments"
+        eType="#//Department"
+        containment="true" eOpposite="#//Department/university"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="projects"
+        eType="#//Project"
+        containment="true" eOpposite="#//Project/university"/>
+  </eClassifiers>
+
+  <!-- Department -->
+  <eClassifiers xsi:type="ecore:EClass" name="Department">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="university"
+        eType="#//University"
+        eOpposite="#//University/departments"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="researchGroups"
+        eType="#//ResearchGroup"
+        containment="true" eOpposite="#//ResearchGroup/department"/>
+  </eClassifiers>
+
+  <!-- ResearchGroup -->
+  <eClassifiers xsi:type="ecore:EClass" name="ResearchGroup">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="department"
+        eType="#//Department"
+        eOpposite="#//Department/researchGroups"/>
+    <!-- Researchers are contained in their ResearchGroup -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="members"
+        eType="#//Researcher"
+        containment="true" eOpposite="#//Researcher/researchGroup"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="ledWorkPackages"
+        eType="#//WorkPackage"
+        eOpposite="#//WorkPackage/leader"/>
+    <!-- Service delivery: WPAssignments where the researcher belonged to this RG -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="recordedAssignments"
+        eType="#//WPAssignment"
+        eOpposite="#//WPAssignment/researchGroupAtAssignment"/>
+    <eOperations name="reassignResearcher">
+      <eParameters name="researcher" eType="#//Researcher"/>
+      <eParameters name="newGroup" eType="#//ResearchGroup"/>
+    </eOperations>
+  </eClassifiers>
+
+  <!-- Researcher -->
+  <eClassifiers xsi:type="ecore:EClass" name="Researcher">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="researchGroup"
+        eType="#//ResearchGroup"
+        eOpposite="#//ResearchGroup/members"/>
+    <!-- Association class end: Researcher side contains WPAssignment instances -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="wpAssignments"
+        eType="#//WPAssignment"
+        containment="true" eOpposite="#//WPAssignment/researcher"/>
+    <eOperations name="changeResearchGroup">
+      <eParameters name="newGroup" eType="#//ResearchGroup"/>
+    </eOperations>
+  </eClassifiers>
+
+  <!-- Project -->
+  <eClassifiers xsi:type="ecore:EClass" name="Project">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="description"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="university"
+        eType="#//University"
+        eOpposite="#//University/projects"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="workPackages"
+        eType="#//WorkPackage"
+        containment="true" eOpposite="#//WorkPackage/project"/>
+  </eClassifiers>
+
+  <!-- WorkPackage -->
+  <eClassifiers xsi:type="ecore:EClass" name="WorkPackage">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="description"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="project"
+        eType="#//Project"
+        eOpposite="#//Project/workPackages"/>
+    <!-- Exactly one ResearchGroup leads this WP -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="leader"
+        eType="#//ResearchGroup"
+        eOpposite="#//ResearchGroup/ledWorkPackages"/>
+    <!-- Association class end: WorkPackage side is non-containment -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="wpAssignments"
+        eType="#//WPAssignment"
+        eOpposite="#//WPAssignment/workPackage"/>
+    <eOperations name="reassignLeader">
+      <eParameters name="newLeader" eType="#//ResearchGroup"/>
+    </eOperations>
+  </eClassifiers>
+
+  <!-- WPAssignment: association class between Researcher and WorkPackage -->
+  <!-- Records service delivery: which RG the researcher belonged to at assignment time -->
+  <eClassifiers xsi:type="ecore:EClass" name="WPAssignment">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="startDate"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDate"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="endDate"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDate"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="active"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
+    <!-- Back-reference to the Researcher who owns/contains this -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="researcher"
+        eType="#//Researcher"
+        eOpposite="#//Researcher/wpAssignments"/>
+    <!-- Non-containment reference to WorkPackage -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="workPackage"
+        eType="#//WorkPackage"
+        eOpposite="#//WorkPackage/wpAssignments"/>
+    <!-- Records the ResearchGroup the researcher belonged to at time of assignment -->
+    <eStructuralFeatures xsi:type="ecore:EReference" name="researchGroupAtAssignment"
+        eType="#//ResearchGroup"
+        eOpposite="#//ResearchGroup/recordedAssignments"/>
+    <eOperations name="terminate">
+      <eParameters name="endDate"
+          eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDate"/>
+    </eOperations>
+  </eClassifiers>
+
+</ecore:EPackage>
+```
+
+INFO: XMI output is a valid EPackage

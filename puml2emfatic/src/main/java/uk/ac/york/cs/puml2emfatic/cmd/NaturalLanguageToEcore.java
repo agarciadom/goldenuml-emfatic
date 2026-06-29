@@ -81,7 +81,7 @@ public class NaturalLanguageToEcore extends LLMCommand {
       System.out.println(llmOutput.content());
 
       String xmiOutput = extractFirstFencedBlock(llmOutput.content());
-      if (xmiOutput.isEmpty()) {
+      if (xmiOutput == null || xmiOutput.isEmpty()) {
         feedback = "Could not find a fenced block";
       } else {
         Files.write(xmiFile.toPath(), xmiOutput.getBytes());
