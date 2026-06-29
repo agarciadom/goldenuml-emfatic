@@ -1,15 +1,14 @@
-pre {
-  var uncontained = EClass.all.asSet();
-  for (ref in EReference.all.select(r|r.containment)) {
-    uncontained.remove(ref.eType);
-    uncontained.removeAll(ref.eType.eAllSubTypes());
+context EPackage {
+  constraint MustHaveSingleRootContainer {
+    check : self.uncontained().size = 1
+    message : self.name + ' EPackage should have exactly one root container, but has (' + self.uncontained().name.concat(', ') + ') instead'
   }
 }
 
 context EClass {
   constraint MustHaveContainer {
-    guard : uncontained.size() > 1 and not self.eAttributes.isEmpty() and not self.abstract
-    check : not uncontained.contains(self)
+    guard : self.eContainer.uncontained().size() >= 1 and not self.eAttributes.isEmpty() and not self.abstract
+    check : not self.eContainer.uncontained().contains(self)
     message : self.name + ' should be contained somewhere'
   }
 
@@ -23,6 +22,16 @@ context EClass {
       return self.name + ' has more than one eOpposite containment reference (' + refList + '): it should only have one at most';
     }
   }
+}
+
+@cached
+operation EPackage uncontained() {
+  var uncontained = self.eClassifiers.select(c:EClass | not c.abstract).asSet();
+  for (ref in self.eClassifiers.collect(c:EClass | c.eReferences.select(r|r.containment)).flatten()) {
+    uncontained.remove(ref.eType);
+    uncontained.removeAll(ref.eType.eAllSubTypes());
+  }
+  return uncontained;
 }
 
 operation EClass eAllSubTypes() {
