@@ -7,6 +7,7 @@ import io.github.cdimascio.dotenv.Dotenv;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
+import java.time.Duration;
 import java.util.concurrent.Callable;
 
 public abstract class LLMCommand implements Callable<Integer> {
@@ -19,8 +20,9 @@ public abstract class LLMCommand implements Callable<Integer> {
     ChatModel chatModel = OpenAiChatModel.builder()
         .baseUrl(dotenv.get("API_BASE"))
         .apiKey(dotenv.get("API_KEY"))
-        .maxRetries(Integer.parseInt(dotenv.get("MAX_RETRIES", "3")))
         .modelName(dotenv.get("MODEL_NAME"))
+        .maxRetries(Integer.parseInt(dotenv.get("MAX_RETRIES", "0")))
+        .timeout(Duration.ofSeconds(Integer.parseInt(dotenv.get("TIMEOUT_SECONDS", "30"))))
         .build();
 
     return chatModel;

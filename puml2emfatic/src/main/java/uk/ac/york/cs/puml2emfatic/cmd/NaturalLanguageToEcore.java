@@ -4,6 +4,7 @@ import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.service.AiServices;
+import dev.langchain4j.service.Result;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
@@ -14,15 +15,15 @@ import java.io.File;
 import java.nio.file.Files;
 import java.util.List;
 
-@Command(name="puml2ecore", mixinStandardHelpOptions = true,
-    description="Converts PlantUML source code to Ecore XMI using an LLM")
-public class PlantUMLToEcore extends LLMCommand {
+@Command(name="nl2ecore", mixinStandardHelpOptions = true,
+    description="Converts a natural language description of a domain to Ecore XMI using an LLM")
+public class NaturalLanguageToEcore extends LLMCommand {
 
   @CommandLine.Spec
   CommandLine.Model.CommandSpec spec;
 
-  @Parameters(index="0", description="The PlantUML file to convert.")
-  private File plantUmlFile;
+  @Parameters(index="0", description="The domain description to convert.")
+  private File domainFile;
 
   @CommandLine.Option(names={ "-x", "--xmi" }, description="If specified, separates the XMI " +
       "output to this file")
@@ -43,11 +44,11 @@ public class PlantUMLToEcore extends LLMCommand {
     }
     if (xmiFile == null) {
       // Use a temporary file instead (for validation)
-      xmiFile = File.createTempFile("puml2ecore-", ".xmi");
+      xmiFile = File.createTempFile("domain2ecore-", ".xmi");
       xmiFile.deleteOnExit();
     }
 
-    String fileContents = Files.readString(plantUmlFile.toPath());
+    String fileContents = Files.readString(domainFile.toPath());
     ChatModel chatModel = getChatModel();
     ConverterAssistant assistant = AiServices.builder(ConverterAssistant.class)
         .chatModel(chatModel)
@@ -55,7 +56,8 @@ public class PlantUMLToEcore extends LLMCommand {
         .build();
 
     System.out.println("Using model: " + chatModel.defaultRequestParameters().modelName());
-    String llmOutput, feedback = null;
+    Result<String> llmOutput;
+    String feedback = null;
     for (int attempt = 0; attempt <= retries; attempt++) {
       if (attempt > 0) {
         System.out.println();
@@ -69,14 +71,16 @@ public class PlantUMLToEcore extends LLMCommand {
           .maxOutputTokens(maximumOutputTokens)
           .build();
       if (attempt == 0) {
-        llmOutput = assistant.plantUmlToEcore(fileContents, params);
+        llmOutput = assistant.domainToEcore(fileContents, params);
       } else {
-        llmOutput = assistant.retryStep(feedback, params).content();
+        llmOutput = assistant.retryStep(feedback, params);
         feedback = null;
       }
-      System.out.println(llmOutput);
+      System.out.printf("Result after %d input + %d output tokens:%n",
+          llmOutput.tokenUsage().inputTokenCount(), llmOutput.tokenUsage().outputTokenCount());
+      System.out.println(llmOutput.content());
 
-      String xmiOutput = extractFirstFencedBlock(llmOutput);
+      String xmiOutput = extractFirstFencedBlock(llmOutput.content());
       if (xmiOutput.isEmpty()) {
         feedback = "Could not find a fenced block";
       } else {
@@ -105,7 +109,7 @@ public class PlantUMLToEcore extends LLMCommand {
   }
 
   public static void main(String... args) {
-    int exitCode = new CommandLine(new PlantUMLToEcore()).execute(args);
+    int exitCode = new CommandLine(new NaturalLanguageToEcore()).execute(args);
     System.exit(exitCode);
   }
 }

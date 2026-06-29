@@ -6,7 +6,8 @@ import picocli.CommandLine;
     name="puml2emfatic",
     subcommands={
         PlantUMLToEcore.class,
-        EcoreToEmfatic.class
+        EcoreToEmfatic.class,
+        NaturalLanguageToEcore.class,
     }
 )
 public class Main {
