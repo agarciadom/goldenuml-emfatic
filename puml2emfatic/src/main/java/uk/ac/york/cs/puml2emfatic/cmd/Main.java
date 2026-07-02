@@ -5,6 +5,7 @@ import picocli.CommandLine;
 @CommandLine.Command(
     name="puml2emfatic",
     subcommands={
+        A2AStream.class,
         PlantUMLToEcore.class,
         EcoreToEmfatic.class,
         NaturalLanguageToEcore.class,
