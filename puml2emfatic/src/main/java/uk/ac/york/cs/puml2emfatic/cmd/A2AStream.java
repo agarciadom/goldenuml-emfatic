@@ -8,15 +8,17 @@ import org.a2aproject.sdk.client.TaskUpdateEvent;
 import org.a2aproject.sdk.client.http.A2ACardResolver;
 import org.a2aproject.sdk.client.transport.jsonrpc.JSONRPCTransport;
 import org.a2aproject.sdk.client.transport.jsonrpc.JSONRPCTransportConfig;
-import org.a2aproject.sdk.spec.Message;
-import org.a2aproject.sdk.spec.TaskArtifactUpdateEvent;
-import org.a2aproject.sdk.spec.TaskStatusUpdateEvent;
+import org.a2aproject.sdk.spec.*;
 import picocli.CommandLine;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Base64;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -27,6 +29,9 @@ public class A2AStream implements Callable<Integer> {
 
   @CommandLine.Option(names={"-b", "--base-url"}, defaultValue = "http://localhost:3000")
   private String baseUrl;
+
+  @CommandLine.Option(names={"-d", "--base-dir"})
+  private String baseDir;
 
   @CommandLine.Parameters(index = "0")
   private String textOrHyphen;
@@ -39,6 +44,9 @@ public class A2AStream implements Callable<Integer> {
     if (textOrHyphen == null) {
       throw new CommandLine.ParameterException(spec.commandLine(),
           "Text or - (for stdin) is required");
+    }
+    if (baseDir == null) {
+      baseDir = System.getProperty("user.dir");
     }
 
     var card = A2ACardResolver.builder()
@@ -60,6 +68,30 @@ public class A2AStream implements Callable<Integer> {
                 System.out.println("task status: " + taskStatusUpdate.status());
               }
             } else if (taskUpdate.getUpdateEvent() instanceof TaskArtifactUpdateEvent taskArtifactUpdate) {
+              System.out.printf("update of artifact %s:%n", taskArtifactUpdate.artifact().name());
+                for (var part : taskArtifactUpdate.artifact().parts()) {
+                  switch (part) {
+                    case TextPart tp -> System.out.println(tp.text());
+                    case DataPart dp -> System.out.println(dp.data());
+                    case FilePart pf -> {
+                      if (pf.file() instanceof FileWithBytes fwb) {
+                        try {
+                          Path targetPath = Paths.get(baseDir, fwb.name());
+                          Files.write(targetPath,
+                              Base64.getDecoder().decode(fwb.bytes()));
+                          System.out.printf("(file saved to %s%n)", targetPath);
+                        } catch (IOException e) {
+                          e.printStackTrace();
+                        }
+                      } else if (pf.file() instanceof FileWithUri furi) {
+                        System.out.printf("(URI: %s)%n", furi.uri());
+                      }
+                    }
+                    default -> {
+                    }
+                  }
+              }
+
               System.out.println("artifact update: " + taskArtifactUpdate.artifact());
             }
           } else if (event instanceof MessageEvent message) {

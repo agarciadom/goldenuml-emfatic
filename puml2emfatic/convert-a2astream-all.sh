@@ -25,7 +25,7 @@ for DESC in "$MODELSET"/*/description.md; do
     echo "$CONVERTED already exists, skipping"
   else
     echo -n "Converting ${DESC} to Emfatic via MOSAICO agent... "
-    if echo -e "Generate an Emfatic metamodel from the domain description below:\n" | cat - "${DESC}" | puml2emfatic a2a-stream --base-url http://localhost:12000 - > "$CONVERSION_STDOUT" 2> "$CONVERSION_STDERR"; then
+    if echo -e "Generate an Emfatic metamodel from the domain description below:\n" | cat - "${DESC}" | puml2emfatic a2a-stream --base-url http://localhost:12000 -d "$TARGET_DIR" - > "$CONVERSION_STDOUT" 2> "$CONVERSION_STDERR"; then
       echo "success"
       # delete empty stderr files if successful
       if ! test -s "$CONVERSION_STDERR"; then
