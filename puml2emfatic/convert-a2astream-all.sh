@@ -17,7 +17,7 @@ for DESC in "$MODELSET"/*/description.md; do
   TARGET_DIR="$PUML_DIR/a2a-stream/"
   mkdir -p "$TARGET_DIR"
 
-  CONVERTED="$TARGET_DIR/generated.emf"
+  CONVERTED="$TARGET_DIR/metamodel.emf"
   CONVERSION_STDOUT="$TARGET_DIR/a2a-stream-stdout.txt"
   CONVERSION_STDERR="$TARGET_DIR/a2a-stream-stderr.txt"
 
