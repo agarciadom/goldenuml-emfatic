@@ -1,4 +1,7 @@
-from pydantic import BaseModel, Field
+# Needed to avoid errors due to circular dependencies between Pydantic models
+from __future__ import annotations
+
+from pydantic import BaseModel
 from smolagents import Tool
 from typing import Union
 
@@ -99,6 +102,9 @@ operation EReferenceTool elementType(): String {
 }
 
 operation EReferenceTool containerVarName() {
+  if (self.eContainer.isRootTool()) {
+    return 'self.root';
+  }
   return self.eContainer.eClass.name.ftlc();
 }
 
@@ -140,7 +146,7 @@ classToAdd.attributeInputs(); %]
 } %]
 
   def forward(self, [% if (not self.eContainer.isRootTool()) { %][%=self.containerVarName()%]: [%=self.eContainer.eClass.name%], [% } %][%=classToAdd.featureTools.collect(ft:EAttributeTool|ft.paramDeclaration()).concat(', ')%]) -> [%=classToAdd.eClass.name%]:
-    var _instance = [%=classToAdd.eClass.name%](
+    _instance = [%=classToAdd.eClass.name%](
 [% for (at in classToAdd.featureTools.select(ft:EAttributeTool|true)) { %]
       [%=at.fieldName()%]=[%=at.varName()%],
 [% } %]
@@ -176,7 +182,7 @@ class Add[%=classToReference.eClass.name.ftuc()%]To[%=self.eContainer.eClass.nam
   }
   output_type = "object"
 
-  def forward(self, [%=self.containerVarName()%]: [%=self.eContainer.eClass.name%], addition: [%=classToReference.eClass.name%]):
+  def forward(self, [%=self.containerVarName()%]: [%=self.eContainer.eClass.name%], addition: [%=classToReference.eClass.name%]) -> [%=classToReference.eClass.name%]:
   [% if (self.fieldType().startsWith('set[')) { %]
     [%=self.containerVarName()%].[%=self.fieldName()%].add(addition)
   [% } else { %]
@@ -251,14 +257,26 @@ operation ModelToolset rootEClass() {
   return self.rootClassTool.eClass.name;
 }
 
-operation ModelToolset pydanticModels() {%]
-[% for (ct in toolset.classTools) { %]
+operation ModelToolset pydanticModels() {
+
+ for (ct in toolset.classTools) { %]
 class [%=ct.eClass.name.ftuc()%](BaseModel):
 [% for (ft in ct.featureTools) { %]
   [%=ft.fieldName()%]: [%=ft.fieldType()%]
 [% } %]
 
 [% }
+}
+
+operation EClassTool recursiveDepth(maxDepth: Integer, visited: Set<EClassTool>) {
+  for (rt in self.featureTools.select(ft : EReferenceTool | true)) {
+    for (compat in rt.compatibleClassTools()) {
+      if (not visited.contains(compat)) {
+        maxDepth = maxDepth.max(compat.recursiveDepth(maxDepth + 1, visited.including(compat)));
+      }
+    }
+  }
+  return maxDepth;
 }
 
 operation EClassTool rootToolClass() { %]
@@ -275,8 +293,8 @@ class Update[%=self.eClass.name.ftuc()%](Tool):
 [% self.constructor(); %]
 
   def forward(self, [%=self.featureTools.collect(ft:EAttributeTool|ft.paramDeclaration()).concat(', ')%]) -> [%=self.eClass.name%]:
-[% self.setAttributes(); %]
-    return [%=self.varName()%]
+[% self.setAttributes('self.root'); %]
+    return self.root
 [%
 }
 
@@ -296,9 +314,9 @@ operation EClassTool attributeInputs() {
   }
 }
 
-operation EClassTool setAttributes() {%]
+operation EClassTool setAttributes(variableName: String) {%]
 [% for (ft in self.featureTools.select(ft:EAttributeTool|true)) { %]
-    [%=self.varName()%].[%=ft.fieldName()%] = [%=ft.varName()%]
+    [%=variableName%].[%=ft.fieldName()%] = [%=ft.varName()%]
 [% }
 }
 
