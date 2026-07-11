@@ -1,6 +1,102 @@
+from pydantic import BaseModel, Field
 from smolagents import Tool
+from typing import Union
 
-[% for (tool in toolset) { %]
-class Add[%=tool.eClass.name.ftuc()%](Tool):
-  pass
+[% for (ct in toolset.classTools) { %]
+class [%=ct.eClass.name.ftuc()%](BaseModel):
+[% for (ft in ct.featureTools) { %]
+  [%=ft.fieldName()%]: [%=ft.fieldType()%]
 [% } %]
+
+[% } %]
+
+
+[% for (tool in toolset.classTools.select(ct | ct.cardinality = #ONE)) { %]
+class Update[%=tool.eClass.name.ftuc()%](Tool):
+  name = "update_[%=tool.eClass.name%]"
+  description = """
+  Updates [%=tool.description.ftlc()%].
+  """
+  inputs = {
+
+  }
+  output_type = "object"
+[% } %]
+
+[% for (tool in toolset.classTools.select(ct | ct.cardinality != #ONE)) { %]
+class Add[%=tool.eClass.name.ftuc()%](Tool):
+  name = "add_[%=tool.eClass.name%]"
+  description = """
+  Adds [%=tool.description.ftlc()%].
+  """
+  inputs = {
+  }
+  output_type = "object"
+
+[% }
+
+operation EAttributeTool fieldName(): String {
+  return self.eAttribute.name;
+}
+
+@cached
+operation EAttributeTool fieldType(): String {
+  switch (self.eAttribute.eType.name) {
+    case 'EInt': return 'int';
+    case 'EBoolean': return 'bool';
+  }
+  return 'str';
+}
+
+operation EReferenceTool fieldName(): String {
+  return self.eReference.name;
+}
+
+@cached
+operation EReferenceTool fieldType(): String {
+  var singleType = self.elementType();
+  if (self.eReference.isMany) {
+    if (self.eReference.isContainment) {
+      var compatible = self.compatibleClassTools();
+      var allWithSiblingNames = compatible.forAll(ct | ct.hasSiblingScopedName());
+      return 'dict[str, ' + singleType + ']';
+    }
+    return 'list[' + singleType + ']';
+  }
+  return singleType;
+}
+
+operation EReferenceTool elementType(): String {
+  var compatible = self.compatibleClassTools().eClass.name.flatten();
+  if (not compatible.isEmpty() and not self.possibleValues.isEmpty()) {
+    compatible.add('str');
+  }
+  if (compatible.size() = 1) {
+    return compatible.first;
+  } else if (compatible.size > 1) {
+    return 'Union[' + compatible.concat(', ') + ']';
+  } else {
+    return 'str';
+  }
+}
+
+@cached
+operation EReferenceTool compatibleClassTools(): Collection<EClassTool> {
+  return self.toolset().classTools.select(
+    ct | self.effectiveEType().isSuperTypeOf(ct.eClass)
+  );
+}
+
+operation EReferenceTool effectiveEType(): EClass {
+  return self.overrideEType.isDefined() ? self.overrideEType : self.eReference?.eType;
+}
+
+operation EFeatureTool toolset() {
+  return self.closure(e|e.eContainer).selectOne(t:ModelToolset|true);
+}
+
+operation EClassTool hasSiblingScopedName() {
+  return self.featureTools.exists(ft:EAttributeTool | ft.idScope = #UNIQUE_AMONG_SIBLINGS);
+}
+
+%]
