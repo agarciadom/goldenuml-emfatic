@@ -10,67 +10,26 @@ from typing import Union
 
 # Root update tool
 
-[% var rootTool = toolset.rootClassTool; %]
-class Update[%=rootTool.eClass.name.ftuc()%](Tool):
-  name = "update_[%=rootTool.eClass.name%]"
-  description = """
-  Updates [%=rootTool.description.ftlc()%], and returns it.
-  """
-  inputs = {
-[% rootTool.attributeInputs(); %]
-  }
-  output_type = "object"
-
-[% rootTool.constructor(); %]
-
-  def forward(self, [%=rootTool.featureTools.collect(ft:EAttributeTool|ft.paramDeclaration()).concat(', ')%]) -> [%=rootTool.eClass.name%]:
-[% rootTool.setAttributes(); %]
-    return [%=rootTool.varName()%]
+[% toolset.rootClassTool.rootToolClass(); %]
 
 # Subobject creation tools (for containment references)
 
 [%
 for (refTool in toolset.classTools.collect(ct | ct.featureTools.select(ft: EReferenceTool | ft.eReference.isContainment)).flatten()) {
   for (classToAdd in refTool.compatibleClassTools()) {
-%]
-class Add[%=classToAdd.eClass.name.ftuc()%]To[%=refTool.eContainer.eClass.name%][%=refTool.eReference.name.ftuc()%](Tool):
-  name = "add_[%=classToAdd.eClass.name%]_to_[%=refTool.eContainer.eClass.name%]_[%=refTool.eReference.name%]"
-  description = """
-  Creates and adds a [%=classToAdd.eClass.name%] to the [%=refTool.eReference.name%] in a [%=refTool.eContainer.eClass.name%], and returns the [%=classToAdd.eClass.name%].
-  """
-  inputs = {
-[% if (not refTool.eContainer.isRootTool()) { %]
-    "[%=refTool.containerVarName()%]": {
-      "type": "object",
-      "description": "[%=refTool.eContainer.eClass.name%] that this [%=classToAdd.eClass.name%] belongs to"
-    },
-[%
-}
-classToAdd.attributeInputs(); %]
+    refTool.createAddTool(classToAdd);
   }
-  output_type = "object"
-
-[% if (refTool.eContainer.isRootTool()) {
-  classToAdd.constructor();
-} %]
-
-  def forward(self, [% if (not refTool.eContainer.isRootTool()) { %][%=refTool.containerVarName()%]: [%=refTool.eContainer.eClass.name%], [% } %][%=classToAdd.featureTools.collect(ft:EAttributeTool|ft.paramDeclaration()).concat(', ')%]) -> [%=classToAdd.eClass.name%]:
-    var _instance = [%=classToAdd.eClass.name%](
-[% for (at in classToAdd.featureTools.select(ft:EAttributeTool|true)) { %]
-      [%=at.fieldName()%]=[%=at.varName()%],
-[% } %]
-    )
-[% if (refTool.fieldType().startsWith('dict[str,')) { %]
-    [%=refTool.containerVarName()%].[%=refTool.fieldName()%][[%=classToAdd.siblingScopedNameTool().varName()%]] = _instance
-[% } else if (refTool.fieldType().startsWith('list[')) { %]
-    [%=refTool.containerVarName()%].[%=refTool.fieldName()%].add(_instance)
-[% } else { %]
-    [%=refTool.containerVarName()%].[%=refTool.fieldName()%] = _instance
-[% } %]
-    return _instance
-
+}
+%]
+# Non-containment reference tools
 
 [%
+for (refTool in toolset.classTools.collect(ct | ct.featureTools.select(ft: EReferenceTool | not ft.eReference.isContainment)).flatten()) {
+  for (classToReference in refTool.compatibleClassTools()) {
+    refTool.addReferenceTool(classToReference);
+  }
+  if (not refTool.possibleValues.isEmpty()) {
+    refTool.addStringReferenceTool();
   }
 }
 
@@ -143,6 +102,10 @@ operation EReferenceTool containerVarName() {
   return self.eContainer.eClass.name.ftlc();
 }
 
+operation EReferenceTool varName() {
+  return self.eReference.name.ftlc();
+}
+
 @cached
 operation EReferenceTool compatibleClassTools(): Collection<EClassTool> {
   return self.toolset().classTools.select(
@@ -153,6 +116,112 @@ operation EReferenceTool compatibleClassTools(): Collection<EClassTool> {
 operation EReferenceTool effectiveEType(): EClass {
   return self.overrideEType.isDefined() ? self.overrideEType : self.eReference?.eType;
 }
+
+operation EReferenceTool createAddTool(classToAdd: EClassTool) { %]
+class Add[%=classToAdd.eClass.name.ftuc()%]To[%=self.eContainer.eClass.name%][%=self.eReference.name.ftuc()%](Tool):
+  name = "add_[%=classToAdd.eClass.name%]_to_[%=self.eContainer.eClass.name%]_[%=self.eReference.name%]"
+  description = """
+  Creates and adds a [%=classToAdd.eClass.name%] to the [%=self.eReference.name%] in a [%=self.eContainer.eClass.name%], and returns the [%=classToAdd.eClass.name%].
+  """
+  inputs = {
+[% if (not self.eContainer.isRootTool()) { %]
+    "[%=self.containerVarName()%]": {
+      "type": "object",
+      "description": "[%=self.eContainer.eClass.name%] that this [%=classToAdd.eClass.name%] belongs to"
+    },
+[%
+}
+classToAdd.attributeInputs(); %]
+  }
+  output_type = "object"
+
+[% if (self.eContainer.isRootTool()) {
+  classToAdd.constructor();
+} %]
+
+  def forward(self, [% if (not self.eContainer.isRootTool()) { %][%=self.containerVarName()%]: [%=self.eContainer.eClass.name%], [% } %][%=classToAdd.featureTools.collect(ft:EAttributeTool|ft.paramDeclaration()).concat(', ')%]) -> [%=classToAdd.eClass.name%]:
+    var _instance = [%=classToAdd.eClass.name%](
+[% for (at in classToAdd.featureTools.select(ft:EAttributeTool|true)) { %]
+      [%=at.fieldName()%]=[%=at.varName()%],
+[% } %]
+    )
+[% if (self.fieldType().startsWith('dict[str,')) { %]
+    [%=self.containerVarName()%].[%=self.fieldName()%][[%=classToAdd.siblingScopedNameTool().varName()%]] = _instance
+[% } else if (self.fieldType().startsWith('set[')) { %]
+    [%=self.containerVarName()%].[%=self.fieldName()%].add(_instance)
+[% } else { %]
+    [%=self.containerVarName()%].[%=self.fieldName()%] = _instance
+[% } %]
+    return _instance
+
+
+[%
+}
+
+operation EReferenceTool addReferenceTool(classToReference: EClassTool) {%]
+class Add[%=classToReference.eClass.name.ftuc()%]To[%=self.eContainer.eClass.name.ftuc()%][%=self.eReference.name.ftuc()%](Tool):
+  name = "add_[%=classToReference.eClass.name.ftuc()%]_to_[%=self.eContainer.eClass.name.ftuc()%]_[%=self.eReference.name.ftuc()%]"
+  description = """
+  Adds a [%=classToReference.eClass.name%] to the [%=self.eReference.name%] of a [%=self.eContainer.eClass.name%], and returns it.
+  """
+  inputs = {
+    "[%=self.containerVarName()%]": {
+      "type": "object",
+      "description": "The [%=self.eContainer.eClass.name%] holding the [%=self.eReference.name%]"
+    },
+    "addition": {
+      "type": "object",
+      "description": "The [%=classToReference.eClass.name%] to be added"
+    }
+  }
+  output_type = "object"
+
+  def forward(self, [%=self.containerVarName()%]: [%=self.eContainer.eClass.name%], addition: [%=classToReference.eClass.name%]):
+  [% if (self.fieldType().startsWith('set[')) { %]
+    [%=self.containerVarName()%].[%=self.fieldName()%].add(addition)
+  [% } else { %]
+    [%=self.containerVarName()%].[%=self.fieldName()%] = addition
+  [% } %]
+    return addition
+
+
+[%}
+
+
+operation EReferenceTool addStringReferenceTool() {%]
+class AddNamedTo[%=self.eContainer.eClass.name.ftuc()%][%=self.eReference.name.ftuc()%](Tool):
+  name = "add_named_to_[%=self.eContainer.eClass.name.ftuc()%]_[%=self.eReference.name.ftuc()%]"
+  description = """
+  Adds a named object to the [%=self.eReference.name%] of a [%=self.eContainer.eClass.name%], and returns its name.
+  """
+  inputs = {
+    "[%=self.containerVarName()%]": {
+      "type": "object",
+      "description": "The [%=self.eContainer.eClass.name%] holding the [%=self.eReference.name%]"
+    },
+    "addition": {
+      "type": "string",
+      "description": "The name of the object to be added. Possible options: [%=self.possibleValues.collect(v|v.description).concat(', ')%]."
+    }
+  }
+  output_type = "object"
+
+  def forward(self, [%=self.containerVarName()%]: [%=self.eContainer.eClass.name%], addition: str) -> str:
+    options = {
+[% for (pv in self.possibleValues) { %]
+      "[%=pv.description%]": "[%=pv.value.eResource.getURIFragment(pv.value)%]",
+[% } %]
+    }
+  [% if (self.fieldType().startsWith('set[')) { %]
+    [%=self.containerVarName()%].[%=self.fieldName()%].add(options[addition])
+  [% } else { %]
+    [%=self.containerVarName()%].[%=self.fieldName()%] = options[addition]
+  [% } %]
+    return addition
+
+
+[%}
+
 
 operation EFeatureTool toolset() {
   return self.closure(e|e.eContainer).selectOne(t:ModelToolset|true);
@@ -190,6 +259,25 @@ class [%=ct.eClass.name.ftuc()%](BaseModel):
 [% } %]
 
 [% }
+}
+
+operation EClassTool rootToolClass() { %]
+class Update[%=self.eClass.name.ftuc()%](Tool):
+  name = "update_[%=self.eClass.name%]"
+  description = """
+  Updates [%=self.description.ftlc()%], and returns it.
+  """
+  inputs = {
+[% self.attributeInputs(); %]
+  }
+  output_type = "object"
+
+[% self.constructor(); %]
+
+  def forward(self, [%=self.featureTools.collect(ft:EAttributeTool|ft.paramDeclaration()).concat(', ')%]) -> [%=self.eClass.name%]:
+[% self.setAttributes(); %]
+    return [%=self.varName()%]
+[%
 }
 
 operation EClassTool constructor() {%]
