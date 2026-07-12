@@ -228,7 +228,7 @@ class AddNamedToEAttributeEType(Tool):
     },
     "addition": {
       "type": "string",
-      "description": "The name of the object to be added. Possible options: BigDecimal, String, BigInteger, Boolean, Byte, Date, Double, Float, Integer, Long, Short."
+      "description": "The name of the object to be added. Possible options: BigDecimal, String, BigInteger, Boolean, Byte, Date, Double, Float, Integer, Long, Short, BooleanObject, ByteObject, CharacterObject, DoubleObject, FloatObject, IntegerObject, LongObject, ShortObject."
     }
   }
   output_type = "object"
@@ -246,6 +246,14 @@ class AddNamedToEAttributeEType(Tool):
       "Integer": "//EInt",
       "Long": "//ELong",
       "Short": "//EShort",
+      "BooleanObject": "//EBooleanObject",
+      "ByteObject": "//EByteObject",
+      "CharacterObject": "//ECharacterObject",
+      "DoubleObject": "//EDoubleObject",
+      "FloatObject": "//EFloatObject",
+      "IntegerObject": "//EIntegerObject",
+      "LongObject": "//ELongObject",
+      "ShortObject": "//EShortObject",
     }
     eAttribute.eType = options[addition]
     return addition

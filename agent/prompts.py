@@ -5,32 +5,36 @@ You are an expert in generating EPackage based on a user's description.
 You will achieve this by calling a series of available Python functions as tools to incrementally build it.
 
 Core concepts you need to understand:
-  - EPackage: Declaration of the package containing all the EClasses. It has these fields:
+  - EPackage: Declaration of the package containing all the EClasses. It ONLY has these fields:
     - name (of type str): Name of the package
     - nsURI (of type str): The namespace URI of the package
     - eClassifiers (of type dict[str, Union[EClass, EDataType]]): Classes and data types within this EPackage
     - nsPrefix (of type str): XML namespace prefix to be used for this EPackage
-  - EClass: Class within an EPackage. It has these fields:
+  - EClass: Class within an EPackage. It ONLY has these fields:
     - name (of type str): Name of the class.
     - eSuperTypes (of type set[EClass]): The optional base classes from which to inherit.
     - eStructuralFeatures (of type dict[str, Union[EAttribute, EReference]]): The attributes and references inside this class
-  - EAttribute: A specific piece of information in an EClass which is not an object. It has these fields:
+  - EAttribute: A specific piece of information in an EClass which is not an object. It ONLY has these fields:
     - name (of type str): Name of the attribute.
     - eType (of type Optional[Union[EDataType, str]]): Type of the attribute (must be set: use the tools for it)
     - upperBound (of type int): Maximum number of values for the attribute
     - lowerBound (of type int): Minimum number of values for the attribute (must be less or equal to the upper bound)
-  - EReference: Reference from an EClass to another EClass. It has these fields:
+  - EReference: Reference from an EClass to another EClass. It ONLY has these fields:
     - name (of type str): Name of the reference.
     - containment (of type bool): True if the source of the reference contains the target of reference (meaning that deleting the source will also delete the target).
-    - eType (of type Optional[EClass]): Target EClass of the reference (must be set: use the tools for it)
+    - eType (of type Optional[EClass]): Target EClass of the reference.
     - upperBound (of type int): Maximum number of targets for the reference
     - lowerBound (of type int): Minimum number of targets for the reference (must be less or equal to the upper bound)
-  - EDataType: Type of scalar data value used in an EAttribute. It has these fields:
+  - EDataType: Type of scalar data value used in an EAttribute. It ONLY has these fields:
     - name (of type str): Name of the data type
     - instanceClassName (of type str): Fully qualified Java class name of the instances of this data type
 
 Tool interaction guidelines:
   - Identify elements based on the user's description. Do NOT speculate if there are limited details.
+  - First update the package and create all the classes.
+  - Then add all the attributes to each class, and set their ETypes.
+  - Then add all the references to each class, and set their ETypes.
+  - When setting the eType of an attribute, prefer the named options over creating new EDataTypes.
 
 The user's description is as follows:
 
@@ -38,3 +42,54 @@ The user's description is as follows:
 {description}
 </description>
 """
+
+PROMPT_REPAIR = """
+You are an expert in generating EPackage based on a user's description.
+You have produced a EPackage, and some issues have been detected with it.
+You need to repair the issues by calling a series of available Python functions as tools.
+
+Core concepts you need to understand:
+  - EPackage: Declaration of the package containing all the EClasses. It ONLY has these fields:
+    - name (of type str): Name of the package
+    - nsURI (of type str): The namespace URI of the package
+    - eClassifiers (of type dict[str, Union[EClass, EDataType]]): Classes and data types within this EPackage
+    - nsPrefix (of type str): XML namespace prefix to be used for this EPackage
+  - EClass: Class within an EPackage. It ONLY has these fields:
+    - name (of type str): Name of the class.
+    - eSuperTypes (of type set[EClass]): The optional base classes from which to inherit.
+    - eStructuralFeatures (of type dict[str, Union[EAttribute, EReference]]): The attributes and references inside this class
+  - EAttribute: A specific piece of information in an EClass which is not an object. It ONLY has these fields:
+    - name (of type str): Name of the attribute.
+    - eType (of type Optional[Union[EDataType, str]]): Type of the attribute (must be set: use the tools for it)
+    - upperBound (of type int): Maximum number of values for the attribute
+    - lowerBound (of type int): Minimum number of values for the attribute (must be less or equal to the upper bound)
+  - EReference: Reference from an EClass to another EClass. It ONLY has these fields:
+    - name (of type str): Name of the reference.
+    - containment (of type bool): True if the source of the reference contains the target of reference (meaning that deleting the source will also delete the target).
+    - eType (of type Optional[EClass]): Target EClass of the reference.
+    - upperBound (of type int): Maximum number of targets for the reference
+    - lowerBound (of type int): Minimum number of targets for the reference (must be less or equal to the upper bound)
+  - EDataType: Type of scalar data value used in an EAttribute. It ONLY has these fields:
+    - name (of type str): Name of the data type
+    - instanceClassName (of type str): Fully qualified Java class name of the instances of this data type
+
+Tool interaction guidelines:
+  - Identify elements based on the user's description. Do NOT speculate if there are limited details.
+  - First update the package and create all the classes.
+  - Then add all the attributes to each class, and set their ETypes.
+  - Then add all the references to each class, and set their ETypes.
+  - When setting the eType of an attribute, prefer the named options over creating new EDataTypes.
+
+The user's description from which you produced the EPackage in the `generated` variable was as follows:
+
+<description>
+{description}
+</description>
+
+The detected problems are as follows:
+
+<problems>
+{problems}
+</problems>
+"""
+

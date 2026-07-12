@@ -2,19 +2,12 @@
 # Automatically generated prompts. Do not modify manually.
 
 PROMPT_TASK = """
-You are an expert in generating [%=rootClassName%] based on a user's description.
+[% persona(); %]
 You will achieve this by calling a series of available Python functions as tools to incrementally build it.
 
-Core concepts you need to understand:
-[% for (ct in toolset.classTools) { %]
-  - [%=ct.eClass.name%]: [%=ct.description%]. It has these fields:
-[% for (ft in ct.featureTools) { %]
-    - [%=ft.fieldName()%] (of type [%=ft.fieldType()%][%= ft.isRequired() ? ', required' : ''%]): [%=ft.description%]
-[% }
-} %]
+[% concepts(); %]
 
-Tool interaction guidelines:
-  - Identify elements based on the user's description. Do NOT speculate if there are limited details.
+[% guidelines(); %]
 
 The user's description is as follows:
 
@@ -22,3 +15,50 @@ The user's description is as follows:
 {description}
 </description>
 """
+
+PROMPT_REPAIR = """
+[% persona(); %]
+You have produced a [%=rootClassName%], and some issues have been detected with it.
+You need to repair the issues by calling a series of available Python functions as tools.
+
+[% concepts(); %]
+
+[% guidelines(); %]
+
+The user's description from which you produced the [%=rootClassName%] in the `generated` variable was as follows:
+
+<description>
+{description}
+</description>
+
+The detected problems are as follows:
+
+<problems>
+{problems}
+</problems>
+"""
+
+[%
+
+operation persona() {%]
+You are an expert in generating [%=rootClassName%] based on a user's description.
+[% }
+
+operation concepts() {%]
+Core concepts you need to understand:
+[% for (ct in toolset.classTools) { %]
+  - [%=ct.eClass.name%]: [%=ct.description%]. It ONLY has these fields:
+[%   for (ft in ct.featureTools) { %]
+    - [%=ft.fieldName()%] (of type [%=ft.fieldType()%][%= ft.isRequired() ? ', required' : ''%]): [%=ft.description%]
+[%   }
+   }
+}
+
+operation guidelines() {%]
+Tool interaction guidelines:
+  - Identify elements based on the user's description. Do NOT speculate if there are limited details.
+[% for (g in toolset.extraGuidelines) {%]
+  - [%=g%]
+[% }
+}
+%]

@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import xml.etree.ElementTree as ET
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from typing import Union, Optional, override
 
 
@@ -57,6 +57,10 @@ class EPackage(EObjectBaseModel):
     for pos, child in enumerate(self.eClassifiers.values()):
       child.set_uri_fragments('{0}/@eClassifiers.{1:d}'.format(own_fragment, pos))
 
+# protected region EPackage on begin
+# add custom validation logic here
+# protected region EPackage end
+
 
 class EClass(EObjectBaseModel):
   name: str
@@ -80,6 +84,10 @@ class EClass(EObjectBaseModel):
     for pos, child in enumerate(self.eStructuralFeatures.values()):
       child.set_uri_fragments('{0}/@eStructuralFeatures.{1:d}'.format(own_fragment, pos))
 
+# protected region EClass on begin
+# add custom validation logic here
+# protected region EClass end
+
 
 class EAttribute(EObjectBaseModel):
   name: str
@@ -96,6 +104,16 @@ class EAttribute(EObjectBaseModel):
     if self.eType:
       element.set("eType", (self.eType.emf_uri_fragment if hasattr(self.eType, 'emf_uri_fragment') else self.eType))
     return element
+
+# protected region EAttribute on begin
+  @model_validator(mode="after")
+  def validate_bounds(self) -> EAttribute:
+      if self.upperBound != -1 and self.lowerBound > self.upperBound:
+          raise ValueError(
+              "lowerBound ({}) must be less than or equal to upperBound ({}), unless upperBound is -1".format(
+                  self.lowerBound, self.upperBound))
+      return self
+# protected region EAttribute end
 
 
 class EReference(EObjectBaseModel):
@@ -116,6 +134,16 @@ class EReference(EObjectBaseModel):
       element.set("eType", self.eType.emf_uri_fragment)
     return element
 
+# protected region EReference on begin
+@model_validator(mode="after")
+def validate_bounds(self) -> EAttribute:
+    if self.upperBound != -1 and self.lowerBound > self.upperBound:
+        raise ValueError(
+            "lowerBound ({}) must be less than or equal to upperBound ({}), unless upperBound is -1".format(
+                self.lowerBound, self.upperBound))
+    return self
+# protected region EReference end
+
 
 class EDataType(EObjectBaseModel):
   name: str
@@ -127,5 +155,9 @@ class EDataType(EObjectBaseModel):
       "instanceClassName": self.instanceClassName,
     })
     return element
+
+# protected region EDataType on begin
+# add custom validation logic here
+# protected region EDataType end
 
 

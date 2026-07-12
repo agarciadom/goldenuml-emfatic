@@ -5,10 +5,9 @@ import dotenv
 from smolagents import LiteLLMModel
 
 from agent import ModelAgent
-import prompts
 
 def main(agent: ModelAgent, domain_description: str, output_file: typing.TextIO):
-    result = agent.execute(prompts.PROMPT_TASK.format(description=domain_description))
+    agent.run(domain_description)
     agent.epackage.write_to_file(output_file)
 
 

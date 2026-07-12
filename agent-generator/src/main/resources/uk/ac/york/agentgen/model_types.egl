@@ -21,12 +21,30 @@ class EObjectBaseModel(BaseModel):
 
 [% for (ct in toolset.classTools) { %]
 class [%=ct.eClass.name.ftuc()%](EObjectBaseModel):
-[% for (ft in ct.featureTools) {
-  var defaultValue = ft.defaultFieldValue(); %]
+[%
+  ct.fields();
+  if (toolset.rootClassTool = ct) {
+    writeToFile();
+  }
+  ct.toFlexmi();
+  if (ct.featureTools.exists(ft:EReferenceTool|ft.eReference.isContainment)) {
+    ct.setUriFragments();
+  }
+%]
+[%=out.preserve("#", "", ct.eClass.name.ftuc(), true, "# add custom validation logic here")%]
+
+
+[% }
+
+operation EClassTool fields() {
+  for (ft in self.featureTools) {
+    var defaultValue = ft.defaultFieldValue(); %]
   [%=ft.fieldName()%]: [%=ft.fieldType() + (defaultValue.length() > 0 ? ' = ' + ft.defaultFieldValue() : '')%]
 [% } %]
 
-[% if (toolset.rootClassTool = ct) {%]
+[% }
+
+operation writeToFile() {%]
   def write_to_file(self, f):
     pis = [
       ET.ProcessingInstruction("nsuri", "[%=toolset.rootClassTool.eClass.ePackage.nsURI%]"),
@@ -44,21 +62,23 @@ class [%=ct.eClass.name.ftuc()%](EObjectBaseModel):
     tree.write(f, encoding="unicode", short_empty_elements=True)
     f.write("\n")
 
-[% } %]
+[% }
+
+operation EClassTool toFlexmi() {%]
   def to_flexmi(self) -> ET.Element:
-[% if (toolset.rootClassTool = ct) {%]
+[% if (toolset.rootClassTool = self) {%]
     self.set_uri_fragments('/')
 [% } %]
-    element = ET.Element("[%=ct.eClass.name.ftlc()%]", {
-[% for (tool in ct.featureTools.select(ft:EAttributeTool|true)) {%]
+    element = ET.Element("[%=self.eClass.name.ftlc()%]", {
+[% for (tool in self.featureTools.select(ft:EAttributeTool|true)) {%]
       "[%=tool.eAttribute.name%]": [%=tool.fieldValueToFlexmi()%],
 [% } %]
     })
-[% for (tool in ct.featureTools.select(ft:EReferenceTool|not ft.eReference.isContainment)) {%]
+[% for (tool in self.featureTools.select(ft:EReferenceTool|not ft.eReference.isContainment)) {%]
     if self.[%=tool.fieldName()%]:
       element.set("[%=tool.eReference.name%]", [%=tool.fieldValueToFlexmi()%])
 [% } %]
-[% for (tool in ct.featureTools.select(ft:EReferenceTool|ft.eReference.isContainment)) {%]
+[% for (tool in self.featureTools.select(ft:EReferenceTool|ft.eReference.isContainment)) {%]
     feature_element = ET.SubElement(element, "[%=tool.eReference.name%]")
 [% if (tool.fieldType().startsWith('dict[')) { %]
     for child in self.[%=tool.fieldName()%].values():
@@ -72,23 +92,24 @@ class [%=ct.eClass.name.ftuc()%](EObjectBaseModel):
 [% }
 } %]
     return element
-[% if (ct.featureTools.exists(ft:EReferenceTool|ft.eReference.isContainment)) {%]
 
+[% }
+
+operation EClassTool setUriFragments() {%]
   @override
   def set_uri_fragments(self, own_fragment):
     self.emf_uri_fragment = own_fragment
-[% for (tool in ct.featureTools.select(ft:EReferenceTool|ft.eReference.isContainment)) {%]
-[% if (tool.fieldType().startsWith('dict[')) { %]
+[% for (tool in self.featureTools.select(ft:EReferenceTool|ft.eReference.isContainment)) {%]
+[%   if (tool.fieldType().startsWith('dict[')) { %]
     for pos, child in enumerate(self.[%=tool.fieldName()%].values()):
       child.set_uri_fragments('{0}/@[%=tool.eReference.name%].{1:d}'.format(own_fragment, pos))
-[% } else if (tool.fieldType().startsWith('set[')) { %]
+[%   } else if (tool.fieldType().startsWith('set[')) { %]
     for pos, child in enumerate(self.[%=tool.fieldName()%]):
       child.set_uri_fragments('{0}/@[%=tool.eReference.name%].{1:d}'.format(own_fragment, pos))
-[% } else { %]
+[%   } else { %]
       child.set_uri_fragments(own_fragment + '/@[%=tool.eReference.name%]'))
-[% }
-}} %]
-
+[%   }
+  } %]
 
 [% }
 
