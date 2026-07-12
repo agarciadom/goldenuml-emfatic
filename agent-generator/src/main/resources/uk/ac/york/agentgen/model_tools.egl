@@ -1,4 +1,5 @@
 [%
+  import "utils.eol";
   var toolClasses : Map;
 %]# Automatically generated model creation tools. Do not modify manually.
 
@@ -51,108 +52,6 @@ def createTools(root: [%= toolset.rootClassTool.eClass.name.ftuc() %]) -> list[T
 operation recordToolClass(className: String, constructorTakesRoot: Boolean): String {
   toolClasses.put(className, Tuple {"constructorTakesRoot" = constructorTakesRoot});
   return className;
-}
-
-operation EAttributeTool fieldName(): String {
-  return self.eAttribute.name;
-}
-
-@cached
-operation EAttributeTool fieldType(): String {
-  switch (self.eAttribute.eType.name) {
-    case 'EInt': return 'int';
-    case 'EBoolean': return 'bool';
-  }
-  return 'str';
-}
-
-operation EAttributeTool defaultFieldValue(): String {
-  return '';
-}
-
-@cached
-operation EAttributeTool inputType(): String {
-  switch (self.eAttribute.eType.name) {
-    case 'EInt': return 'integer';
-    case 'EBoolean': return 'boolean';
-    case 'EFloat':
-    case 'EDouble': return 'number';
-    case 'EString': return 'string';
-  }
-  return 'any';
-}
-
-operation EAttributeTool varName(): String {
-  return self.eAttribute.name;
-}
-
-operation EAttributeTool paramDeclaration(): String {
-  return self.varName() + ': ' + self.fieldType();
-}
-
-operation EReferenceTool fieldName(): String {
-  return self.eReference.name;
-}
-
-@cached
-operation EReferenceTool fieldType(): String {
-  var singleType = self.elementType();
-  if (self.eReference.isMany) {
-    if (self.eReference.isContainment) {
-      var compatible = self.compatibleClassTools();
-      var allWithSiblingNames = compatible.forAll(ct | ct.hasSiblingScopedName());
-      return 'dict[str, ' + singleType + ']';
-    }
-    return 'set[' + singleType + ']';
-  }
-  return 'Optional[' + singleType + ']';
-}
-
-operation EReferenceTool defaultFieldValue(): String {
-  var fldType = self.fieldType();
-  if (fldType.startsWith('dict[')) {
-    return 'Field(default_factory=dict)';
-  } else if (fldType.startsWith('set[')) {
-    return 'Field(default_factory=set)';
-  } else {
-    return 'None';
-  }
-}
-
-operation EReferenceTool elementType(): String {
-  var compatible = self.compatibleClassTools().eClass.name.flatten();
-  if (not compatible.isEmpty() and not self.possibleValues.isEmpty()) {
-    compatible.add('str');
-  }
-  if (compatible.size() = 1) {
-    return compatible.first;
-  } else if (compatible.size > 1) {
-    return 'Union[' + compatible.concat(', ') + ']';
-  } else {
-    return 'str';
-  }
-}
-
-operation EReferenceTool containerVarName() {
-  if (self.eContainer.isRootTool()) {
-    return 'self.root';
-  }
-  return self.eContainer.eClass.name.ftlc();
-}
-
-operation EReferenceTool varName() {
-  return self.eReference.name.ftlc();
-}
-
-@cached
-operation EReferenceTool compatibleClassTools(): Collection<EClassTool> {
-  return self.toolset().classTools.select(
-    ct | self.effectiveEType().isSuperTypeOf(ct.eClass)
-  );
-}
-
-operation EReferenceTool effectiveEType(): EClass {
-  return self.overrideEType.isDefined() ? self.overrideEType : self.eReference?.eType;
 }
 
 operation EReferenceTool createAddTool(classToAdd: EClassTool) { %]
@@ -260,35 +159,6 @@ class [%=recordToolClass("AddNamedTo" + self.eContainer.eClass.name.ftuc() + sel
 
 [%}
 
-
-operation EFeatureTool toolset() {
-  return self.closure(e|e.eContainer).selectOne(t:ModelToolset|true);
-}
-
-@cached
-operation EClassTool siblingScopedNameTool(): EAttributeTool {
-  return self.featureTools.selectOne(ft:EAttributeTool | ft.idScope = #UNIQUE_AMONG_SIBLINGS);
-}
-
-operation EClassTool hasSiblingScopedName() {
-  return self.siblingScopedNameTool().isDefined();
-}
-
-@cached
-operation EClassTool varName() {
-  return self.isRootTool() ? 'root' : self.eClass.name.ftlc();
-}
-
-@cached
-operation EClassTool isRootTool() {
-  return self.eContainer.rootClassTool = self;
-}
-
-@cached
-operation ModelToolset rootEClass() {
-  return self.rootClassTool.eClass.name;
-}
-
 operation ModelToolset pydanticModels() {
 
  for (ct in toolset.classTools) { %]
@@ -299,17 +169,6 @@ class [%=ct.eClass.name.ftuc()%](BaseModel):
 [% } %]
 
 [% }
-}
-
-operation EClassTool recursiveDepth(maxDepth: Integer, visited: Set<EClassTool>) {
-  for (rt in self.featureTools.select(ft : EReferenceTool | true)) {
-    for (compat in rt.compatibleClassTools()) {
-      if (not visited.contains(compat)) {
-        maxDepth = maxDepth.max(compat.recursiveDepth(maxDepth + 1, visited.including(compat)));
-      }
-    }
-  }
-  return maxDepth;
 }
 
 operation EClassTool rootToolClass() { %]
