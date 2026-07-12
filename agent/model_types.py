@@ -14,6 +14,9 @@ class EObjectBaseModel(BaseModel):
   def set_uri_fragments(self, own_fragment):
     self.emf_uri_fragment = own_fragment
 
+  # Make instances hashable based on object identity
+  __hash__ = object.__hash__
+
 
 class EPackage(EObjectBaseModel):
   name: str

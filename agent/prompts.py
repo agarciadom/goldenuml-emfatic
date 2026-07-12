@@ -22,7 +22,7 @@ Core concepts you need to understand:
   - EReference: Reference from an EClass to another EClass. It has these fields:
     - name (of type str): Name of the reference.
     - containment (of type bool): True if the source of the reference contains the target of reference (meaning that deleting the source will also delete the target).
-    - eType (of type Optional[EClass]): Target EClass of the reference.
+    - eType (of type Optional[EClass]): Target EClass of the reference (must be set: use the tools for it)
     - upperBound (of type int): Maximum number of targets for the reference
     - lowerBound (of type int): Minimum number of targets for the reference (must be less or equal to the upper bound)
   - EDataType: Type of scalar data value used in an EAttribute. It has these fields:
