@@ -1,3 +1,5 @@
+# Automatically generated prompts. Do not modify manually.
+
 PROMPT_TASK = """
 You are an expert in generating EPackage based on a user's description.
 You will achieve this by calling a series of available Python functions as tools to incrementally build it.
