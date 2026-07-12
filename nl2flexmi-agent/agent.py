@@ -46,4 +46,4 @@ class ModelAgent:
     def increment_metrics(self):
         self.total_duration += sum(self.code_agent.monitor.step_durations)
         self.total_input_tokens += self.code_agent.monitor.total_input_token_count
-        self.total_output_tokens += self.code_agent.monitor.total_input_token_count
+        self.total_output_tokens += self.code_agent.monitor.total_output_token_count
