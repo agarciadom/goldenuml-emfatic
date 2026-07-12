@@ -107,23 +107,23 @@ class AddEAttributeToEClassEStructuralFeatures(Tool):
       "type": "string",
       "description": "Name of the attribute."
     },
-    "upperBound": {
-      "type": "integer",
-      "description": "Maximum number of values for the attribute"
-    },
     "lowerBound": {
       "type": "integer",
       "description": "Minimum number of values for the attribute (must be less or equal to the upper bound)"
+    },
+    "upperBound": {
+      "type": "integer",
+      "description": "Maximum number of values for the attribute"
     },
   }
   output_type = "object"
 
 
-  def forward(self, eClass: EClass, name: str, upperBound: int, lowerBound: int) -> EAttribute:
+  def forward(self, eClass: EClass, name: str, lowerBound: int, upperBound: int) -> EAttribute:
     _instance = EAttribute(
       name=name,
-      upperBound=upperBound,
       lowerBound=lowerBound,
+      upperBound=upperBound,
     )
     eClass.eStructuralFeatures[name] = _instance
     return _instance
@@ -147,24 +147,24 @@ class AddEReferenceToEClassEStructuralFeatures(Tool):
       "type": "boolean",
       "description": "True if the source of the reference contains the target of reference (meaning that deleting the source will also delete the target)."
     },
-    "upperBound": {
-      "type": "integer",
-      "description": "Maximum number of targets for the reference"
-    },
     "lowerBound": {
       "type": "integer",
       "description": "Minimum number of targets for the reference (must be less or equal to the upper bound)"
+    },
+    "upperBound": {
+      "type": "integer",
+      "description": "Maximum number of targets for the reference"
     },
   }
   output_type = "object"
 
 
-  def forward(self, eClass: EClass, name: str, containment: bool, upperBound: int, lowerBound: int) -> EReference:
+  def forward(self, eClass: EClass, name: str, containment: bool, lowerBound: int, upperBound: int) -> EReference:
     _instance = EReference(
       name=name,
       containment=containment,
-      upperBound=upperBound,
       lowerBound=lowerBound,
+      upperBound=upperBound,
     )
     eClass.eStructuralFeatures[name] = _instance
     return _instance

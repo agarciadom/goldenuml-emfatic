@@ -17,14 +17,14 @@ Core concepts you need to understand:
   - EAttribute: A specific piece of information in an EClass which is not an object. It ONLY has these fields:
     - name (of type str): Name of the attribute.
     - eType (of type Optional[Union[EDataType, str]]): Type of the attribute (must be set: use the tools for it)
-    - upperBound (of type int): Maximum number of values for the attribute
     - lowerBound (of type int): Minimum number of values for the attribute (must be less or equal to the upper bound)
+    - upperBound (of type int): Maximum number of values for the attribute
   - EReference: Reference from an EClass to another EClass. It ONLY has these fields:
     - name (of type str): Name of the reference.
     - containment (of type bool): True if the source of the reference contains the target of reference (meaning that deleting the source will also delete the target).
     - eType (of type Optional[EClass]): Target EClass of the reference.
-    - upperBound (of type int): Maximum number of targets for the reference
     - lowerBound (of type int): Minimum number of targets for the reference (must be less or equal to the upper bound)
+    - upperBound (of type int): Maximum number of targets for the reference
   - EDataType: Type of scalar data value used in an EAttribute. It ONLY has these fields:
     - name (of type str): Name of the data type
     - instanceClassName (of type str): Fully qualified Java class name of the instances of this data type
@@ -63,14 +63,14 @@ Core concepts you need to understand:
   - EAttribute: A specific piece of information in an EClass which is not an object. It ONLY has these fields:
     - name (of type str): Name of the attribute.
     - eType (of type Optional[Union[EDataType, str]]): Type of the attribute (must be set: use the tools for it)
-    - upperBound (of type int): Maximum number of values for the attribute
     - lowerBound (of type int): Minimum number of values for the attribute (must be less or equal to the upper bound)
+    - upperBound (of type int): Maximum number of values for the attribute
   - EReference: Reference from an EClass to another EClass. It ONLY has these fields:
     - name (of type str): Name of the reference.
     - containment (of type bool): True if the source of the reference contains the target of reference (meaning that deleting the source will also delete the target).
     - eType (of type Optional[EClass]): Target EClass of the reference.
-    - upperBound (of type int): Maximum number of targets for the reference
     - lowerBound (of type int): Minimum number of targets for the reference (must be less or equal to the upper bound)
+    - upperBound (of type int): Maximum number of targets for the reference
   - EDataType: Type of scalar data value used in an EAttribute. It ONLY has these fields:
     - name (of type str): Name of the data type
     - instanceClassName (of type str): Fully qualified Java class name of the instances of this data type

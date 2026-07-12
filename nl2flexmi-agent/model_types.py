@@ -92,14 +92,14 @@ class EClass(EObjectBaseModel):
 class EAttribute(EObjectBaseModel):
   name: str
   eType: Optional[Union[EDataType, str]] = None
-  upperBound: int
   lowerBound: int
+  upperBound: int
 
   def to_flexmi(self) -> ET.Element:
     element = ET.Element("eAttribute", {
       "name": self.name,
-      "upperBound": str(self.upperBound),
       "lowerBound": str(self.lowerBound),
+      "upperBound": str(self.upperBound),
     })
     if self.eType:
       element.set("eType", (self.eType.emf_uri_fragment if hasattr(self.eType, 'emf_uri_fragment') else self.eType))
@@ -120,15 +120,15 @@ class EReference(EObjectBaseModel):
   name: str
   containment: bool
   eType: Optional[EClass] = None
-  upperBound: int
   lowerBound: int
+  upperBound: int
 
   def to_flexmi(self) -> ET.Element:
     element = ET.Element("eReference", {
       "name": self.name,
       "containment": str(self.containment),
-      "upperBound": str(self.upperBound),
       "lowerBound": str(self.lowerBound),
+      "upperBound": str(self.upperBound),
     })
     if self.eType:
       element.set("eType", self.eType.emf_uri_fragment)
