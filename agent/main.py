@@ -1,4 +1,5 @@
 import os
+import typing
 
 import dotenv
 from smolagents import LiteLLMModel
@@ -6,8 +7,9 @@ from smolagents import LiteLLMModel
 from agent import ModelAgent
 import prompts
 
-def main(agent: ModelAgent, domain_description: str):
-    agent.execute(prompts.PROMPT_TASK.format(description=domain_description))
+def main(agent: ModelAgent, domain_description: str, output_file: typing.TextIO):
+    result = agent.execute(prompts.PROMPT_TASK.format(description=domain_description))
+    agent.epackage.write_to_file(output_file)
 
 
 if __name__ == "__main__":
@@ -19,7 +21,8 @@ if __name__ == "__main__":
     parser.add_argument("-m", "--model")
     parser.add_argument("-b", "--api-base")
     parser.add_argument("-k", "--api-key")
-    parser.add_argument("filename", help="File with the description of the domain")
+    parser.add_argument("input_filename", help="File with the description of the domain")
+    parser.add_argument("output_filename", help="Destination path for the Flexmi output")
     args = parser.parse_args()
     dotenv.load_dotenv()
 
@@ -31,5 +34,6 @@ if __name__ == "__main__":
         )
     )
 
-    with open(args.filename) as f:
-        main(agent, f.read())
+    with open(args.input_filename) as f:
+        with open(args.output_filename, "w") as output_f:
+            main(agent, f.read(), output_f)

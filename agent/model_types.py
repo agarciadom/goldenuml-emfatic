@@ -3,34 +3,126 @@
 # Needed to avoid errors due to circular dependencies between Pydantic models
 from __future__ import annotations
 
+import xml.etree.ElementTree as ET
 from pydantic import BaseModel, Field
-from typing import Union, Optional
+from typing import Union, Optional, override
 
 
-class EPackage(BaseModel):
+class EObjectBaseModel(BaseModel):
+  emf_uri_fragment: str = Field(default='/')
+
+  def set_uri_fragments(self, own_fragment):
+    self.emf_uri_fragment = own_fragment
+
+
+class EPackage(EObjectBaseModel):
   name: str
   nsURI: str
   eClassifiers: dict[str, Union[EClass, EDataType]] = Field(default_factory=dict)
+  nsPrefix: str
 
-class EClass(BaseModel):
+  def write_to_file(self, f):
+    pis = [
+      ET.ProcessingInstruction("nsuri", "http://www.eclipse.org/emf/2002/Ecore"),
+      ET.ProcessingInstruction("import", "http://www.eclipse.org/emf/2002/Ecore"),
+    ]
+    root = self.to_flexmi()
+    tree = ET.ElementTree(root)
+    ET.indent(tree, space="  ", level=0)
+
+    for pi in pis:
+      f.write(ET.tostring(pi, encoding="unicode"))
+      f.write("\n")
+    tree.write(f, encoding="unicode", short_empty_elements=True)
+    f.write("\n")
+
+  def to_flexmi(self) -> ET.Element:
+    self.set_uri_fragments('/')
+    element = ET.Element("ePackage", {
+      "name": self.name,
+      "nsURI": self.nsURI,
+      "nsPrefix": self.nsPrefix,
+    })
+    feature_element = ET.SubElement(element, "eClassifiers")
+    for child in self.eClassifiers.values():
+      feature_element.append(child.to_flexmi())
+    return element
+
+  @override
+  def set_uri_fragments(self, own_fragment):
+    self.emf_uri_fragment = own_fragment
+    for pos, child in enumerate(self.eClassifiers.values()):
+      child.set_uri_fragments('{0}/@eClassifiers.{1:d}'.format(own_fragment, pos))
+
+
+class EClass(EObjectBaseModel):
   name: str
   eSuperTypes: set[EClass] = Field(default_factory=set)
   eStructuralFeatures: dict[str, Union[EAttribute, EReference]] = Field(default_factory=dict)
 
-class EAttribute(BaseModel):
+  def to_flexmi(self) -> ET.Element:
+    element = ET.Element("eClass", {
+      "name": self.name,
+    })
+    if self.eSuperTypes:
+      element.set("eSuperTypes", ', '.join(v.emf_uri_fragment for v in self.eSuperTypes))
+    feature_element = ET.SubElement(element, "eStructuralFeatures")
+    for child in self.eStructuralFeatures.values():
+      feature_element.append(child.to_flexmi())
+    return element
+
+  @override
+  def set_uri_fragments(self, own_fragment):
+    self.emf_uri_fragment = own_fragment
+    for pos, child in enumerate(self.eStructuralFeatures.values()):
+      child.set_uri_fragments('{0}/@eStructuralFeatures.{1:d}'.format(own_fragment, pos))
+
+
+class EAttribute(EObjectBaseModel):
   name: str
   eType: Optional[Union[EDataType, str]] = None
   upperBound: int
   lowerBound: int
 
-class EReference(BaseModel):
+  def to_flexmi(self) -> ET.Element:
+    element = ET.Element("eAttribute", {
+      "name": self.name,
+      "upperBound": str(self.upperBound),
+      "lowerBound": str(self.lowerBound),
+    })
+    if self.eType:
+      element.set("eType", (self.eType.emf_uri_fragment if hasattr(self.eType, 'emf_uri_fragment') else self.eType))
+    return element
+
+
+class EReference(EObjectBaseModel):
   name: str
   containment: bool
   eType: Optional[EClass] = None
   upperBound: int
   lowerBound: int
 
-class EDataType(BaseModel):
+  def to_flexmi(self) -> ET.Element:
+    element = ET.Element("eReference", {
+      "name": self.name,
+      "containment": str(self.containment),
+      "upperBound": str(self.upperBound),
+      "lowerBound": str(self.lowerBound),
+    })
+    if self.eType:
+      element.set("eType", self.eType.emf_uri_fragment)
+    return element
+
+
+class EDataType(EObjectBaseModel):
   name: str
   instanceClassName: str
+
+  def to_flexmi(self) -> ET.Element:
+    element = ET.Element("eDataType", {
+      "name": self.name,
+      "instanceClassName": self.instanceClassName,
+    })
+    return element
+
 

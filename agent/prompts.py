@@ -9,6 +9,7 @@ Core concepts you need to understand:
     - name (of type str): Name of the package
     - nsURI (of type str): The namespace URI of the package
     - eClassifiers (of type dict[str, Union[EClass, EDataType]]): Classes and data types within this EPackage
+    - nsPrefix (of type str): XML namespace prefix to be used for this EPackage
   - EClass: Class within an EPackage. It has these fields:
     - name (of type str): Name of the class.
     - eSuperTypes (of type set[EClass]): The optional base classes from which to inherit.

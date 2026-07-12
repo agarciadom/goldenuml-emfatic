@@ -9,5 +9,5 @@ builds up a subset of an Ecore metamodel, using Pydantic as a middle layer.
 cp .env.template .env
 # customise .env with appropriate values
 uv sync
-uv run main.py samples/mixed-conversation.md
+uv run main.py samples/library.txt samples/library.flexmi
 ```

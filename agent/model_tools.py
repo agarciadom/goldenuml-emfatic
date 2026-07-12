@@ -19,6 +19,10 @@ class UpdateEPackage(Tool):
       "type": "string",
       "description": "The namespace URI of the package"
     },
+    "nsPrefix": {
+      "type": "string",
+      "description": "XML namespace prefix to be used for this EPackage"
+    },
   }
   output_type = "object"
 
@@ -26,9 +30,10 @@ class UpdateEPackage(Tool):
     super().__init__(*args, **kwargs)
     self.root = root
 
-  def forward(self, name: str, nsURI: str) -> EPackage:
+  def forward(self, name: str, nsURI: str, nsPrefix: str) -> EPackage:
     self.root.name = name
     self.root.nsURI = nsURI
+    self.root.nsPrefix = nsPrefix
     return self.root
 
 # Subobject creation tools (for containment references)

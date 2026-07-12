@@ -4,15 +4,123 @@
 # Needed to avoid errors due to circular dependencies between Pydantic models
 from __future__ import annotations
 
+import xml.etree.ElementTree as ET
 from pydantic import BaseModel, Field
-from typing import Union, Optional
+from typing import Union, Optional, override
+
+
+class EObjectBaseModel(BaseModel):
+  emf_uri_fragment: str = Field(default='/')
+
+  def set_uri_fragments(self, own_fragment):
+    self.emf_uri_fragment = own_fragment
 
 
 [% for (ct in toolset.classTools) { %]
-class [%=ct.eClass.name.ftuc()%](BaseModel):
+class [%=ct.eClass.name.ftuc()%](EObjectBaseModel):
 [% for (ft in ct.featureTools) {
   var defaultValue = ft.defaultFieldValue(); %]
   [%=ft.fieldName()%]: [%=ft.fieldType() + (defaultValue.length() > 0 ? ' = ' + ft.defaultFieldValue() : '')%]
 [% } %]
 
+[% if (toolset.rootClassTool = ct) {%]
+  def write_to_file(self, f):
+    pis = [
+      ET.ProcessingInstruction("nsuri", "[%=toolset.rootClassTool.eClass.ePackage.nsURI%]"),
+[% for (url in toolset.importedUrls) {%]
+      ET.ProcessingInstruction("import", "[%=url%]"),
 [% } %]
+    ]
+    root = self.to_flexmi()
+    tree = ET.ElementTree(root)
+    ET.indent(tree, space="  ", level=0)
+
+    for pi in pis:
+      f.write(ET.tostring(pi, encoding="unicode"))
+      f.write("\n")
+    tree.write(f, encoding="unicode", short_empty_elements=True)
+    f.write("\n")
+
+[% } %]
+  def to_flexmi(self) -> ET.Element:
+[% if (toolset.rootClassTool = ct) {%]
+    self.set_uri_fragments('/')
+[% } %]
+    element = ET.Element("[%=ct.eClass.name.ftlc()%]", {
+[% for (tool in ct.featureTools.select(ft:EAttributeTool|true)) {%]
+      "[%=tool.eAttribute.name%]": [%=tool.fieldValueToFlexmi()%],
+[% } %]
+    })
+[% for (tool in ct.featureTools.select(ft:EReferenceTool|not ft.eReference.isContainment)) {%]
+    if self.[%=tool.fieldName()%]:
+      element.set("[%=tool.eReference.name%]", [%=tool.fieldValueToFlexmi()%])
+[% } %]
+[% for (tool in ct.featureTools.select(ft:EReferenceTool|ft.eReference.isContainment)) {%]
+    feature_element = ET.SubElement(element, "[%=tool.eReference.name%]")
+[% if (tool.fieldType().startsWith('dict[')) { %]
+    for child in self.[%=tool.fieldName()%].values():
+      feature_element.append(child.to_flexmi())
+[% } else if (tool.fieldType().startsWith('set[')) { %]
+    for child in self.[%=tool.fieldName()%]:
+      feature_element.append(child.to_flexmi())
+[% } else { %]
+    if (self.[%=tool.fieldName()%]):
+      feature_element.append(self.[%=tool.fieldName()%].to_flexmi())
+[% }
+} %]
+    return element
+[% if (ct.featureTools.exists(ft:EReferenceTool|ft.eReference.isContainment)) {%]
+
+  @override
+  def set_uri_fragments(self, own_fragment):
+    self.emf_uri_fragment = own_fragment
+[% for (tool in ct.featureTools.select(ft:EReferenceTool|ft.eReference.isContainment)) {%]
+[% if (tool.fieldType().startsWith('dict[')) { %]
+    for pos, child in enumerate(self.[%=tool.fieldName()%].values()):
+      child.set_uri_fragments('{0}/@[%=tool.eReference.name%].{1:d}'.format(own_fragment, pos))
+[% } else if (tool.fieldType().startsWith('set[')) { %]
+    for pos, child in enumerate(self.[%=tool.fieldName()%]):
+      child.set_uri_fragments('{0}/@[%=tool.eReference.name%].{1:d}'.format(own_fragment, pos))
+[% } else { %]
+      child.set_uri_fragments(own_fragment + '/@[%=tool.eReference.name%]'))
+[% }
+}} %]
+
+
+[% }
+
+operation EPackage nsVariable() {
+  return self.nsPrefix.toUpperCase() + '_NS';
+}
+
+operation EAttributeTool fieldValueToFlexmi() {
+  if (self.fieldType().startsWith('dict[')) {
+%]', '.join(str(v) for v in self.[%=self.fieldName()%].values())[%
+  } else if (self.fieldType().startsWith('set[')) {
+%]', '.join(str(v) for v in self.[%=self.fieldName()%])[%
+  } else if (self.fieldType() != 'str') {
+%]str(self.[%=self.fieldName()%])[%
+  } else {
+%]self.[%=self.fieldName()%][%
+  }
+}
+
+operation EReferenceTool fieldValueToFlexmi() {
+  if (self.fieldType().startsWith('dict[')) {
+%]', '.join([%=self.fragmentOrString('v')%] for v in self.[%=self.fieldName()%].values())[%
+  } else if (self.fieldType().startsWith('set[')) {
+%]', '.join([%=self.fragmentOrString('v')%] for v in self.[%=self.fieldName()%])[%
+  } else {
+    return self.fragmentOrString('self.' + self.fieldName());
+  }
+}
+
+operation EReferenceTool fragmentOrString(varName: String): String {
+  if (self.possibleValues.isEmpty()) {
+    return varName + '.emf_uri_fragment';
+  } else {
+    return "(" + varName + ".emf_uri_fragment if hasattr(" + varName + ", 'emf_uri_fragment') else " + varName + ")";
+  }
+}
+
+%]

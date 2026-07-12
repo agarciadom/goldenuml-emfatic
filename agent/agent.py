@@ -1,10 +1,10 @@
-from smolagents import CodeAgent, ApiModel, LogLevel
+from smolagents import CodeAgent, ApiModel, LogLevel, RunResult
 
 import model_tools as mt
 
 class ModelAgent:
     def __init__(self, model: ApiModel):
-        self.epackage = mt.EPackage(name="default", nsURI="http://cs.york.ac.uk/mmagent/default/1.0")
+        self.epackage = mt.EPackage(name="default", nsURI="http://cs.york.ac.uk/mmagent/default/1.0", nsPrefix="def")
         self.tools = mt.createTools(self.epackage)
         self.model = model
 
