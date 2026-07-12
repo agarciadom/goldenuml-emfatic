@@ -56,11 +56,14 @@ class AddEClassToEPackageEClassifiers(Tool):
     self.root = root
 
   def forward(self, name: str) -> EClass:
-    _instance = EClass(
-      name=name,
-    )
-    self.root.eClassifiers[name] = _instance
-    return _instance
+    _fields = {
+      "name": name,
+    }
+    if name in self.root.eClassifiers and isinstance(name, EClass):
+      self.root.eClassifiers[name] = self.root.eClassifiers[name].model_copy(update=_fields)
+    else:
+      self.root.eClassifiers[name] = EClass(**_fields)
+    return self.root.eClassifiers[name]
 
 
 class AddEDataTypeToEPackageEClassifiers(Tool):
@@ -85,12 +88,15 @@ class AddEDataTypeToEPackageEClassifiers(Tool):
     self.root = root
 
   def forward(self, name: str, instanceClassName: str) -> EDataType:
-    _instance = EDataType(
-      name=name,
-      instanceClassName=instanceClassName,
-    )
-    self.root.eClassifiers[name] = _instance
-    return _instance
+    _fields = {
+      "name": name,
+      "instanceClassName": instanceClassName,
+    }
+    if name in self.root.eClassifiers and isinstance(name, EDataType):
+      self.root.eClassifiers[name] = self.root.eClassifiers[name].model_copy(update=_fields)
+    else:
+      self.root.eClassifiers[name] = EDataType(**_fields)
+    return self.root.eClassifiers[name]
 
 
 class AddEAttributeToEClassEStructuralFeatures(Tool):
@@ -120,13 +126,16 @@ class AddEAttributeToEClassEStructuralFeatures(Tool):
 
 
   def forward(self, eClass: EClass, name: str, lowerBound: int, upperBound: int) -> EAttribute:
-    _instance = EAttribute(
-      name=name,
-      lowerBound=lowerBound,
-      upperBound=upperBound,
-    )
-    eClass.eStructuralFeatures[name] = _instance
-    return _instance
+    _fields = {
+      "name": name,
+      "lowerBound": lowerBound,
+      "upperBound": upperBound,
+    }
+    if name in eClass.eStructuralFeatures and isinstance(name, EAttribute):
+      eClass.eStructuralFeatures[name] = eClass.eStructuralFeatures[name].model_copy(update=_fields)
+    else:
+      eClass.eStructuralFeatures[name] = EAttribute(**_fields)
+    return eClass.eStructuralFeatures[name]
 
 
 class AddEReferenceToEClassEStructuralFeatures(Tool):
@@ -160,14 +169,17 @@ class AddEReferenceToEClassEStructuralFeatures(Tool):
 
 
   def forward(self, eClass: EClass, name: str, containment: bool, lowerBound: int, upperBound: int) -> EReference:
-    _instance = EReference(
-      name=name,
-      containment=containment,
-      lowerBound=lowerBound,
-      upperBound=upperBound,
-    )
-    eClass.eStructuralFeatures[name] = _instance
-    return _instance
+    _fields = {
+      "name": name,
+      "containment": containment,
+      "lowerBound": lowerBound,
+      "upperBound": upperBound,
+    }
+    if name in eClass.eStructuralFeatures and isinstance(name, EReference):
+      eClass.eStructuralFeatures[name] = eClass.eStructuralFeatures[name].model_copy(update=_fields)
+    else:
+      eClass.eStructuralFeatures[name] = EReference(**_fields)
+    return eClass.eStructuralFeatures[name]
 
 
 # Non-containment reference tools

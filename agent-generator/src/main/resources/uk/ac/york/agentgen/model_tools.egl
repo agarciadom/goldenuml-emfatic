@@ -67,19 +67,32 @@ classToAdd.attributeInputs(); %]
 } %]
 
   def forward(self, [% if (not self.eContainer.isRootTool()) { %][%=self.containerVarName()%]: [%=self.eContainer.eClass.name%], [% } %][%=classToAdd.featureTools.collect(ft:EAttributeTool|ft.paramDeclaration()).concat(', ')%]) -> [%=classToAdd.eClass.name%]:
-    _instance = [%=classToAdd.eClass.name%](
+    _fields = {
 [% for (at in classToAdd.featureTools.select(ft:EAttributeTool|true)) { %]
-      [%=at.fieldName()%]=[%=at.varName()%],
+      "[%=at.fieldName()%]": [%=at.varName()%],
 [% } %]
-    )
-[% if (self.fieldType().startsWith('dict[str,')) { %]
-    [%=self.containerVarName()%].[%=self.fieldName()%][[%=classToAdd.siblingScopedNameTool().varName()%]] = _instance
+    }
+[% if (self.fieldType().startsWith('dict[str,')) {
+     var keyVar = classToAdd.siblingScopedNameTool().varName();
+     var dictVar = self.containerVarName() + '.' + self.fieldName();
+%]
+    if [%=keyVar%] in [%=dictVar%] and isinstance([%=keyVar%], [%=classToAdd.eClass.name%]):
+      [%=dictVar%][[%=keyVar%]] = [%=dictVar%][[%=keyVar%]].model_copy(update=_fields)
+    else:
+      [%=dictVar%][[%=keyVar%]] = [%=classToAdd.eClass.name%](**_fields)
+    return [%=dictVar%][[%=keyVar%]]
 [% } else if (self.fieldType().startsWith('set[')) { %]
+    _instance = [%=classToAdd.eClass.name%](**_fields)
     [%=self.containerVarName()%].[%=self.fieldName()%].add(_instance)
-[% } else { %]
-    [%=self.containerVarName()%].[%=self.fieldName()%] = _instance
+[% } else {
+     var varName = self.containerVarName() + '.' + self.fieldName();
+%]
+    if [%=varName%] is not None:
+      [%=varName%] = [%=varName%].model_copy(update=_fields)
+    else:
+      [%=varName%] = [%=classToAdd.eClass.name%](**_fields)
+    return [%=varName%]
 [% } %]
-    return _instance
 
 
 [%
