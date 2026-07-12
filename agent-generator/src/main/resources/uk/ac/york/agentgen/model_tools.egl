@@ -1,9 +1,13 @@
+[%
+  var toolClasses : Map;
+%]# Automatically generated model creation tools. Do not modify manually.
+
 # Needed to avoid errors due to circular dependencies between Pydantic models
 from __future__ import annotations
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from smolagents import Tool
-from typing import Union
+from typing import Union, Optional
 
 # Pydantic models
 
@@ -35,6 +39,19 @@ for (refTool in toolset.classTools.collect(ct | ct.featureTools.select(ft: ERefe
     refTool.addStringReferenceTool();
   }
 }
+%]
+def createTools(root: [%= toolset.rootClassTool.eClass.name.ftuc() %]) -> list[Tool]:
+  return [
+[% for (toolClass in toolClasses.keySet) { %]
+    [%=toolClass%]([%= toolClasses.get(toolClass).constructorTakesRoot ? "root": ""%]),
+[% } %]
+  ]
+
+[%
+operation recordToolClass(className: String, constructorTakesRoot: Boolean): String {
+  toolClasses.put(className, Tuple {"constructorTakesRoot" = constructorTakesRoot});
+  return className;
+}
 
 operation EAttributeTool fieldName(): String {
   return self.eAttribute.name;
@@ -47,6 +64,10 @@ operation EAttributeTool fieldType(): String {
     case 'EBoolean': return 'bool';
   }
   return 'str';
+}
+
+operation EAttributeTool defaultFieldValue(): String {
+  return '';
 }
 
 @cached
@@ -84,7 +105,18 @@ operation EReferenceTool fieldType(): String {
     }
     return 'set[' + singleType + ']';
   }
-  return singleType;
+  return 'Optional[' + singleType + ']';
+}
+
+operation EReferenceTool defaultFieldValue(): String {
+  var fldType = self.fieldType();
+  if (fldType.startsWith('dict[')) {
+    return 'Field(default_factory=dict)';
+  } else if (fldType.startsWith('set[')) {
+    return 'Field(default_factory=set)';
+  } else {
+    return 'None';
+  }
 }
 
 operation EReferenceTool elementType(): String {
@@ -124,7 +156,7 @@ operation EReferenceTool effectiveEType(): EClass {
 }
 
 operation EReferenceTool createAddTool(classToAdd: EClassTool) { %]
-class Add[%=classToAdd.eClass.name.ftuc()%]To[%=self.eContainer.eClass.name%][%=self.eReference.name.ftuc()%](Tool):
+class [%=recordToolClass("Add" + classToAdd.eClass.name.ftuc() + "To" + self.eContainer.eClass.name + self.eReference.name.ftuc(), self.eContainer.isRootTool())%](Tool):
   name = "add_[%=classToAdd.eClass.name%]_to_[%=self.eContainer.eClass.name%]_[%=self.eReference.name%]"
   description = """
   Creates and adds a [%=classToAdd.eClass.name%] to the [%=self.eReference.name%] in a [%=self.eContainer.eClass.name%], and returns the [%=classToAdd.eClass.name%].
@@ -165,7 +197,7 @@ classToAdd.attributeInputs(); %]
 }
 
 operation EReferenceTool addReferenceTool(classToReference: EClassTool) {%]
-class Add[%=classToReference.eClass.name.ftuc()%]To[%=self.eContainer.eClass.name.ftuc()%][%=self.eReference.name.ftuc()%](Tool):
+class [%=recordToolClass("Add" + classToReference.eClass.name.ftuc() + "To" + self.eContainer.eClass.name.ftuc() + self.eReference.name.ftuc(), false)%](Tool):
   name = "add_[%=classToReference.eClass.name.ftuc()%]_to_[%=self.eContainer.eClass.name.ftuc()%]_[%=self.eReference.name.ftuc()%]"
   description = """
   Adds a [%=classToReference.eClass.name%] to the [%=self.eReference.name%] of a [%=self.eContainer.eClass.name%], and returns it.
@@ -195,7 +227,7 @@ class Add[%=classToReference.eClass.name.ftuc()%]To[%=self.eContainer.eClass.nam
 
 
 operation EReferenceTool addStringReferenceTool() {%]
-class AddNamedTo[%=self.eContainer.eClass.name.ftuc()%][%=self.eReference.name.ftuc()%](Tool):
+class [%=recordToolClass("AddNamedTo" + self.eContainer.eClass.name.ftuc() + self.eReference.name.ftuc(), false)%](Tool):
   name = "add_named_to_[%=self.eContainer.eClass.name.ftuc()%]_[%=self.eReference.name.ftuc()%]"
   description = """
   Adds a named object to the [%=self.eReference.name%] of a [%=self.eContainer.eClass.name%], and returns its name.
@@ -261,8 +293,9 @@ operation ModelToolset pydanticModels() {
 
  for (ct in toolset.classTools) { %]
 class [%=ct.eClass.name.ftuc()%](BaseModel):
-[% for (ft in ct.featureTools) { %]
-  [%=ft.fieldName()%]: [%=ft.fieldType()%]
+[% for (ft in ct.featureTools) {
+  var defaultValue = ft.defaultFieldValue(); %]
+  [%=ft.fieldName()%]: [%=ft.fieldType()%][%=defaultValue.length() > 0 ? ' = ' + ft.defaultFieldValue() : ''%]
 [% } %]
 
 [% }
@@ -280,7 +313,7 @@ operation EClassTool recursiveDepth(maxDepth: Integer, visited: Set<EClassTool>)
 }
 
 operation EClassTool rootToolClass() { %]
-class Update[%=self.eClass.name.ftuc()%](Tool):
+class [%=recordToolClass("Update" + self.eClass.name.ftuc(), true)%](Tool):
   name = "update_[%=self.eClass.name%]"
   description = """
   Updates [%=self.description.ftlc()%], and returns it.
@@ -314,8 +347,8 @@ operation EClassTool attributeInputs() {
   }
 }
 
-operation EClassTool setAttributes(variableName: String) {%]
-[% for (ft in self.featureTools.select(ft:EAttributeTool|true)) { %]
+operation EClassTool setAttributes(variableName: String) {
+  for (ft in self.featureTools.select(ft:EAttributeTool|true)) { %]
     [%=variableName%].[%=ft.fieldName()%] = [%=ft.varName()%]
 [% }
 }
