@@ -21,7 +21,7 @@ class EObjectBaseModel(BaseModel):
 class EPackage(EObjectBaseModel):
   name: str
   nsURI: str
-  eClassifiers: dict[str, Union[EClass, EDataType]] = Field(default_factory=dict)
+  eClassifiers: dict[str, Union[EClass, EDataType]] = Field(default_factory=dict, repr=False)
   nsPrefix: str
 
   def write_to_file(self, f):
@@ -64,8 +64,8 @@ class EPackage(EObjectBaseModel):
 
 class EClass(EObjectBaseModel):
   name: str
-  eSuperTypes: set[EClass] = Field(default_factory=set)
-  eStructuralFeatures: dict[str, Union[EAttribute, EReference]] = Field(default_factory=dict)
+  eSuperTypes: set[EClass] = Field(default_factory=set, repr=False)
+  eStructuralFeatures: dict[str, Union[EAttribute, EReference]] = Field(default_factory=dict, repr=False)
 
   def to_flexmi(self) -> ET.Element:
     element = ET.Element("eClass", {
@@ -135,8 +135,8 @@ class EReference(EObjectBaseModel):
     return element
 
 # protected region EReference on begin
-@model_validator(mode="after")
-def validate_bounds(self) -> EAttribute:
+  @model_validator(mode="after")
+  def validate_bounds(self) -> EReference:
     if self.upperBound != -1 and self.lowerBound > self.upperBound:
         raise ValueError(
             "lowerBound ({}) must be less than or equal to upperBound ({}), unless upperBound is -1".format(

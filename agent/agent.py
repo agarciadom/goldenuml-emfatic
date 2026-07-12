@@ -8,18 +8,30 @@ class ModelAgent:
         self.epackage = mt.EPackage(name="default", nsURI="http://cs.york.ac.uk/mmagent/default/1.0", nsPrefix="def")
         self.tools = mt.createTools(self.epackage)
         self.model = model
-
-    def run(self, domain_description: str):
-        code_agent = CodeAgent(
+        self.code_agent = CodeAgent(
             tools=self.tools,
             model=self.model,
             add_base_tools=False,
             verbosity_level=LogLevel.INFO,
             max_steps=20
         )
-        code_agent.run(prompts.PROMPT_TASK.format(description=domain_description))
+        self.total_input_tokens = 0
+        self.total_output_tokens = 0
+        self.total_duration = 0
 
-        # Validate the generated EPackage and report any issues
+    def run(self, domain_description: str):
+        self.code_agent.run(prompts.PROMPT_TASK.format(description=domain_description))
+        self.increment_metrics()
+
+        # Validate the generated EPackage and do a single repair pass if there is a problem
+        problems = self.run_post_validation()
+        if problems:
+            self.code_agent.run(prompts.PROMPT_REPAIR.format(description=domain_description, problems='\n'.join(problems)), additional_args={
+                "generated": self.epackage,
+            })
+            self.increment_metrics()
+
+    def run_post_validation(self) -> list[str]:
         problems = []
         for ec in self.epackage.eClassifiers.values():
             try:
@@ -29,9 +41,9 @@ class ModelAgent:
             except AttributeError:
                 # not an eClass
                 pass
+        return problems
 
-        # Do one repair pass
-        if problems:
-            code_agent.run(prompts.PROMPT_REPAIR.format(description=domain_description, problems='\n'.join(problems)), additional_args={
-                "generated": self.epackage,
-            })
+    def increment_metrics(self):
+        self.total_duration += sum(self.code_agent.monitor.step_durations)
+        self.total_input_tokens += self.code_agent.monitor.total_input_token_count
+        self.total_output_tokens += self.code_agent.monitor.total_input_token_count

@@ -30,11 +30,13 @@ Core concepts you need to understand:
     - instanceClassName (of type str): Fully qualified Java class name of the instances of this data type
 
 Tool interaction guidelines:
-  - Identify elements based on the user's description. Do NOT speculate if there are limited details.
+  - Identify elements based on the user's description.
   - First update the package and create all the classes.
   - Then add all the attributes to each class, and set their ETypes.
   - Then add all the references to each class, and set their ETypes.
-  - When setting the eType of an attribute, prefer the named options over creating new EDataTypes.
+  - Do not create your own EDataTypes if they already exist in the Eclipse Modelling Framework: reuse the named ones whenever possible.
+  - Use inheritance relationships to reduce duplication of attributes and references.
+  - Ensure all conceptual objects are contained within another, eventually leading to a single root container class.
 
 The user's description is as follows:
 
@@ -74,11 +76,13 @@ Core concepts you need to understand:
     - instanceClassName (of type str): Fully qualified Java class name of the instances of this data type
 
 Tool interaction guidelines:
-  - Identify elements based on the user's description. Do NOT speculate if there are limited details.
+  - Identify elements based on the user's description.
   - First update the package and create all the classes.
   - Then add all the attributes to each class, and set their ETypes.
   - Then add all the references to each class, and set their ETypes.
-  - When setting the eType of an attribute, prefer the named options over creating new EDataTypes.
+  - Do not create your own EDataTypes if they already exist in the Eclipse Modelling Framework: reuse the named ones whenever possible.
+  - Use inheritance relationships to reduce duplication of attributes and references.
+  - Ensure all conceptual objects are contained within another, eventually leading to a single root container class.
 
 The user's description from which you produced the EPackage in the `generated` variable was as follows:
 
