@@ -1,0 +1,471 @@
+╭───────────────────────────────────────────────────── New run ─────────────────────────────────────────────────────╮
+│                                                                                                                   │
+│ You are an expert in generating EPackage based on a user's description.                                           │
+│ You will achieve this by calling a series of available Python functions as tools to incrementally build it.       │
+│                                                                                                                   │
+│ Core concepts you need to understand:                                                                             │
+│   - EPackage: Declaration of the package containing all the EClasses. It ONLY has these fields:                   │
+│     - name (of type str): Name of the package                                                                     │
+│     - nsURI (of type str): The namespace URI of the package                                                       │
+│     - eClassifiers (of type dict[str, Union[EClass, EDataType]]): Classes and data types within this EPackage     │
+│     - nsPrefix (of type str): XML namespace prefix to be used for this EPackage                                   │
+│   - EClass: Class within an EPackage. It ONLY has these fields:                                                   │
+│     - name (of type str): Name of the class.                                                                      │
+│     - eSuperTypes (of type set[EClass]): The optional base classes from which to inherit.                         │
+│     - eStructuralFeatures (of type dict[str, Union[EAttribute, EReference]]): The attributes and references       │
+│ inside this class                                                                                                 │
+│   - EAttribute: A specific piece of information in an EClass which is not an object. It ONLY has these fields:    │
+│     - name (of type str): Name of the attribute.                                                                  │
+│     - eType (of type Optional[Union[EDataType, str]]): Type of the attribute (must be set: use the tools for it)  │
+│     - lowerBound (of type int): Minimum number of values for the attribute (must be less or equal to the upper    │
+│ bound)                                                                                                            │
+│     - upperBound (of type int): Maximum number of values for the attribute                                        │
+│   - EReference: Reference from an EClass to another EClass. It ONLY has these fields:                             │
+│     - name (of type str): Name of the reference.                                                                  │
+│     - containment (of type bool): True if the source of the reference contains the target of reference (meaning   │
+│ that deleting the source will also delete the target).                                                            │
+│     - eType (of type Optional[EClass]): Target EClass of the reference.                                           │
+│     - lowerBound (of type int): Minimum number of targets for the reference (must be less or equal to the upper   │
+│ bound)                                                                                                            │
+│     - upperBound (of type int): Maximum number of targets for the reference                                       │
+│   - EDataType: Type of scalar data value used in an EAttribute. It ONLY has these fields:                         │
+│     - name (of type str): Name of the data type                                                                   │
+│     - instanceClassName (of type str): Fully qualified Java class name of the instances of this data type         │
+│                                                                                                                   │
+│ Tool interaction guidelines:                                                                                      │
+│   - Identify elements based on the user's description.                                                            │
+│   - First update the package and create all the classes.                                                          │
+│   - Then add all the attributes to each class, and set their ETypes.                                              │
+│   - Then add all the references to each class, and set their ETypes.                                              │
+│   - Do not create your own EDataTypes if they already exist in the Eclipse Modelling Framework: reuse the named   │
+│ ones whenever possible.                                                                                           │
+│   - Use inheritance relationships to reduce duplication of attributes and references.                             │
+│   - Ensure all conceptual objects are contained within another, eventually leading to a single root container     │
+│ class.                                                                                                            │
+│                                                                                                                   │
+│ The user's description is as follows:                                                                             │
+│                                                                                                                   │
+│ <description>                                                                                                     │
+│ The LabTracker software helps (i) doctors manage the requisition of tests and examinations for patients and (ii)  │
+│ patients book appointments for tests and examinations at a lab. For the remainder of this description, tests and  │
+│ examinations are used interchangeably.                                                                            │
+│ For a requisition, a doctor must provide their numeric practitioner number and signature for verification as well │
+│ as their full name, their address, and their phone number. The signature is a digital signature, i.e., an image   │
+│ of the actual signature of the doctor. Furthermore, the doctor indicates the date from which the requisition is   │
+│ valid. The requisition must also show the patient’s information including their alpha-numeric health number,      │
+│ first name and last name, date of birth, address, and phone number. A doctor cannot prescribe a test for          │
+│ themselves but can prescribe tests to someone else who is a doctor.                                               │
+│ Several tests can be combined on one requisition but only if they belong to the same group of tests. For example, │
+│ only blood tests can be combined on one requisition or only ultrasound examinations can be combined. It is not    │
+│ possible to have a blood test and an ultrasound examination on the same requisition. For each test, its duration  │
+│ is defined by the lab network, so that it is possible to schedule appointments accordingly. The duration of a     │
+│ test is the same at each lab. For some kinds of tests, it does not matter how many tests are performed. They take │
+│ as long as a single test. For example, several blood tests can be performed on a blood sample, i.e., it takes as  │
+│ long to draw the blood sample for a single blood test as it does for several blood tests.                         │
+│ A doctor may also indicate that the tests on a requisition are to be repeated for a specified number of times and │
+│ interval. The interval is either weekly, monthly, every half year, or yearly. All tests on a requisition are      │
+│ following the same repetition pattern.                                                                            │
+│ The doctor and the patient can view the results of each test (either negative or positive) as well as the         │
+│ accompanying report.                                                                                              │
+│ A patient is required to make an appointment for some tests while others are walk-in only. For example, x-ray     │
+│ examinations require an appointment, but blood tests are walk-in only (i.e., it is not possible to make an        │
+│ appointment for a blood test). On the other hand, some tests only require a sample to be dropped off (e.g., a     │
+│ urine or stool sample).                                                                                           │
+│ To make an appointment for a requisition, a patient selects the desired lab based on the lab’s address and        │
+│ business hours. For requisitions with repeated tests, a patient is only allowed to make one appointment at a      │
+│ time. The confirmation for an appointment also shows a confirmation number, the date as well as start/end times,  │
+│ and the name of the lab as well as its registration number. It is possible to change or cancel an appointment at  │
+│ any time but doing so within 24 hours of the appointment incurs a change/cancellation fee. Each lab determines    │
+│ its own fee and business hours. All labs are open every day of the year and offer all tests. The business hours   │
+│ of a lab do not change from one week to the next. Each day a lab is open from the day’s start time to its end     │
+│ time, i.e., there are no breaks.                                                                                  │
+│                                                                                                                   │
+│ </description>                                                                                                    │
+│                                                                                                                   │
+╰─ LiteLLMModel - ollama/devstral:24b ──────────────────────────────────────────────────────────────────────────────╯
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 1 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ─ Executing parsed code: ────────────────────────────────────────────────────────────────────────────────────────── 
+  lab_tracker_package = update_EPackage(                                                                             
+      name="LabTracker",                                                                                             
+      nsURI="http://www.example.org/LabTracker",                                                                     
+      nsPrefix="lt"                                                                                                  
+  )                                                                                                                  
+  print("EPackage created:", lab_tracker_package)                                                                    
+ ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+Execution logs:
+EPackage created: emf_uri_fragment='/' name='LabTracker' nsURI='http://www.example.org/LabTracker' nsPrefix='lt'
+
+Out: None
+[Step 1: Duration 8.74 seconds| Input tokens: 5,459 | Output tokens: 170]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 2 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ─ Executing parsed code: ────────────────────────────────────────────────────────────────────────────────────────── 
+  doctor_class = add_EClass_to_EPackage_eClassifiers(                                                                
+      name="Doctor"                                                                                                  
+  )                                                                                                                  
+  patient_class = add_EClass_to_EPackage_eClassifiers(                                                               
+      name="Patient"                                                                                                 
+  )                                                                                                                  
+  requisition_class = add_EClass_to_EPackage_eClassifiers(                                                           
+      name="Requisition"                                                                                             
+  )                                                                                                                  
+  test_class = add_EClass_to_EPackage_eClassifiers(                                                                  
+      name="Test"                                                                                                    
+  )                                                                                                                  
+  appointment_class = add_EClass_to_EPackage_eClassifiers(                                                           
+      name="Appointment"                                                                                             
+  )                                                                                                                  
+  lab_class = add_EClass_to_EPackage_eClassifiers(                                                                   
+      name="Lab"                                                                                                     
+  )                                                                                                                  
+                                                                                                                     
+  print("Classes created.")                                                                                          
+ ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+Execution logs:
+Classes created.
+
+Out: None
+[Step 2: Duration 5.47 seconds| Input tokens: 11,229 | Output tokens: 298]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 3 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ─ Executing parsed code: ────────────────────────────────────────────────────────────────────────────────────────── 
+  # Add attributes to Doctor class                                                                                   
+  doctor_practitioner_number = add_EAttribute_to_EClass_eStructuralFeatures(                                         
+      eClass=doctor_class,                                                                                           
+      name="practitionerNumber",                                                                                     
+      lowerBound=1,                                                                                                  
+      upperBound=1                                                                                                   
+  )                                                                                                                  
+  add_named_to_EAttribute_EType(doctor_practitioner_number, "Integer")                                               
+                                                                                                                     
+  doctor_signature = add_EAttribute_to_EClass_eStructuralFeatures(                                                   
+      eClass=doctor_class,                                                                                           
+      name="signature",                                                                                              
+      lowerBound=1,                                                                                                  
+      upperBound=1                                                                                                   
+  )                                                                                                                  
+  add_named_to_EAttribute_EType(doctor_signature, "String")  # Assuming signature is stored as a base64 string or    
+  similar                                                                                                            
+                                                                                                                     
+  doctor_name = add_EAttribute_to_EClass_eStructuralFeatures(                                                        
+      eClass=doctor_class,                                                                                           
+      name="fullName",                                                                                               
+      lowerBound=1,                                                                                                  
+      upperBound=1                                                                                                   
+  )                                                                                                                  
+  add_named_to_EAttribute_EType(doctor_name, "String")                                                               
+                                                                                                                     
+  doctor_address = add_EAttribute_to_EClass_eStructuralFeatures(                                                     
+      eClass=doctor_class,                                                                                           
+      name="address",                                                                                                
+      lowerBound=1,                                                                                                  
+      upperBound=1                                                                                                   
+  )                                                                                                                  
+  add_named_to_EAttribute_EType(doctor_address, "String")                                                            
+                                                                                                                     
+  doctor_phone = add_EAttribute_to_EClass_eStructuralFeatures(                                                       
+      eClass=doctor_class,                                                                                           
+      name="phoneNumber",                                                                                            
+      lowerBound=1,                                                                                                  
+      upperBound=1                                                                                                   
+  )                                                                                                                  
+  add_named_to_EAttribute_EType(doctor_phone, "String")                                                              
+                                                                                                                     
+  # Add attributes to Patient class (similar structure to Doctor for common fields)                                  
+  patient_health_number = add_EAttribute_to_EClass_eStructuralFeatures(                                              
+      eClass=patient_class,                                                                                          
+      name="healthNumber",                                                                                           
+      lowerBound=1,                                                                                                  
+      upperBound=1                                                                                                   
+  )                                                                                                                  
+  add_named_to_EAttribute_EType(patient_health_number, "String")                                                     
+                                                                                                                     
+  patient_first_name = add_EAttribute_to_EClass_eStructuralFeatures(                                                 
+      eClass=patient_class,                                                                                          
+      name="firstName",                                                                                              
+      lowerBound=1,                                                                                                  
+      upperBound=1                                                                                                   
+  )                                                                                                                  
+  add_named_to_EAttribute_EType(patient_first_name, "String")                                                        
+                                                                                                                     
+  patient_last_name = add_EAttribute_to_EClass_eStructuralFeatures(                                                  
+      eClass=patient_class,                                                                                          
+      name="lastName",                                                                                               
+      lowerBound=1,                                                                                                  
+      upperBound=1                                                                                                   
+  )                                                                                                                  
+  add_named_to_EAttribute_EType(patient_last_name, "String")                                                         
+                                                                                                                     
+  patient_dob = add_EAttribute_to_EClass_eStructuralFeatures(                                                        
+      eClass=patient_class,                                                                                          
+      name="dateOfBirth",                                                                                            
+      lowerBound=1,                                                                                                  
+      upperBound=1                                                                                                   
+  )                                                                                                                  
+  add_named_to_EAttribute_EType(patient_dob, "Date")  # Assuming Date is a valid EDataType                           
+                                                                                                                     
+  patient_address = add_EAttribute_to_EClass_eStructuralFeatures(                                                    
+      eClass=patient_class,                                                                                          
+      name="address",                                                                                                
+      lowerBound=1,                                                                                                  
+      upperBound=1                                                                                                   
+  )                                                                                                                  
+  add_named_to_EAttribute_EType(patient_address, "String")                                                           
+                                                                                                                     
+  patient_phone = add_EAttribute_to_EClass_eStructuralFeatures(                                                      
+      eClass=patient_class,                                                                                          
+      name="phoneNumber",                                                                                            
+      lowerBound=1,                                                                                                  
+      upperBound=1                                                                                                   
+  )                                                                                                                  
+  add_named_to_EAttribute_EType(patient_phone, "String")                                                             
+                                                                                                                     
+  print("Doctor and Patient attributes added.")                                                                      
+ ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+Execution logs:
+Doctor and Patient attributes added.
+
+Out: None
+[Step 3: Duration 23.88 seconds| Input tokens: 17,327 | Output tokens: 986]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 4 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ─ Executing parsed code: ────────────────────────────────────────────────────────────────────────────────────────── 
+  # Add requisition attributes                                                                                       
+  requisition_valid_from = add_EAttribute_to_EClass_eStructuralFeatures(                                             
+      eClass=requisition_class,                                                                                      
+      name="validFrom",                                                                                              
+      lowerBound=1,                                                                                                  
+      upperBound=1                                                                                                   
+  )                                                                                                                  
+  add_named_to_EAttribute_EType(requisition_valid_from, "Date")  # Assuming Date is a valid EDataType                
+                                                                                                                     
+  # Add references to Requisition class                                                                              
+  requisition_doctor = add_EReference_to_EClass_eStructuralFeatures(                                                 
+      eClass=requisition_class,                                                                                      
+      name="doctor",                                                                                                 
+      containment=False,                                                                                             
+      lowerBound=1,                                                                                                  
+      upperBound=1                                                                                                   
+  )                                                                                                                  
+  add_EClass_to_EReference_EType(requisition_doctor, doctor_class)                                                   
+                                                                                                                     
+  requisition_patient = add_EReference_to_EClass_eStructuralFeatures(                                                
+      eClass=requisition_class,                                                                                      
+      name="patient",                                                                                                
+      containment=False,                                                                                             
+      lowerBound=1,                                                                                                  
+      upperBound=1                                                                                                   
+  )                                                                                                                  
+  add_EClass_to_EReference_EType(requisition_patient, patient_class)                                                 
+                                                                                                                     
+  # Add Test attributes and references                                                                               
+  test_duration = add_EAttribute_to_EClass_eStructuralFeatures(                                                      
+      eClass=test_class,                                                                                             
+      name="duration",                                                                                               
+      lowerBound=1,                                                                                                  
+      upperBound=1                                                                                                   
+  )                                                                                                                  
+  add_named_to_EAttribute_EType(test_duration, "Integer")  # Duration in minutes or similar unit                     
+                                                                                                                     
+  # Add Test group information (assuming we need to track groups of tests)                                           
+  test_group = add_EAttribute_to_EClass_eStructuralFeatures(                                                         
+      eClass=test_class,                                                                                             
+      name="group",                                                                                                  
+      lowerBound=1,                                                                                                  
+      upperBound=1                                                                                                   
+  )                                                                                                                  
+  add_named_to_EAttribute_EType(test_group, "String")                                                                
+                                                                                                                     
+  # Add repetition attributes for tests on requisition (assuming these are in Requisition class)                     
+  requisition_repetitions = add_EAttribute_to_EClass_eStructuralFeatures(                                            
+      eClass=requisition_class,                                                                                      
+      name="repetitions",                                                                                            
+      lowerBound=0,                                                                                                  
+      upperBound=1                                                                                                   
+  )                                                                                                                  
+  add_named_to_EAttribute_EType(requisition_repetitions, "Integer")                                                  
+                                                                                                                     
+  requisition_interval = add_EAttribute_to_EClass_eStructuralFeatures(                                               
+      eClass=requisition_class,                                                                                      
+      name="interval",                                                                                               
+      lowerBound=0,                                                                                                  
+      upperBound=1                                                                                                   
+  )                                                                                                                  
+  add_named_to_EAttribute_EType(requisition_interval, "String")  # Values: weekly, monthly, half-yearly, yearly      
+                                                                                                                     
+  # Add results and report to Requisition for tests                                                                  
+  requisition_results = add_EAttribute_to_EClass_eStructuralFeatures(                                                
+      eClass=requisition_class,                                                                                      
+      name="results",                                                                                                
+      lowerBound=0,                                                                                                  
+      upperBound=-1  # Many results possible                                                                         
+  )                                                                                                                  
+  add_named_to_EAttribute_EType(requisition_results, "String")  # Result: positive/negative                          
+                                                                                                                     
+  requisition_reports = add_EAttribute_to_EClass_eStructuralFeatures(                                                
+      eClass=requisition_class,                                                                                      
+      name="reports",                                                                                                
+      lowerBound=0,                                                                                                  
+      upperBound=-1  # Many reports possible                                                                         
+  )                                                                                                                  
+  add_named_to_EAttribute_EType(requisition_reports, "String")  # Report content                                     
+                                                                                                                     
+  # Add tests to Requisition (many-to-many relationship)                                                             
+  requisition_tests = add_EReference_to_EClass_eStructuralFeatures(                                                  
+      eClass=requisition_class,                                                                                      
+      name="tests",                                                                                                  
+      containment=True,                                                                                              
+      lowerBound=1,                                                                                                  
+      upperBound=-1                                                                                                  
+  )                                                                                                                  
+  add_EClass_to_EReference_EType(requisition_tests, test_class)                                                      
+                                                                                                                     
+  # Appointment attributes and references                                                                            
+  appointment_lab = add_EReference_to_EClass_eStructuralFeatures(                                                    
+      eClass=appointment_class,                                                                                      
+      name="lab",                                                                                                    
+      containment=False,                                                                                             
+      lowerBound=1,                                                                                                  
+      upperBound=1                                                                                                   
+  )                                                                                                                  
+  add_EClass_to_EReference_EType(appointment_lab, lab_class)                                                         
+                                                                                                                     
+  appointment_patient = add_EReference_to_EClass_eStructuralFeatures(                                                
+      eClass=appointment_class,                                                                                      
+      name="patient",                                                                                                
+      containment=False,                                                                                             
+      lowerBound=1,                                                                                                  
+      upperBound=1                                                                                                   
+  )                                                                                                                  
+  add_EClass_to_EReference_EType(appointment_patient, patient_class)                                                 
+                                                                                                                     
+  appointment_confirmation_number = add_EAttribute_to_EClass_eStructuralFeatures(                                    
+      eClass=appointment_class,                                                                                      
+      name="confirmationNumber",                                                                                     
+      lowerBound=0,                                                                                                  
+      upperBound=1  # May not be set initially                                                                       
+  )                                                                                                                  
+  add_named_to_EAttribute_EType(appointment_confirmation_number, "String")                                           
+                                                                                                                     
+  appointment_date = add_EAttribute_to_EClass_eStructuralFeatures(                                                   
+      eClass=appointment_class,                                                                                      
+      name="date",                                                                                                   
+      lowerBound=1,                                                                                                  
+      upperBound=1                                                                                                   
+  )                                                                                                                  
+  add_named_to_EAttribute_EType(appointment_date, "Date")  # Assuming Date is a valid EDataType                      
+                                                                                                                     
+  appointment_start_time = add_EAttribute_to_EClass_eStructuralFeatures(                                             
+      eClass=appointment_class,                                                                                      
+      name="startTime",                                                                                              
+      lowerBound=1,                                                                                                  
+      upperBound=1                                                                                                   
+  )                                                                                                                  
+  add_named_to_EAttribute_EType(appointment_start_time, "Date")  # Using Date for datetime                           
+                                                                                                                     
+  appointment_end_time = add_EAttribute_to_EClass_eStructuralFeatures(                                               
+      eClass=appointment_class,                                                                                      
+      name="endTime",                                                                                                
+      lowerBound=1,                                                                                                  
+      upperBound=1                                                                                                   
+  )                                                                                                                  
+  add_named_to_EAttribute_EType(appointment_end_time, "Date")  # Using Date for datetime                             
+                                                                                                                     
+  # Lab attributes                                                                                                   
+  lab_address = add_EAttribute_to_EClass_eStructuralFeatures(                                                        
+      eClass=lab_class,                                                                                              
+      name="address",                                                                                                
+      lowerBound=1,                                                                                                  
+      upperBound=1                                                                                                   
+  )                                                                                                                  
+  add_named_to_EAttribute_EType(lab_address, "String")                                                               
+                                                                                                                     
+  lab_business_hours_start = add_EAttribute_to_EClass_eStructuralFeatures(                                           
+      eClass=lab_class,                                                                                              
+      name="businessHoursStart",                                                                                     
+      lowerBound=1,                                                                                                  
+      upperBound=1                                                                                                   
+  )                                                                                                                  
+  add_named_to_EAttribute_EType(lab_business_hours_start, "Date")  # Using Date for time                             
+                                                                                                                     
+  lab_business_hours_end = add_EAttribute_to_EClass_eStructuralFeatures(                                             
+      eClass=lab_class,                                                                                              
+      name="businessHoursEnd",                                                                                       
+      lowerBound=1,                                                                                                  
+      upperBound=1                                                                                                   
+  )                                                                                                                  
+  add_named_to_EAttribute_EType(lab_business_hours_end, "Date")  # Using Date for time                               
+                                                                                                                     
+  lab_registration_number = add_EAttribute_to_EClass_eStructuralFeatures(                                            
+      eClass=lab_class,                                                                                              
+      name="registrationNumber",                                                                                     
+      lowerBound=1,                                                                                                  
+      upperBound=1                                                                                                   
+  )                                                                                                                  
+  add_named_to_EAttribute_EType(lab_registration_number, "String")                                                   
+                                                                                                                     
+  lab_cancellation_fee = add_EAttribute_to_EClass_eStructuralFeatures(                                               
+      eClass=lab_class,                                                                                              
+      name="cancellationFee",                                                                                        
+      lowerBound=1,                                                                                                  
+      upperBound=1                                                                                                   
+  )                                                                                                                  
+  add_named_to_EAttribute_EType(lab_cancellation_fee, "Double")                                                      
+                                                                                                                     
+  print("Requisition, Test, Appointment, and Lab attributes added.")                                                 
+ ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+Execution logs:
+Requisition, Test, Appointment, and Lab attributes added.
+
+Out: None
+[Step 4: Duration 54.76 seconds| Input tokens: 24,962 | Output tokens: 2,467]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 5 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ─ Executing parsed code: ────────────────────────────────────────────────────────────────────────────────────────── 
+  # Create EDataType for Date if not already existing                                                                
+  date_data_type = add_EDataType_to_EPackage_eClassifiers(                                                           
+      name="Date",                                                                                                   
+      instanceClassName="java.util.Date"                                                                             
+  )                                                                                                                  
+                                                                                                                     
+  # Update the ETypes for all Date attributes using the proper EDataType reference                                   
+  add_EDataType_to_EAttribute_EType(requisition_valid_from, date_data_type)                                          
+  add_EDataType_to_EAttribute_EType(patient_dob, date_data_type)                                                     
+  add_EDataType_to_EAttribute_EType(appointment_date, date_data_type)                                                
+  add_EDataType_to_EAttribute_EType(appointment_start_time, date_data_type)                                          
+  add_EDataType_to_EAttribute_EType(appointment_end_time, date_data_type)                                            
+  add_EDataType_to_EAttribute_EType(lab_business_hours_start, date_data_type)                                        
+  add_EDataType_to_EAttribute_EType(lab_business_hours_end, date_data_type)                                          
+                                                                                                                     
+  print("Updated all Date ETypes.")                                                                                  
+                                                                                                                     
+  # Now we'll add inheritance: Doctor IS-A Person and Patient IS-A Person                                            
+  person_class = add_EClass_to_EPackage_eClassifiers(name="Person")                                                  
+  person_first_name = add_EAttribute_to_EClass_eStructuralFeatures(                                                  
+      eClass=person_class,                                                                                           
+      name="firstName",                                                                                              
+      lowerBound=1,                                                                                                  
+      upperBound=1                                                                                                   
+  )                                                                                                                  
+  add_named_to_EAttribute_EType(person_first_name, "String")                                                         
+                                                                                                                     
+  person_last_name = add_EAttribute_to_EClass_eStructuralFeatures(                                                   
+      eClass=person_class,                                                                                           
+      name="lastName",                                                                                               
+      lowerBound=1,                                                                                                  
+      upperBound=1                                                                                                   
+  )                                                                                                                  
+  add_named_to_EAttribute_EType(person_last_name, "String")                                                          
+                                                                                                                     
+  # Add Person as supertype to Doctor and Patient                                                                    
+  add_EClass_to_EClass_ESuperTypes(doctor_class, person_class)                                                       
+  add_EClass_to_EClass_ESuperTypes(patient_class, person_class)                                                      
+                                                                                                                     
+  print("Inheritance added: Doctor and Patient inherit from Person.")                                                
+                                                                                                                     
+  final_answer("LabTracker EPackage created with all required classes, attributes, references, and inheritance       
+  relationships.")                                                                                                   
+ ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+Execution logs:
+Updated all Date ETypes.
+Inheritance added: Doctor and Patient inherit from Person.
+
+Final answer: LabTracker EPackage created with all required classes, attributes, references, and inheritance 
+relationships.
+[Step 5: Duration 26.05 seconds| Input tokens: 35,794 | Output tokens: 2,898]

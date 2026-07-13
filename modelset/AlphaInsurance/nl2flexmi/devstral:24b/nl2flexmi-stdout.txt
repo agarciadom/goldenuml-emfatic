@@ -1,0 +1,405 @@
+╭───────────────────────────────────────────────────── New run ─────────────────────────────────────────────────────╮
+│                                                                                                                   │
+│ You are an expert in generating EPackage based on a user's description.                                           │
+│ You will achieve this by calling a series of available Python functions as tools to incrementally build it.       │
+│                                                                                                                   │
+│ Core concepts you need to understand:                                                                             │
+│   - EPackage: Declaration of the package containing all the EClasses. It ONLY has these fields:                   │
+│     - name (of type str): Name of the package                                                                     │
+│     - nsURI (of type str): The namespace URI of the package                                                       │
+│     - eClassifiers (of type dict[str, Union[EClass, EDataType]]): Classes and data types within this EPackage     │
+│     - nsPrefix (of type str): XML namespace prefix to be used for this EPackage                                   │
+│   - EClass: Class within an EPackage. It ONLY has these fields:                                                   │
+│     - name (of type str): Name of the class.                                                                      │
+│     - eSuperTypes (of type set[EClass]): The optional base classes from which to inherit.                         │
+│     - eStructuralFeatures (of type dict[str, Union[EAttribute, EReference]]): The attributes and references       │
+│ inside this class                                                                                                 │
+│   - EAttribute: A specific piece of information in an EClass which is not an object. It ONLY has these fields:    │
+│     - name (of type str): Name of the attribute.                                                                  │
+│     - eType (of type Optional[Union[EDataType, str]]): Type of the attribute (must be set: use the tools for it)  │
+│     - lowerBound (of type int): Minimum number of values for the attribute (must be less or equal to the upper    │
+│ bound)                                                                                                            │
+│     - upperBound (of type int): Maximum number of values for the attribute                                        │
+│   - EReference: Reference from an EClass to another EClass. It ONLY has these fields:                             │
+│     - name (of type str): Name of the reference.                                                                  │
+│     - containment (of type bool): True if the source of the reference contains the target of reference (meaning   │
+│ that deleting the source will also delete the target).                                                            │
+│     - eType (of type Optional[EClass]): Target EClass of the reference.                                           │
+│     - lowerBound (of type int): Minimum number of targets for the reference (must be less or equal to the upper   │
+│ bound)                                                                                                            │
+│     - upperBound (of type int): Maximum number of targets for the reference                                       │
+│   - EDataType: Type of scalar data value used in an EAttribute. It ONLY has these fields:                         │
+│     - name (of type str): Name of the data type                                                                   │
+│     - instanceClassName (of type str): Fully qualified Java class name of the instances of this data type         │
+│                                                                                                                   │
+│ Tool interaction guidelines:                                                                                      │
+│   - Identify elements based on the user's description.                                                            │
+│   - First update the package and create all the classes.                                                          │
+│   - Then add all the attributes to each class, and set their ETypes.                                              │
+│   - Then add all the references to each class, and set their ETypes.                                              │
+│   - Do not create your own EDataTypes if they already exist in the Eclipse Modelling Framework: reuse the named   │
+│ ones whenever possible.                                                                                           │
+│   - Use inheritance relationships to reduce duplication of attributes and references.                             │
+│   - Ensure all conceptual objects are contained within another, eventually leading to a single root container     │
+│ class.                                                                                                            │
+│                                                                                                                   │
+│ The user's description is as follows:                                                                             │
+│                                                                                                                   │
+│ <description>                                                                                                     │
+│ Alpha Insurance is an insurance company that provides its clients with various types of insurance policies.       │
+│ As soon as a customer addresses Alpha Insurance, a broker is assigned to follow the customer’s file. The broker   │
+│ is registered in the system, so that when a customer calls, based on the contract, the help desk can immediately  │
+│ trace who is the customer's first account manager. After the broker is assigned to the customer, the latter       │
+│ indicates which type(s) of insurance policy they would like to sign for, so the broker could, depending on the    │
+│ case, either assess the customer’s profile on the spot or send the customer’s file for analysis to the head       │
+│ office. After the customer’s profile has been assessed and the customer has been deemed trustworthy , a           │
+│ preliminary contract/offer on an insurance product is made to the customer either in person or by email. (Such    │
+│ offers can also be extended to already existing customers.) If the customer agrees to the offer, the contract is  │
+│ signed by both parties. After the signing of the contract, the client enjoys the coverage and is invoiced         │
+│ (monthly or yearly – depending on the choice made in the contract) according to the price of the insurance        │
+│ product they bought.                                                                                              │
+│ In case the insured event happens, a customer should send a claim for compensation. Then the company opens one or │
+│ several claim cases (e.g. in case of an accident, often material damage & physical damage are handled             │
+│ separately). Once the case file is complete, it is sent for assessment by different estimators based on their     │
+│ area of expertise. According to the reports issued by the estimators, it is decided whether the claim case is     │
+│ approved. In case of approval the compensation decision is registered that stipulates which costs are eligible    │
+│ for (partial) refund.  For the supplied documents, the sum of compensation is calculated and the compensation is  │
+│ paid to the customer’s account.  The estimators’ reports must be stored in the database for at least one year     │
+│ after the payment of compensation for legal purposes.                                                             │
+│ </description>                                                                                                    │
+│                                                                                                                   │
+╰─ LiteLLMModel - ollama/devstral:24b ──────────────────────────────────────────────────────────────────────────────╯
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 1 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ─ Executing parsed code: ────────────────────────────────────────────────────────────────────────────────────────── 
+  # Create the EPackage                                                                                              
+  insurance_package = update_EPackage(name="AlphaInsurance", nsURI="http://www.example.org/alphaInsurance",          
+  nsPrefix="ai")                                                                                                     
+                                                                                                                     
+  # Now let's create the necessary EClasses                                                                          
+  customer_class = add_EClass_to_EPackage_eClassifiers(name="Customer")                                              
+  broker_class = add_EClass_to_EPackage_eClassifiers(name="Broker")                                                  
+  insurance_policy_class = add_EClass_to_EPackage_eClassifiers(name="InsurancePolicy")                               
+  contract_class = add_EClass_to_EPackage_eClassifiers(name="Contract")                                              
+  claim_class = add_EClass_to_EPackage_eClassifiers(name="Claim")                                                    
+  estimator_class = add_EClass_to_EPackage_eClassifiers(name="Estimator")                                            
+                                                                                                                     
+  # Print the created package to verify                                                                              
+  print("EPackage and initial EClasses created:")                                                                    
+  print(insurance_package)                                                                                           
+ ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+Execution logs:
+EPackage and initial EClasses created:
+emf_uri_fragment='/' name='AlphaInsurance' nsURI='http://www.example.org/alphaInsurance' nsPrefix='ai'
+
+Out: None
+[Step 1: Duration 9.89 seconds| Input tokens: 5,185 | Output tokens: 235]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 2 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ─ Executing parsed code: ────────────────────────────────────────────────────────────────────────────────────────── 
+  # Create EDataTypes if needed                                                                                      
+  string_type = add_EDataType_to_EPackage_eClassifiers(name="String", instanceClassName="java.lang.String")          
+  integer_type = add_EDataType_to_EPackage_eClassifiers(name="Integer", instanceClassName="java.lang.Integer")       
+                                                                                                                     
+  # Add attributes to Customer class                                                                                 
+  customer_id_attr = add_EAttribute_to_EClass_eStructuralFeatures(eClass=customer_class, name="id", lowerBound=1,    
+  upperBound=1)                                                                                                      
+  add_EDataType_to_EAttribute_EType(customer_id_attr, integer_type)                                                  
+                                                                                                                     
+  customer_name_attr = add_EAttribute_to_EClass_eStructuralFeatures(eClass=customer_class, name="name",              
+  lowerBound=1, upperBound=1)                                                                                        
+  add_named_to_EAttribute_EType(customer_name_attr, "String")                                                        
+                                                                                                                     
+  # Add attributes to Broker class                                                                                   
+  broker_id_attr = add_EAttribute_to_EClass_eStructuralFeatures(eClass=broker_class, name="id", lowerBound=1,        
+  upperBound=1)                                                                                                      
+  add_EDataType_to_EAttribute_EType(broker_id_attr, integer_type)                                                    
+                                                                                                                     
+  broker_name_attr = add_EAttribute_to_EClass_eStructuralFeatures(eClass=broker_class, name="name", lowerBound=1,    
+  upperBound=1)                                                                                                      
+  add_named_to_EAttribute_EType(broker_name_attr, "String")                                                          
+                                                                                                                     
+  # Add attributes to InsurancePolicy class                                                                          
+  policy_id_attr = add_EAttribute_to_EClass_eStructuralFeatures(eClass=insurance_policy_class, name="id",            
+  lowerBound=1, upperBound=1)                                                                                        
+  add_EDataType_to_EAttribute_EType(policy_id_attr, integer_type)                                                    
+                                                                                                                     
+  policy_type_attr = add_EAttribute_to_EClass_eStructuralFeatures(eClass=insurance_policy_class, name="type",        
+  lowerBound=1, upperBound=1)                                                                                        
+  add_named_to_EAttribute_EType(policy_type_attr, "String")                                                          
+                                                                                                                     
+  # Add attributes to Contract class                                                                                 
+  contract_id_attr = add_EAttribute_to_EClass_eStructuralFeatures(eClass=contract_class, name="id", lowerBound=1,    
+  upperBound=1)                                                                                                      
+  add_EDataType_to_EAttribute_EType(contract_id_attr, integer_type)                                                  
+                                                                                                                     
+  contract_status_attr = add_EAttribute_to_EClass_eStructuralFeatures(eClass=contract_class, name="status",          
+  lowerBound=1, upperBound=1)                                                                                        
+  add_named_to_EAttribute_EType(contract_status_attr, "String")                                                      
+                                                                                                                     
+  # Add attributes to Claim class                                                                                    
+  claim_id_attr = add_EAttribute_to_EClass_eStructuralFeatures(eClass=claim_class, name="id", lowerBound=1,          
+  upperBound=1)                                                                                                      
+  add_EDataType_to_EAttribute_EType(claim_id_attr, integer_type)                                                     
+                                                                                                                     
+  claim_status_attr = add_EAttribute_to_EClass_eStructuralFeatures(eClass=claim_class, name="status", lowerBound=1,  
+  upperBound=1)                                                                                                      
+  add_named_to_EAttribute_EType(claim_status_attr, "String")                                                         
+                                                                                                                     
+  # Print the attributes to verify                                                                                   
+  print("Attributes added:")                                                                                         
+  for cls in [customer_class, broker_class, insurance_policy_class, contract_class, claim_class]:                    
+      print(f"{cls.name} attributes: {cls.eStructuralFeatures}")                                                     
+ ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+Execution logs:
+Attributes added:
+Customer attributes: {'id': EAttribute(emf_uri_fragment='/', name='id', eType=EDataType(emf_uri_fragment='/', 
+name='Integer', instanceClassName='java.lang.Integer'), lowerBound=1, upperBound=1), 'name': 
+EAttribute(emf_uri_fragment='/', name='name', eType='//EString', lowerBound=1, upperBound=1)}
+Broker attributes: {'id': EAttribute(emf_uri_fragment='/', name='id', eType=EDataType(emf_uri_fragment='/', 
+name='Integer', instanceClassName='java.lang.Integer'), lowerBound=1, upperBound=1), 'name': 
+EAttribute(emf_uri_fragment='/', name='name', eType='//EString', lowerBound=1, upperBound=1)}
+InsurancePolicy attributes: {'id': EAttribute(emf_uri_fragment='/', name='id', eType=EDataType(emf_uri_fragment='/', 
+name='Integer', instanceClassName='java.lang.Integer'), lowerBound=1, upperBound=1), 'type': 
+EAttribute(emf_uri_fragment='/', name='type', eType='//EString', lowerBound=1, upperBound=1)}
+Contract attributes: {'id': EAttribute(emf_uri_fragment='/', name='id', eType=EDataType(emf_uri_fragment='/', 
+name='Integer', instanceClassName='java.lang.Integer'), lowerBound=1, upperBound=1), 'status': 
+EAttribute(emf_uri_fragment='/', name='status', eType='//EString', lowerBound=1, upperBound=1)}
+Claim attributes: {'id': EAttribute(emf_uri_fragment='/', name='id', eType=EDataType(emf_uri_fragment='/', 
+name='Integer', instanceClassName='java.lang.Integer'), lowerBound=1, upperBound=1), 'status': 
+EAttribute(emf_uri_fragment='/', name='status', eType='//EString', lowerBound=1, upperBound=1)}
+
+Out: None
+[Step 2: Duration 28.45 seconds| Input tokens: 10,894 | Output tokens: 1,047]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 3 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ─ Executing parsed code: ────────────────────────────────────────────────────────────────────────────────────────── 
+  # Add reference from Customer to Broker                                                                            
+  customer_broker_ref = add_EReference_to_EClass_eStructuralFeatures(                                                
+      eClass=customer_class,                                                                                         
+      name="broker",                                                                                                 
+      containment=False,                                                                                             
+      lowerBound=1,                                                                                                  
+      upperBound=1                                                                                                   
+  )                                                                                                                  
+  add_EClass_to_EReference_EType(customer_broker_ref, broker_class)                                                  
+                                                                                                                     
+  # Add reference from Contract to Customer                                                                          
+  contract_customer_ref = add_EReference_to_EClass_eStructuralFeatures(                                              
+      eClass=contract_class,                                                                                         
+      name="customer",                                                                                               
+      containment=False,                                                                                             
+      lowerBound=1,                                                                                                  
+      upperBound=1                                                                                                   
+  )                                                                                                                  
+  add_EClass_to_EReference_EType(contract_customer_ref, customer_class)                                              
+                                                                                                                     
+  # Add reference from Contract to InsurancePolicy                                                                   
+  contract_policy_ref = add_EReference_to_EClass_eStructuralFeatures(                                                
+      eClass=contract_class,                                                                                         
+      name="policy",                                                                                                 
+      containment=False,                                                                                             
+      lowerBound=1,                                                                                                  
+      upperBound=1                                                                                                   
+  )                                                                                                                  
+  add_EClass_to_EReference_EType(contract_policy_ref, insurance_policy_class)                                        
+                                                                                                                     
+  # Add reference from Claim to Contract                                                                             
+  claim_contract_ref = add_EReference_to_EClass_eStructuralFeatures(                                                 
+      eClass=claim_class,                                                                                            
+      name="contract",                                                                                               
+      containment=False,                                                                                             
+      lowerBound=1,                                                                                                  
+      upperBound=1                                                                                                   
+  )                                                                                                                  
+  add_EClass_to_EReference_EType(claim_contract_ref, contract_class)                                                 
+                                                                                                                     
+  # Add estimator class and references for claim processing                                                          
+  estimator_class = add_EClass_to_EPackage_eClassifiers(name="Estimator")                                            
+  estimator_id_attr = add_EAttribute_to_EClass_eStructuralFeatures(eClass=estimator_class, name="id", lowerBound=1,  
+  upperBound=1)                                                                                                      
+  add_EDataType_to_EAttribute_EType(estimator_id_attr, integer_type)                                                 
+                                                                                                                     
+  estimator_name_attr = add_EAttribute_to_EClass_eStructuralFeatures(eClass=estimator_class, name="name",            
+  lowerBound=1, upperBound=1)                                                                                        
+  add_named_to_EAttribute_EType(estimator_name_attr, "String")                                                       
+                                                                                                                     
+  # Add reference from Claim to Estimator                                                                            
+  claim_estimators_ref = add_EReference_to_EClass_eStructuralFeatures(                                               
+      eClass=claim_class,                                                                                            
+      name="estimators",                                                                                             
+      containment=False,                                                                                             
+      lowerBound=0,                                                                                                  
+      upperBound=-1  # Many estimators can assess a claim                                                            
+  )                                                                                                                  
+  add_EClass_to_EReference_EType(claim_estimators_ref, estimator_class)                                              
+                                                                                                                     
+  # Print the references to verify                                                                                   
+  print("References added:")                                                                                         
+  for cls in [customer_class, contract_class, claim_class]:                                                          
+      print(f"{cls.name} references: {cls.eStructuralFeatures}")                                                     
+ ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+Execution logs:
+References added:
+Customer references: {'id': EAttribute(emf_uri_fragment='/', name='id', eType=EDataType(emf_uri_fragment='/', 
+name='Integer', instanceClassName='java.lang.Integer'), lowerBound=1, upperBound=1), 'name': 
+EAttribute(emf_uri_fragment='/', name='name', eType='//EString', lowerBound=1, upperBound=1), 'broker': 
+EReference(emf_uri_fragment='/', name='broker', containment=False, eType=EClass(emf_uri_fragment='/', name='Broker'),
+lowerBound=1, upperBound=1)}
+Contract references: {'id': EAttribute(emf_uri_fragment='/', name='id', eType=EDataType(emf_uri_fragment='/', 
+name='Integer', instanceClassName='java.lang.Integer'), lowerBound=1, upperBound=1), 'status': 
+EAttribute(emf_uri_fragment='/', name='status', eType='//EString', lowerBound=1, upperBound=1), 'customer': 
+EReference(emf_uri_fragment='/', name='customer', containment=False, eType=EClass(emf_uri_fragment='/', 
+name='Customer'), lowerBound=1, upperBound=1), 'policy': EReference(emf_uri_fragment='/', name='policy', 
+containment=False, eType=EClass(emf_uri_fragment='/', name='InsurancePolicy'), lowerBound=1, upperBound=1)}
+Claim references: {'id': EAttribute(emf_uri_fragment='/', name='id', eType=EDataType(emf_uri_fragment='/', 
+name='Integer', instanceClassName='java.lang.Integer'), lowerBound=1, upperBound=1), 'status': 
+EAttribute(emf_uri_fragment='/', name='status', eType='//EString', lowerBound=1, upperBound=1), 'contract': 
+EReference(emf_uri_fragment='/', name='contract', containment=False, eType=EClass(emf_uri_fragment='/', 
+name='Contract'), lowerBound=1, upperBound=1), 'estimators': EReference(emf_uri_fragment='/', name='estimators', 
+containment=False, eType=EClass(emf_uri_fragment='/', name='Estimator'), lowerBound=0, upperBound=-1)}
+
+Out: None
+[Step 3: Duration 29.05 seconds| Input tokens: 18,627 | Output tokens: 1,710]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 4 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ─ Executing parsed code: ────────────────────────────────────────────────────────────────────────────────────────── 
+  # Enhance the Customer class with contact information                                                              
+  customer_email_attr = add_EAttribute_to_EClass_eStructuralFeatures(eClass=customer_class, name="email",            
+  lowerBound=0, upperBound=1)                                                                                        
+  add_named_to_EAttribute_EType(customer_email_attr, "String")                                                       
+                                                                                                                     
+  customer_phone_attr = add_EAttribute_to_EClass_eStructuralFeatures(eClass=customer_class, name="phone",            
+  lowerBound=0, upperBound=1)                                                                                        
+  add_named_to_EAttribute_EType(customer_phone_attr, "String")                                                       
+                                                                                                                     
+  # Enhance the InsurancePolicy class with more details                                                              
+  policy_coverage_amount_attr = add_EAttribute_to_EClass_eStructuralFeatures(eClass=insurance_policy_class,          
+  name="coverageAmount", lowerBound=0, upperBound=1)                                                                 
+  add_named_to_EAttribute_EType(policy_coverage_amount_attr, "Double")                                               
+                                                                                                                     
+  policy_duration_attr = add_EAttribute_to_EClass_eStructuralFeatures(eClass=insurance_policy_class,                 
+  name="durationMonths", lowerBound=0, upperBound=1)                                                                 
+  add_named_to_EAttribute_EType(policy_duration_attr, "Integer")                                                     
+                                                                                                                     
+  # Enhance the Contract class with payment frequency                                                                
+  contract_payment_frequency_attr = add_EAttribute_to_EClass_eStructuralFeatures(eClass=contract_class,              
+  name="paymentFrequency", lowerBound=1, upperBound=1)                                                               
+  add_named_to_EAttribute_EType(contract_payment_frequency_attr, "String")  # e.g., 'monthly', 'yearly'              
+                                                                                                                     
+  # Enhance the Claim class with compensation amount                                                                 
+  claim_compensation_amount_attr = add_EAttribute_to_EClass_eStructuralFeatures(eClass=claim_class,                  
+  name="compensationAmount", lowerBound=0, upperBound=1)                                                             
+  add_named_to_EAttribute_EType(claim_compensation_amount_attr, "Double")                                            
+                                                                                                                     
+  # Add a collection of Claims to the Contract                                                                       
+  contract_claims_ref = add_EReference_to_EClass_eStructuralFeatures(                                                
+      eClass=contract_class,                                                                                         
+      name="claims",                                                                                                 
+      containment=True,                                                                                              
+      lowerBound=0,                                                                                                  
+      upperBound=-1  # A contract can have multiple claims                                                           
+  )                                                                                                                  
+  add_EClass_to_EReference_EType(contract_claims_ref, claim_class)                                                   
+                                                                                                                     
+  # Add a collection of Contracts to the Customer                                                                    
+  customer_contracts_ref = add_EReference_to_EClass_eStructuralFeatures(                                             
+      eClass=customer_class,                                                                                         
+      name="contracts",                                                                                              
+      containment=True,                                                                                              
+      lowerBound=0,                                                                                                  
+      upperBound=-1  # A customer can have multiple contracts                                                        
+  )                                                                                                                  
+  add_EClass_to_EReference_EType(customer_contracts_ref, contract_class)                                             
+                                                                                                                     
+  # Add a collection of Customers to the Broker                                                                      
+  broker_customers_ref = add_EReference_to_EClass_eStructuralFeatures(                                               
+      eClass=broker_class,                                                                                           
+      name="customers",                                                                                              
+      containment=True,                                                                                              
+      lowerBound=0,                                                                                                  
+      upperBound=-1  # A broker can have multiple customers                                                          
+  )                                                                                                                  
+  add_EClass_to_EReference_EType(broker_customers_ref, customer_class)                                               
+                                                                                                                     
+  # Print the enhanced model to verify all details                                                                   
+  print("Enhanced model:")                                                                                           
+  for cls in [customer_class, broker_class, insurance_policy_class, contract_class, claim_class]:                    
+      print(f"\n{cls.name} details:")                                                                                
+      print(f"  Attributes: {cls.eStructuralFeatures}")                                                              
+ ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+Execution logs:
+Enhanced model:
+
+Customer details:
+  Attributes: {'id': EAttribute(emf_uri_fragment='/', name='id', eType=EDataType(emf_uri_fragment='/', 
+name='Integer', instanceClassName='java.lang.Integer'), lowerBound=1, upperBound=1), 'name': 
+EAttribute(emf_uri_fragment='/', name='name', eType='//EString', lowerBound=1, upperBound=1), 'broker': 
+EReference(emf_uri_fragment='/', name='broker', containment=False, eType=EClass(emf_uri_fragment='/', name='Broker'),
+lowerBound=1, upperBound=1), 'email': EAttribute(emf_uri_fragment='/', name='email', eType='//EString', lowerBound=0,
+upperBound=1), 'phone': EAttribute(emf_uri_fragment='/', name='phone', eType='//EString', lowerBound=0, 
+upperBound=1), 'contracts': EReference(emf_uri_fragment='/', name='contracts', containment=True, 
+eType=EClass(emf_uri_fragment='/', name='Contract'), lowerBound=0, upperBound=-1)}
+
+Broker details:
+  Attributes: {'id': EAttribute(emf_uri_fragment='/', name='id', eType=EDataType(emf_uri_fragment='/', 
+name='Integer', instanceClassName='java.lang.Integer'), lowerBound=1, upperBound=1), 'name': 
+EAttribute(emf_uri_fragment='/', name='name', eType='//EString', lowerBound=1, upperBound=1), 'customers': 
+EReference(emf_uri_fragment='/', name='customers', containment=True, eType=EClass(emf_uri_fragment='/', 
+name='Customer'), lowerBound=0, upperBound=-1)}
+
+InsurancePolicy details:
+  Attributes: {'id': EAttribute(emf_uri_fragment='/', name='id', eType=EDataType(emf_uri_fragment='/', 
+name='Integer', instanceClassName='java.lang.Integer'), lowerBound=1, upperBound=1), 'type': 
+EAttribute(emf_uri_fragment='/', name='type', eType='//EString', lowerBound=1, upperBound=1), 'coverageAmount': 
+EAttribute(emf_uri_fragment='/', name='coverageAmount', eType='//EDouble', lowerBound=0, upperBound=1), 
+'durationMonths': EAttribute(emf_uri_fragment='/', name='durationMonths', eType='//EInt', lowerBound=0, 
+upperBound=1)}
+
+Contract details:
+  Attributes: {'id': EAttribute(emf_uri_fragment='/', name='id', eType=EDataType(emf_uri_fragment='/', 
+name='Integer', instanceClassName='java.lang.Integer'), lowerBound=1, upperBound=1), 'status': 
+EAttribute(emf_uri_fragment='/', name='status', eType='//EString', lowerBound=1, upperBound=1), 'customer': 
+EReference(emf_uri_fragment='/', name='customer', containment=False, eType=EClass(emf_uri_fragment='/', 
+name='Customer'), lowerBound=1, upperBound=1), 'policy': EReference(emf_uri_fragment='/', name='policy', 
+containment=False, eType=EClass(emf_uri_fragment='/', name='InsurancePolicy'), lowerBound=1, upperBound=1), 
+'paymentFrequency': EAttribute(emf_uri_fragment='/', name='paymentFrequency', eType='//EString', lowerBound=1, 
+upperBound=1), 'claims': EReference(emf_uri_fragment='/', name='claims', containment=True, 
+eType=EClass(emf_uri_fragment='/', name='Claim'), lowerBound=0, upperBound=-1)}
+
+Claim details:
+  Attributes: {'id': EAttribute(emf_uri_fragment='/', name='id', eType=EDataType(emf_uri_fragment='/', 
+name='Integer', instanceClassName='java.lang.Integer'), lowerBound=1, upperBound=1), 'status': 
+EAttribute(emf_uri_fragment='/', name='status', eType='//EString', lowerBound=1, upperBound=1), 'contract': 
+EReference(emf_uri_fragment='/', name='contract', containment=False, eType=EClass(emf_uri_fragment='/', 
+name='Contract'), lowerBound=1, upperBound=1), 'estimators': EReference(emf_uri_fragment='/', name='estimators', 
+containment=False, eType=EClass(emf_uri_fragment='/', name='Estimator'), lowerBound=0, upperBound=-1), 
+'compensationAmount': EAttribute(emf_uri_fragment='/', name='compensationAmount', eType='//EDouble', lowerBound=0, 
+upperBound=1)}
+
+Out: None
+[Step 4: Duration 33.52 seconds| Input tokens: 28,195 | Output tokens: 2,506]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 5 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ─ Executing parsed code: ────────────────────────────────────────────────────────────────────────────────────────── 
+  # Final summary of the EPackage                                                                                    
+  print("\nAlpha Insurance Model Summary:")                                                                          
+  print(f"Package: {insurance_package.name} with namespace URI: {insurance_package.nsURI}")                          
+                                                                                                                     
+  print("\nClasses in the model:")                                                                                   
+  for cls in [customer_class, broker_class, insurance_policy_class, contract_class, claim_class, estimator_class]:   
+      print(f"- {cls.name} (Attributes and References: {len(cls.eStructuralFeatures)})")                             
+                                                                                                                     
+  # Final answer                                                                                                     
+  final_answer(insurance_package)                                                                                    
+ ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+Execution logs:
+
+Alpha Insurance Model Summary:
+Package: AlphaInsurance with namespace URI: http://www.example.org/alphaInsurance
+
+Classes in the model:
+- Customer (Attributes and References: 6)
+- Broker (Attributes and References: 3)
+- InsurancePolicy (Attributes and References: 4)
+- Contract (Attributes and References: 6)
+- Claim (Attributes and References: 5)
+- Estimator (Attributes and References: 2)
+
+Final answer: emf_uri_fragment='/' name='AlphaInsurance' nsURI='http://www.example.org/alphaInsurance' nsPrefix='ai'
+[Step 5: Duration 18.17 seconds| Input tokens: 40,449 | Output tokens: 2,748]
