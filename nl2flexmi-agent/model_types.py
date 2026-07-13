@@ -4,11 +4,15 @@
 from __future__ import annotations
 
 import xml.etree.ElementTree as ET
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, model_validator, ConfigDict
 from typing import Union, Optional, override
 
 
 class EObjectBaseModel(BaseModel):
+  model_config = ConfigDict(
+    # Prevent Smolagents from directly assigning the wrong type of value to a field
+    validate_assignment = True,
+  )
   emf_uri_fragment: str = Field(default='/')
 
   def set_uri_fragments(self, own_fragment):
@@ -17,16 +21,12 @@ class EObjectBaseModel(BaseModel):
   # Make instances hashable based on object identity
   __hash__ = object.__hash__
 
-  class Config:
-    # Prevent Smolagents from directly assigning the wrong type of value to a field
-    validate_assignment = True
-
 
 class EPackage(EObjectBaseModel):
-  name: str
-  nsURI: str
+  name: str = Field(min_length=1)
+  nsURI: str = Field(min_length=1)
   eClassifiers: dict[str, Union[EClass, EDataType]] = Field(default_factory=dict, repr=False)
-  nsPrefix: str
+  nsPrefix: str = Field(min_length=1)
 
   def write_to_file(self, f):
     pis = [
@@ -67,7 +67,7 @@ class EPackage(EObjectBaseModel):
 
 
 class EClass(EObjectBaseModel):
-  name: str
+  name: str = Field(min_length=1)
   eSuperTypes: set[EClass] = Field(default_factory=set, repr=False)
   eStructuralFeatures: dict[str, Union[EAttribute, EReference]] = Field(default_factory=dict, repr=False)
 
@@ -94,8 +94,8 @@ class EClass(EObjectBaseModel):
 
 
 class EAttribute(EObjectBaseModel):
-  name: str
-  eType: Optional[Union[EDataType, str]] = None
+  name: str = Field(min_length=1)
+  eType: Optional[Union[EDataType, str]] = Field(default=None)
   lowerBound: int
   upperBound: int
 
@@ -121,9 +121,9 @@ class EAttribute(EObjectBaseModel):
 
 
 class EReference(EObjectBaseModel):
-  name: str
+  name: str = Field(min_length=1)
   containment: bool
-  eType: Optional[EClass] = None
+  eType: Optional[EClass] = Field(default=None)
   lowerBound: int
   upperBound: int
 
@@ -150,8 +150,8 @@ class EReference(EObjectBaseModel):
 
 
 class EDataType(EObjectBaseModel):
-  name: str
-  instanceClassName: str
+  name: str = Field(min_length=1)
+  instanceClassName: str = Field(min_length=1)
 
   def to_flexmi(self) -> ET.Element:
     element = ET.Element("eDataType", {

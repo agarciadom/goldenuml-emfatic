@@ -13,6 +13,7 @@ import org.eclipse.emf.emfatic.core.EmfaticResourceFactory;
 import org.eclipse.epsilon.emc.emf.InMemoryEmfModel;
 import org.eclipse.epsilon.evl.EvlModule;
 import org.eclipse.epsilon.evl.execute.UnsatisfiedConstraint;
+import org.eclipse.epsilon.flexmi.FlexmiResourceFactory;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -22,10 +23,17 @@ import java.util.Map;
 
 public class EPackageValidator {
 
+  private final boolean runEVL;
+
+  public EPackageValidator(boolean runEVL) {
+    this.runEVL = runEVL;
+  }
+  
   public List<String> validate(File ecoreFile) {
       ResourceSet resourceSet = new ResourceSetImpl();
       Map<String, Object> extMap = resourceSet.getResourceFactoryRegistry().getExtensionToFactoryMap();
       extMap.put("*", new EcoreResourceFactoryImpl());
+      extMap.put("flexmi", new FlexmiResourceFactory());
       extMap.put("emf", new EmfaticResourceFactory());
       Resource ecoreResource = resourceSet.getResource(URI.createFileURI(ecoreFile.getAbsolutePath()), true);
       return validate((EPackage) ecoreResource.getContents().get(0));
@@ -33,7 +41,9 @@ public class EPackageValidator {
 
   public List<String> validate(EPackage ePackage) {
     List<String> results = new ArrayList<>(validateBuiltIn(ePackage));
-    results.addAll(validateEVL(ePackage));
+    if (runEVL) {
+      results.addAll(validateEVL(ePackage));
+    }
     return results;
   }
 

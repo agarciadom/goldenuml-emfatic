@@ -1,5 +1,6 @@
-from smolagents import CodeAgent, ApiModel, LogLevel, RunResult
+from smolagents import CodeAgent, ApiModel, LogLevel
 
+from model_types import EClass
 import model_tools as mt
 import prompts
 
@@ -43,7 +44,36 @@ class ModelAgent:
                 pass
         return problems
 
+    def run_post_repair(self):
+        # Deterministic repair: remove fields already mentioned in a supertype
+        for ec in self.epackage.eClassifiers.values():
+            super_names = all_super_feature_names(ec)
+            try:
+                for super_name in super_names:
+                    if super_name in ec.eStructuralFeatures:
+                        print("Repair: removing {}.{} as it is repeated in a superclass".format(ec.name, super_name))
+                        del ec.eStructuralFeatures[super_name]
+            except AttributeError:
+                # not an EClass
+                pass
+
     def increment_metrics(self):
         self.total_duration += sum(self.code_agent.monitor.step_durations)
         self.total_input_tokens += self.code_agent.monitor.total_input_token_count
         self.total_output_tokens += self.code_agent.monitor.total_output_token_count
+
+
+def all_super_feature_names(c: EClass) -> set[str]:
+    names = set()
+    visited = set()
+    for eSupertype in c.eSuperTypes:
+        all_feature_names(eSupertype, names=names, visited=visited)
+    return names
+
+def all_feature_names(c: EClass, names: set[str], visited: set[EClass]):
+    if c not in visited:
+        visited.add(c)
+        for sf_name in c.eStructuralFeatures.keys():
+            names.add(sf_name)
+        for eSupertype in c.eSuperTypes:
+            all_feature_names(eSupertype, names, visited)

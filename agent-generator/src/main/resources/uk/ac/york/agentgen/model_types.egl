@@ -5,11 +5,15 @@
 from __future__ import annotations
 
 import xml.etree.ElementTree as ET
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, model_validator, ConfigDict
 from typing import Union, Optional, override
 
 
 class EObjectBaseModel(BaseModel):
+  model_config = ConfigDict(
+    # Prevent Smolagents from directly assigning the wrong type of value to a field
+    validate_assignment = True,
+  )
   emf_uri_fragment: str = Field(default='/')
 
   def set_uri_fragments(self, own_fragment):
@@ -17,10 +21,6 @@ class EObjectBaseModel(BaseModel):
 
   # Make instances hashable based on object identity
   __hash__ = object.__hash__
-
-  class Config:
-    # Prevent Smolagents from directly assigning the wrong type of value to a field
-    validate_assignment = True
 
 
 [% for (ct in toolset.classTools) { %]
@@ -41,9 +41,8 @@ class [%=ct.eClass.name.ftuc()%](EObjectBaseModel):
 [% }
 
 operation EClassTool fields() {
-  for (ft in self.featureTools) {
-    var defaultValue = ft.defaultFieldValue(); %]
-  [%=ft.fieldName()%]: [%=ft.fieldType() + (defaultValue.length() > 0 ? ' = ' + ft.defaultFieldValue() : '')%]
+  for (ft in self.featureTools) { %]
+  [%=ft.fieldName()%]: [%=ft.fieldType() + ft.renderOptions()%]
 [% } %]
 
 [% }
@@ -149,6 +148,38 @@ operation EReferenceTool fragmentOrString(varName: String): String {
   } else {
     return "(" + varName + ".emf_uri_fragment if hasattr(" + varName + ", 'emf_uri_fragment') else " + varName + ")";
   }
+}
+
+operation EFeatureTool renderOptions(): String {
+  var options = self.fieldOptions();
+  if (options.isEmpty()) {
+    return '';
+  } else {
+    return ' = Field(' + options.keySet.collect(k | k + '=' + options.get(k)).concat(', ') + ')';
+  }
+}
+
+operation EAttributeTool fieldOptions(): Map {
+  var options : Map;
+  if (self.minLength.isDefined() and self.minLength > 0) {
+    options.put("min_length", self.minLength);
+  }
+  return options;
+}
+
+operation EReferenceTool fieldOptions(): Map {
+  var options : Map;
+  var fldType = self.fieldType();
+  if (fldType.startsWith('dict[')) {
+    options.put("default_factory", "dict");
+    options.put("repr", "False");
+  } else if (fldType.startsWith('set[')) {
+    options.put("default_factory", "set");
+    options.put("repr", "False");
+  } else {
+    options.put("default", "None");
+  }
+  return options;
 }
 
 %]

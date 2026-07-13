@@ -12,12 +12,13 @@ puml2emfatic() {
   java -jar "$BASEDIR"/build/libs/puml2emfatic-*-all.jar "$@"
 }
 
-for ECORE in "$MODELSET"/*/converted.ecore; do
+find "$MODELSET" -name converted.ecore -o -name generated.ecore -o -name generated.flexmi | while read ECORE; do
   PUML_DIR="$(dirname "$ECORE")"
-  CONVERTED="$PUML_DIR/converted.emf"
+  ECORE_FILENAME="$(basename -- "$ECORE")"
+  CONVERTED="$PUML_DIR/${ECORE_FILENAME%.*}.emf"
   CONVERSION_STDERR="$PUML_DIR/emfatic-stderr.txt"
 
-  echo -n "Converting ${ECORE} to Emfatic... "
+  echo -n "Converting ${ECORE} to ${CONVERTED}... "
   if puml2emfatic ecore2emfatic "$ECORE" > "$CONVERTED" 2> "$CONVERSION_STDERR"; then
     echo "success"
     # delete empty stderr files if successful

@@ -7,6 +7,7 @@
 - Run the agent against a description file: `uv run main.py path/to/description.md`
 - Run the included sample: `uv run main.py samples/mixed-conversation.md`
 - Override model settings from the CLI: `uv run main.py -m <model-id> -b <api-base> -k <api-key> path/to/description.md`
+- Run tests: `uv run -m pytest`
 
 ## High-level architecture
 

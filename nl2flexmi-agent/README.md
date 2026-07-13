@@ -11,3 +11,9 @@ cp .env.template .env
 uv sync
 uv run main.py samples/library.txt samples/library.flexmi
 ```
+
+## To run tests
+
+```shell
+uv run -m pytest
+```
