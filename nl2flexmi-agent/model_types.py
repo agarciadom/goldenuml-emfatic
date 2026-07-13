@@ -17,6 +17,10 @@ class EObjectBaseModel(BaseModel):
   # Make instances hashable based on object identity
   __hash__ = object.__hash__
 
+  class Config:
+    # Prevent Smolagents from directly assigning the wrong type of value to a field
+    validate_assignment = True
+
 
 class EPackage(EObjectBaseModel):
   name: str
