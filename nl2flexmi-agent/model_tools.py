@@ -59,8 +59,10 @@ class AddEClassToEPackageEClassifiers(Tool):
     _fields = {
       "name": name,
     }
-    if name in self.root.eClassifiers and isinstance(name, EClass):
-      self.root.eClassifiers[name] = self.root.eClassifiers[name].model_copy(update=_fields)
+    if name in self.root.eClassifiers and isinstance(self.root.eClassifiers[name], EClass):
+      _existing = self.root.eClassifiers[name]
+      for field, value in _fields.items():
+        setattr(_existing, field, value)
     else:
       self.root.eClassifiers[name] = EClass(**_fields)
     return self.root.eClassifiers[name]
@@ -92,8 +94,10 @@ class AddEDataTypeToEPackageEClassifiers(Tool):
       "name": name,
       "instanceClassName": instanceClassName,
     }
-    if name in self.root.eClassifiers and isinstance(name, EDataType):
-      self.root.eClassifiers[name] = self.root.eClassifiers[name].model_copy(update=_fields)
+    if name in self.root.eClassifiers and isinstance(self.root.eClassifiers[name], EDataType):
+      _existing = self.root.eClassifiers[name]
+      for field, value in _fields.items():
+        setattr(_existing, field, value)
     else:
       self.root.eClassifiers[name] = EDataType(**_fields)
     return self.root.eClassifiers[name]
@@ -131,8 +135,10 @@ class AddEAttributeToEClassEStructuralFeatures(Tool):
       "lowerBound": lowerBound,
       "upperBound": upperBound,
     }
-    if name in eClass.eStructuralFeatures and isinstance(name, EAttribute):
-      eClass.eStructuralFeatures[name] = eClass.eStructuralFeatures[name].model_copy(update=_fields)
+    if name in eClass.eStructuralFeatures and isinstance(eClass.eStructuralFeatures[name], EAttribute):
+      _existing = eClass.eStructuralFeatures[name]
+      for field, value in _fields.items():
+        setattr(_existing, field, value)
     else:
       eClass.eStructuralFeatures[name] = EAttribute(**_fields)
     return eClass.eStructuralFeatures[name]
@@ -175,8 +181,10 @@ class AddEReferenceToEClassEStructuralFeatures(Tool):
       "lowerBound": lowerBound,
       "upperBound": upperBound,
     }
-    if name in eClass.eStructuralFeatures and isinstance(name, EReference):
-      eClass.eStructuralFeatures[name] = eClass.eStructuralFeatures[name].model_copy(update=_fields)
+    if name in eClass.eStructuralFeatures and isinstance(eClass.eStructuralFeatures[name], EReference):
+      _existing = eClass.eStructuralFeatures[name]
+      for field, value in _fields.items():
+        setattr(_existing, field, value)
     else:
       eClass.eStructuralFeatures[name] = EReference(**_fields)
     return eClass.eStructuralFeatures[name]
