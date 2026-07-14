@@ -2,6 +2,7 @@
 
 from model_types import *
 from smolagents import Tool
+from typing import Any
 
 # Root update tool
 
@@ -192,10 +193,10 @@ class AddEReferenceToEClassEStructuralFeatures(Tool):
 
 # Non-containment reference tools
 
-class AddEClassToEClassESuperTypes(Tool):
-  name = "add_EClass_to_EClass_ESuperTypes"
+class AddToESuperTypesOfEClass(Tool):
+  name = "add_to_esupertypes_of_eclass"
   description = """
-  Adds a EClass to the eSuperTypes of a EClass, and returns it.
+  Adds to the eSuperTypes of a EClass, and returns the added value.
   """
   inputs = {
     "eClass": {
@@ -214,10 +215,10 @@ class AddEClassToEClassESuperTypes(Tool):
     return addition
 
 
-class AddEDataTypeToEAttributeEType(Tool):
-  name = "add_EDataType_to_EAttribute_EType"
+class SetETypeOfEAttribute(Tool):
+  name = "set_etype_of_eattribute"
   description = """
-  Adds a EDataType to the eType of a EAttribute, and returns it.
+  Sets the eType of a EAttribute, and returns the set value.
   """
   inputs = {
     "eAttribute": {
@@ -225,35 +226,13 @@ class AddEDataTypeToEAttributeEType(Tool):
       "description": "The EAttribute holding the eType"
     },
     "addition": {
-      "type": "object",
-      "description": "The EDataType to be added"
+      "type": "any",
+      "description": "The EDataType to be set, or one of 'BigDecimal', 'String', 'BigInteger', 'Boolean', 'Byte', 'Date', 'Double', 'Float', 'Integer', 'Long', 'Short', 'BooleanObject', 'ByteObject', 'CharacterObject', 'DoubleObject', 'FloatObject', 'IntegerObject', 'LongObject', 'ShortObject'"
     }
   }
   output_type = "object"
 
-  def forward(self, eAttribute: EAttribute, addition: EDataType) -> EDataType:
-    eAttribute.eType = addition
-    return addition
-
-
-class AddNamedToEAttributeEType(Tool):
-  name = "add_named_to_EAttribute_EType"
-  description = """
-  Adds a named object to the eType of a EAttribute, and returns its name.
-  """
-  inputs = {
-    "eAttribute": {
-      "type": "object",
-      "description": "The EAttribute holding the eType"
-    },
-    "addition": {
-      "type": "string",
-      "description": "The name of the object to be added. Possible options: BigDecimal, String, BigInteger, Boolean, Byte, Date, Double, Float, Integer, Long, Short, BooleanObject, ByteObject, CharacterObject, DoubleObject, FloatObject, IntegerObject, LongObject, ShortObject."
-    }
-  }
-  output_type = "object"
-
-  def forward(self, eAttribute: EAttribute, addition: str) -> str:
+  def forward(self, eAttribute: EAttribute, addition: Union[EDataType, str]) -> Union[EDataType, str]:
     options = {
       "BigDecimal": "//EBigDecimal",
       "String": "//EString",
@@ -275,14 +254,16 @@ class AddNamedToEAttributeEType(Tool):
       "LongObject": "//ELongObject",
       "ShortObject": "//EShortObject",
     }
-    eAttribute.eType = options[addition]
+    if isinstance(addition, str):
+      addition = options[addition]
+    eAttribute.eType = addition
     return addition
 
 
-class AddEClassToEReferenceEType(Tool):
-  name = "add_EClass_to_EReference_EType"
+class SetETypeOfEReference(Tool):
+  name = "set_etype_of_ereference"
   description = """
-  Adds a EClass to the eType of a EReference, and returns it.
+  Sets the eType of a EReference, and returns the set value.
   """
   inputs = {
     "eReference": {
@@ -291,7 +272,7 @@ class AddEClassToEReferenceEType(Tool):
     },
     "addition": {
       "type": "object",
-      "description": "The EClass to be added"
+      "description": "The EClass to be set"
     }
   }
   output_type = "object"
@@ -308,9 +289,8 @@ def createTools(root: EPackage) -> list[Tool]:
     AddEDataTypeToEPackageEClassifiers(root),
     AddEAttributeToEClassEStructuralFeatures(),
     AddEReferenceToEClassEStructuralFeatures(),
-    AddEClassToEClassESuperTypes(),
-    AddEDataTypeToEAttributeEType(),
-    AddNamedToEAttributeEType(),
-    AddEClassToEReferenceEType(),
+    AddToESuperTypesOfEClass(),
+    SetETypeOfEAttribute(),
+    SetETypeOfEReference(),
   ]
 

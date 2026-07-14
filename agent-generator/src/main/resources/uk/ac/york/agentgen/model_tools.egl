@@ -5,6 +5,7 @@
 
 from model_types import *
 from smolagents import Tool
+from typing import Any
 
 # Root update tool
 
@@ -23,12 +24,7 @@ for (refTool in toolset.classTools.collect(ct | ct.featureTools.select(ft: ERefe
 
 [%
 for (refTool in toolset.classTools.collect(ct | ct.featureTools.select(ft: EReferenceTool | not ft.eReference.isContainment)).flatten()) {
-  for (classToReference in refTool.compatibleClassTools()) {
-    refTool.addReferenceTool(classToReference);
-  }
-  if (not refTool.possibleValues.isEmpty()) {
-    refTool.addStringReferenceTool();
-  }
+  refTool.addReferenceTool();
 }
 %]
 def createTools(root: [%= toolset.rootClassTool.eClass.name.ftuc() %]) -> list[Tool]:
@@ -100,11 +96,13 @@ classToAdd.attributeInputs(); %]
 [%
 }
 
-operation EReferenceTool addReferenceTool(classToReference: EClassTool) {%]
-class [%=recordToolClass("Add" + classToReference.eClass.name.ftuc() + "To" + self.eContainer.eClass.name.ftuc() + self.eReference.name.ftuc(), false)%](Tool):
-  name = "add_[%=classToReference.eClass.name.ftuc()%]_to_[%=self.eContainer.eClass.name.ftuc()%]_[%=self.eReference.name.ftuc()%]"
+operation EReferenceTool addReferenceTool() {
+  var multi = self.eReference.upperBound != 1;
+%]
+class [%=recordToolClass(self.className(), false)%](Tool):
+  name = "[%=self.toolName()%]"
   description = """
-  Adds a [%=classToReference.eClass.name%] to the [%=self.eReference.name%] of a [%=self.eContainer.eClass.name%], and returns it.
+  [%=multi ? 'Adds to the ' : 'Sets the '%][%=self.eReference.name%] of a [%=self.eContainer.eClass.name%], and returns the [%=multi ? 'added' : 'set'%] value.
   """
   inputs = {
     "[%=self.containerVarName()%]": {
@@ -112,14 +110,23 @@ class [%=recordToolClass("Add" + classToReference.eClass.name.ftuc() + "To" + se
       "description": "The [%=self.eContainer.eClass.name%] holding the [%=self.eReference.name%]"
     },
     "addition": {
-      "type": "object",
-      "description": "The [%=classToReference.eClass.name%] to be added"
+      "type": "[%=self.possibleValues.isEmpty() ? 'object' : 'any'%]",
+      "description": "The [%=self.compatibleClassTools().collect(ct|ct.eClass.name).concat(' or ')%] to be [%=multi ? 'added' : 'set'%][%=self.possibleValues.isEmpty() ? '' : ', or one of ' + self.possibleValues.collect(v|'\'' + v.description + '\'').concat(', ')%]"
     }
   }
   output_type = "object"
 
-  def forward(self, [%=self.containerVarName()%]: [%=self.eContainer.eClass.name%], addition: [%=classToReference.eClass.name%]) -> [%=classToReference.eClass.name%]:
-  [% if (self.fieldType().startsWith('set[')) { %]
+  def forward(self, [%=self.containerVarName()%]: [%=self.eContainer.eClass.name%], addition: [%=self.additionParameterType()%]) -> [%=self.additionParameterType()%]:
+[% if (not self.possibleValues.isEmpty()) { %]
+    options = {
+[% for (pv in self.possibleValues) { %]
+      "[%=pv.description%]": "[%=pv.value.eResource.getURIFragment(pv.value)%]",
+[% } %]
+    }
+    if isinstance(addition, str):
+      addition = options[addition]
+[% }
+   if (self.fieldType().startsWith('set[')) { %]
     [%=self.containerVarName()%].[%=self.fieldName()%].add(addition)
   [% } else { %]
     [%=self.containerVarName()%].[%=self.fieldName()%] = addition
@@ -129,40 +136,30 @@ class [%=recordToolClass("Add" + classToReference.eClass.name.ftuc() + "To" + se
 
 [%}
 
+operation EReferenceTool className() {
+  var prefix = self.eReference.upperBound = 1 ? 'Set' : 'AddTo';
+  return prefix + self.eReference.name.ftuc() + 'Of' + self.eContainer.eClass.name;
+}
 
-operation EReferenceTool addStringReferenceTool() {%]
-class [%=recordToolClass("AddNamedTo" + self.eContainer.eClass.name.ftuc() + self.eReference.name.ftuc(), false)%](Tool):
-  name = "add_named_to_[%=self.eContainer.eClass.name.ftuc()%]_[%=self.eReference.name.ftuc()%]"
-  description = """
-  Adds a named object to the [%=self.eReference.name%] of a [%=self.eContainer.eClass.name%], and returns its name.
-  """
-  inputs = {
-    "[%=self.containerVarName()%]": {
-      "type": "object",
-      "description": "The [%=self.eContainer.eClass.name%] holding the [%=self.eReference.name%]"
-    },
-    "addition": {
-      "type": "string",
-      "description": "The name of the object to be added. Possible options: [%=self.possibleValues.collect(v|v.description).concat(', ')%]."
-    }
+operation EReferenceTool toolName() {
+  var prefix = self.eReference.upperBound = 1 ? 'set_' : 'add_to_';
+  return prefix + self.eReference.name.toLowerCase() + '_of_' + self.eContainer.eClass.name.toLowerCase();
+}
+
+operation EReferenceTool additionParameterType() {
+  var possibleTypes : Set;
+  possibleTypes.addAll(self.compatibleClassTools().collect(ct|ct.eClass.name));
+  if (not self.possibleValues.isEmpty()) {
+    possibleTypes.add('str');
   }
-  output_type = "object"
-
-  def forward(self, [%=self.containerVarName()%]: [%=self.eContainer.eClass.name%], addition: str) -> str:
-    options = {
-[% for (pv in self.possibleValues) { %]
-      "[%=pv.description%]": "[%=pv.value.eResource.getURIFragment(pv.value)%]",
-[% } %]
-    }
-  [% if (self.fieldType().startsWith('set[')) { %]
-    [%=self.containerVarName()%].[%=self.fieldName()%].add(options[addition])
-  [% } else { %]
-    [%=self.containerVarName()%].[%=self.fieldName()%] = options[addition]
-  [% } %]
-    return addition
-
-
-[%}
+  if (possibleTypes.size() = 1) {
+    return possibleTypes.first;
+  } else if (possibleTypes.size() > 1) {
+    return 'Union[' + possibleTypes.concat(', ') + ']';
+  } else {
+    return 'Any';
+  }
+}
 
 operation EClassTool rootToolClass() { %]
 class [%=recordToolClass("Update" + self.eClass.name.ftuc(), true)%](Tool):
