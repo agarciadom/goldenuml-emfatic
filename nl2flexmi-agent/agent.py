@@ -32,6 +32,9 @@ class ModelAgent:
             })
             self.increment_metrics()
 
+        # Run post-generation repair
+        self.run_post_repair()
+
     def run_post_validation(self) -> list[str]:
         problems = []
         for ec in self.epackage.eClassifiers.values():
