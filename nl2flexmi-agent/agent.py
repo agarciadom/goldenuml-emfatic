@@ -4,6 +4,8 @@ from model_types import EClass
 import model_tools as mt
 import prompts
 
+DEFAULT_REPAIR_PASSES = 3
+
 class ModelAgent:
     def __init__(self, model: ApiModel):
         self.epackage = mt.EPackage(name="default", nsURI="http://cs.york.ac.uk/mmagent/default/1.0", nsPrefix="def")
@@ -20,17 +22,19 @@ class ModelAgent:
         self.total_output_tokens = 0
         self.total_duration = 0
 
-    def run(self, domain_description: str):
+    def run(self, domain_description: str, repair_passes: int = DEFAULT_REPAIR_PASSES):
         self.code_agent.run(prompts.PROMPT_TASK.format(description=domain_description))
         self.increment_metrics()
 
-        # Validate the generated EPackage and do a single repair pass if there is a problem
-        problems = self.run_post_validation()
-        if problems:
-            self.code_agent.run(prompts.PROMPT_REPAIR.format(description=domain_description, problems='\n'.join(problems)), additional_args={
-                "generated": self.epackage,
-            })
-            self.increment_metrics()
+        # Validate the generated EPackage and do repair passes if there are problems
+        for repair_pass in range(DEFAULT_REPAIR_PASSES):
+            problems = self.run_post_validation()
+            if problems:
+                print("Repair pass #{}".format(repair_pass))
+                self.code_agent.run(prompts.PROMPT_REPAIR.format(description=domain_description, problems='\n'.join(problems)), additional_args={
+                    "generated": self.epackage,
+                })
+                self.increment_metrics()
 
         # Run post-generation repair
         self.run_post_repair()
