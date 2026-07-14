@@ -14,8 +14,8 @@ def main(agent: ModelAgent, domain_description: str, output_file: typing.TextIO,
         with open(csv_path, 'w') as csvfile:
             monitor = agent.code_agent.monitor
             writer = csv.writer(csvfile)
-            writer.writerow(['model_id', 'total_duration_seconds', 'total_input_tokens', 'total_output_tokens'])
-            writer.writerow([model_id, agent.total_duration, agent.total_input_tokens, agent.total_output_tokens])
+            writer.writerow(['model_id', 'total_duration_seconds', 'total_input_tokens', 'total_output_tokens', 'total_repairs'])
+            writer.writerow([model_id, agent.total_duration, agent.total_input_tokens, agent.total_output_tokens, agent.total_repairs])
 
 
 if __name__ == "__main__":

@@ -21,6 +21,7 @@ class ModelAgent:
         self.total_input_tokens = 0
         self.total_output_tokens = 0
         self.total_duration = 0
+        self.total_repairs = 0
 
     def run(self, domain_description: str, repair_passes: int = DEFAULT_REPAIR_PASSES):
         self.code_agent.run(prompts.PROMPT_TASK.format(description=domain_description))
@@ -35,6 +36,9 @@ class ModelAgent:
                     "generated": self.epackage,
                 })
                 self.increment_metrics()
+                self.total_repairs = repair_pass
+            else:
+                break
 
         # Run post-generation repair
         self.run_post_repair()
