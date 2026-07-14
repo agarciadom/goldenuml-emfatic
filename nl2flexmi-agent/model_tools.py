@@ -13,7 +13,7 @@ class UpdateEPackage(Tool):
   inputs = {
     "name": {
       "type": "string",
-      "description": "Name of the package"
+      "description": "Name of the package (without spaces)"
     },
     "nsURI": {
       "type": "string",
@@ -46,7 +46,7 @@ class AddEClassToEPackageEClassifiers(Tool):
   inputs = {
     "name": {
       "type": "string",
-      "description": "Name of the class."
+      "description": "Name of the class"
     },
   }
   output_type = "object"

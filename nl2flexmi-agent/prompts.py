@@ -6,12 +6,12 @@ You will achieve this by calling a series of available Python functions as tools
 
 Core concepts you need to understand:
   - EPackage: Declaration of the package containing all the EClasses. It ONLY has these fields:
-    - name (of type str): Name of the package
+    - name (of type str): Name of the package (without spaces)
     - nsURI (of type str): The namespace URI of the package
     - eClassifiers (of type dict[str, Union[EClass, EDataType]]): Classes and data types within this EPackage
     - nsPrefix (of type str): XML namespace prefix to be used for this EPackage
   - EClass: Class within an EPackage. It ONLY has these fields:
-    - name (of type str): Name of the class.
+    - name (of type str): Name of the class
     - eSuperTypes (of type set[EClass]): The optional base classes from which to inherit.
     - eStructuralFeatures (of type dict[str, Union[EAttribute, EReference]]): The attributes and references inside this class
   - EAttribute: A specific piece of information in an EClass which is not an object. It ONLY has these fields:
@@ -52,12 +52,12 @@ You need to repair the issues by calling a series of available Python functions 
 
 Core concepts you need to understand:
   - EPackage: Declaration of the package containing all the EClasses. It ONLY has these fields:
-    - name (of type str): Name of the package
+    - name (of type str): Name of the package (without spaces)
     - nsURI (of type str): The namespace URI of the package
     - eClassifiers (of type dict[str, Union[EClass, EDataType]]): Classes and data types within this EPackage
     - nsPrefix (of type str): XML namespace prefix to be used for this EPackage
   - EClass: Class within an EPackage. It ONLY has these fields:
-    - name (of type str): Name of the class.
+    - name (of type str): Name of the class
     - eSuperTypes (of type set[EClass]): The optional base classes from which to inherit.
     - eStructuralFeatures (of type dict[str, Union[EAttribute, EReference]]): The attributes and references inside this class
   - EAttribute: A specific piece of information in an EClass which is not an object. It ONLY has these fields:

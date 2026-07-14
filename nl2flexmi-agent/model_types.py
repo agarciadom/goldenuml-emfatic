@@ -23,10 +23,10 @@ class EObjectBaseModel(BaseModel):
 
 
 class EPackage(EObjectBaseModel):
-  name: str = Field(min_length=1)
+  name: str = Field(pattern="[a-zA-Z]+")
   nsURI: str = Field(min_length=1)
   eClassifiers: dict[str, Union[EClass, EDataType]] = Field(default_factory=dict, repr=False)
-  nsPrefix: str = Field(min_length=1)
+  nsPrefix: str = Field(pattern="[a-zA-Z]+")
 
   def write_to_file(self, f):
     pis = [
@@ -67,7 +67,7 @@ class EPackage(EObjectBaseModel):
 
 
 class EClass(EObjectBaseModel):
-  name: str = Field(min_length=1)
+  name: str = Field(pattern="[_a-zA-Z][_a-ZA-Z0-9]*")
   eSuperTypes: set[EClass] = Field(default_factory=set, repr=False)
   eStructuralFeatures: dict[str, Union[EAttribute, EReference]] = Field(default_factory=dict, repr=False)
 
@@ -94,7 +94,7 @@ class EClass(EObjectBaseModel):
 
 
 class EAttribute(EObjectBaseModel):
-  name: str = Field(min_length=1)
+  name: str = Field(pattern="[_a-zA-Z][_a-ZA-Z0-9]*")
   eType: Optional[Union[EDataType, str]] = Field(default=None)
   lowerBound: int
   upperBound: int
@@ -121,7 +121,7 @@ class EAttribute(EObjectBaseModel):
 
 
 class EReference(EObjectBaseModel):
-  name: str = Field(min_length=1)
+  name: str = Field(pattern="[_a-zA-Z][_a-ZA-Z0-9]*")
   containment: bool
   eType: Optional[EClass] = Field(default=None)
   lowerBound: int
@@ -150,7 +150,7 @@ class EReference(EObjectBaseModel):
 
 
 class EDataType(EObjectBaseModel):
-  name: str = Field(min_length=1)
+  name: str = Field(pattern="[_a-zA-Z][_a-ZA-Z0-9]*")
   instanceClassName: str = Field(min_length=1)
 
   def to_flexmi(self) -> ET.Element:
