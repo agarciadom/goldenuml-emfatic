@@ -31,7 +31,7 @@ class ModelAgent:
         for repair_pass in range(DEFAULT_REPAIR_PASSES):
             problems = self.run_post_validation()
             if problems:
-                print("Repair pass #{}".format(repair_pass))
+                print("Repair pass #{}".format(repair_pass + 1))
                 self.code_agent.run(prompts.PROMPT_REPAIR.format(description=domain_description, problems='\n'.join(problems)), additional_args={
                     "generated": self.epackage,
                 })

@@ -101,7 +101,7 @@ class EClass(EObjectBaseModel):
       "name": self.name,
     })
     if self.eSuperTypes:
-      element.set("eSuperTypes", ', '.join(v.emf_uri_fragment for v in self.eSuperTypes))
+      element.set("eSuperTypes", ', '.join((v.emf_uri_fragment if hasattr(v, 'emf_uri_fragment') else str(v)) for v in self.eSuperTypes))
     feature_element = ET.SubElement(element, "eStructuralFeatures")
     for child in self.eStructuralFeatures.values():
       feature_element.append(child.to_flexmi())
@@ -131,7 +131,7 @@ class EAttribute(EObjectBaseModel):
       "upperBound": str(self.upperBound),
     })
     if self.eType:
-      element.set("eType", (self.eType.emf_uri_fragment if hasattr(self.eType, 'emf_uri_fragment') else self.eType))
+      element.set("eType", (self.eType.emf_uri_fragment if hasattr(self.eType, 'emf_uri_fragment') else str(self.eType)))
     return element
 
   @field_validator('eType', mode="after")
@@ -167,7 +167,7 @@ class EReference(EObjectBaseModel):
       "upperBound": str(self.upperBound),
     })
     if self.eType:
-      element.set("eType", self.eType.emf_uri_fragment)
+      element.set("eType", (self.eType.emf_uri_fragment if hasattr(self.eType, 'emf_uri_fragment') else str(self.eType)))
     return element
 
 # protected region EReference on begin

@@ -2,7 +2,6 @@ package uk.ac.york.cs.puml2emfatic.cmd;
 
 import org.eclipse.emf.ecore.ENamedElement;
 import org.eclipse.emf.ecore.EObject;
-import org.eclipse.emf.ecore.EReference;
 import org.eclipse.emf.ecore.resource.Resource;
 import picocli.CommandLine;
 import uk.ac.york.cs.puml2emfatic.util.EmfUtilities;
