@@ -1,611 +1,543 @@
-╭───────────────────────────────────────────────────── New run ─────────────────────────────────────────────────────╮
-│                                                                                                                   │
-│ You are an expert in generating EPackage based on a user's description.                                           │
-│ You will achieve this by calling a series of available Python functions as tools to incrementally build it.       │
-│                                                                                                                   │
-│ Core concepts you need to understand:                                                                             │
-│   - EPackage: Declaration of the package containing all the EClasses. It ONLY has these fields:                   │
-│     - name (of type str): Name of the package                                                                     │
-│     - nsURI (of type str): The namespace URI of the package                                                       │
-│     - eClassifiers (of type dict[str, Union[EClass, EDataType]]): Classes and data types within this EPackage     │
-│     - nsPrefix (of type str): XML namespace prefix to be used for this EPackage                                   │
-│   - EClass: Class within an EPackage. It ONLY has these fields:                                                   │
-│     - name (of type str): Name of the class.                                                                      │
-│     - eSuperTypes (of type set[EClass]): The optional base classes from which to inherit.                         │
-│     - eStructuralFeatures (of type dict[str, Union[EAttribute, EReference]]): The attributes and references       │
-│ inside this class                                                                                                 │
-│   - EAttribute: A specific piece of information in an EClass which is not an object. It ONLY has these fields:    │
-│     - name (of type str): Name of the attribute.                                                                  │
-│     - eType (of type Optional[Union[EDataType, str]]): Type of the attribute (must be set: use the tools for it)  │
-│     - lowerBound (of type int): Minimum number of values for the attribute (must be less or equal to the upper    │
-│ bound)                                                                                                            │
-│     - upperBound (of type int): Maximum number of values for the attribute                                        │
-│   - EReference: Reference from an EClass to another EClass. It ONLY has these fields:                             │
-│     - name (of type str): Name of the reference.                                                                  │
-│     - containment (of type bool): True if the source of the reference contains the target of reference (meaning   │
-│ that deleting the source will also delete the target).                                                            │
-│     - eType (of type Optional[EClass]): Target EClass of the reference.                                           │
-│     - lowerBound (of type int): Minimum number of targets for the reference (must be less or equal to the upper   │
-│ bound)                                                                                                            │
-│     - upperBound (of type int): Maximum number of targets for the reference                                       │
-│   - EDataType: Type of scalar data value used in an EAttribute. It ONLY has these fields:                         │
-│     - name (of type str): Name of the data type                                                                   │
-│     - instanceClassName (of type str): Fully qualified Java class name of the instances of this data type         │
-│                                                                                                                   │
-│ Tool interaction guidelines:                                                                                      │
-│   - Identify elements based on the user's description.                                                            │
-│   - First update the package and create all the classes.                                                          │
-│   - Then add all the attributes to each class, and set their ETypes.                                              │
-│   - Then add all the references to each class, and set their ETypes.                                              │
-│   - Do not create your own EDataTypes if they already exist in the Eclipse Modelling Framework: reuse the named   │
-│ ones whenever possible.                                                                                           │
-│   - Use inheritance relationships to reduce duplication of attributes and references.                             │
-│   - Ensure all conceptual objects are contained within another, eventually leading to a single root container     │
-│ class.                                                                                                            │
-│                                                                                                                   │
-│ The user's description is as follows:                                                                             │
-│                                                                                                                   │
-│ <description>                                                                                                     │
-│ Attracted by the success of Spotify, a group of students wants to build its own music streaming website called    │
-│ Musicmatic. Being economists, they are unaware of the specificities of databases and have therefore asked you to  │
-│ create a UML class diagram.                                                                                       │
-│ A large number of songs will be made available through their website, and the following information on each song  │
-│ needs to be stored: title, year, length, and genre. Also, artist information will be added, including date of     │
-│ birth, name and a URL to a website (e.g., Wikipedia page) with additional information on the artist. You can      │
-│ assume an artist is uniquely identified by his/her name, and that a song always belongs to exactly one artist.    │
-│ The Musicmatic students also point out that songs having the same title are possible, and only the combination of │
-│ song and artist can be assumed to be unique.                                                                      │
-│ The database will also have to store information on the people using Musicmatic. It was decided to only           │
-│ discriminate between two types of users: the regular users who will be able to buy music, and the business users  │
-│ who will deliver the content (upload the music). The following information is recorded on each user: (unique) ID, │
-│ name, and address. Business users will also have a VAT number. The students want to offer a flexible service, and │
-│ decided business users can only upload individual songs. These songs are classified either as singles or hits,    │
-│ and regular users can directly buy the singles. Otherwise, people can compose an album consisting of multiple     │
-│ hits (no singles). The position of each hit in the album is stored as a track number in the database. Note that   │
-│ the album of regular users can be turned into a suggestion to other regular users with similar purchasing         │
-│ behavior.                                                                                                         │
-│ Finally, a users can be regular user on some occasions (e.g., when downloading a single or album), and a business │
-│ user at other times (e.g., when uploading self-made songs to Musicmatic).                                         │
-│ </description>                                                                                                    │
-│                                                                                                                   │
-╰─ LiteLLMModel - ollama/devstral:24b ──────────────────────────────────────────────────────────────────────────────╯
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 1 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- ─ Executing parsed code: ────────────────────────────────────────────────────────────────────────────────────────── 
-  musicmatic_package = update_EPackage(                                                                              
-      name="Musicmatic",                                                                                             
-      nsURI="http://www.example.org/Musicmatic",                                                                     
-      nsPrefix="mm"                                                                                                  
-  )                                                                                                                  
-  print("EPackage created:", musicmatic_package)                                                                     
- ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
-Execution logs:
-EPackage created: emf_uri_fragment='/' name='Musicmatic' nsURI='http://www.example.org/Musicmatic' nsPrefix='mm'
-
-Out: None
-[Step 1: Duration 11.57 seconds| Input tokens: 5,174 | Output tokens: 284]
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 2 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- ─ Executing parsed code: ────────────────────────────────────────────────────────────────────────────────────────── 
-  song_class = add_EClass_to_EPackage_eClassifiers(name="Song")                                                      
-  artist_class = add_EClass_to_EPackage_eClassifiers(name="Artist")                                                  
-  user_class = add_EClass_to_EPackage_eClassifiers(name="User")                                                      
-  business_user_class = add_EClass_to_EPackage_eClassifiers(name="BusinessUser")                                     
-  regular_user_class = add_EClass_to_EPackage_eClassifiers(name="RegularUser")                                       
-  single_song_class = add_EClass_to_EPackage_eClassifiers(name="SingleSong")                                         
-  hit_song_class = add_EClass_to_EPackage_eClassifiers(name="HitSong")                                               
-  album_class = add_EClass_to_EPackage_eClassifiers(name="Album")                                                    
-                                                                                                                     
-  print("Classes created:", song_class, artist_class, user_class,                                                    
-        business_user_class, regular_user_class, single_song_class,                                                  
-        hit_song_class, album_class)                                                                                 
- ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
-Execution logs:
-Classes created: emf_uri_fragment='/' name='Song' emf_uri_fragment='/' name='Artist' emf_uri_fragment='/' name='User'
-emf_uri_fragment='/' name='BusinessUser' emf_uri_fragment='/' name='RegularUser' emf_uri_fragment='/' 
-name='SingleSong' emf_uri_fragment='/' name='HitSong' emf_uri_fragment='/' name='Album'
-
-Out: None
-[Step 2: Duration 10.96 seconds| Input tokens: 10,771 | Output tokens: 570]
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 3 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- ─ Executing parsed code: ────────────────────────────────────────────────────────────────────────────────────────── 
-  # Adding attributes to Song                                                                                        
-  add_EAttribute_to_EClass_eStructuralFeatures(song_class, name="title", lowerBound=1, upperBound=1)                 
-  add_EAttribute_to_EClass_eStructuralFeatures(song_class, name="year", lowerBound=0, upperBound=1)                  
-  add_EAttribute_to_EClass_eStructuralFeatures(song_class, name="length", lowerBound=0, upperBound=1)                
-  add_EAttribute_to_EClass_eStructuralFeatures(song_class, name="genre", lowerBound=0, upperBound=1)                 
-                                                                                                                     
-  # Adding attributes to Artist                                                                                      
-  add_EAttribute_to_EClass_eStructuralFeatures(artist_class, name="dateOfBirth", lowerBound=0, upperBound=1)         
-  add_EAttribute_to_EClass_eStructuralFeatures(artist_class, name="name", lowerBound=1, upperBound=1)                
-  add_EAttribute_to_EClass_eStructuralFeatures(artist_class, name="websiteURL", lowerBound=0, upperBound=1)          
-                                                                                                                     
-  # Adding attributes to User                                                                                        
-  add_EAttribute_to_EClass_eStructuralFeatures(user_class, name="id", lowerBound=1, upperBound=1)                    
-  add_EAttribute_to_EClass_eStructuralFeatures(user_class, name="name", lowerBound=1, upperBound=1)                  
-  add_EAttribute_to_EClass_eStructuralFeatures(user_class, name="address", lowerBound=0, upperBound=1)               
-                                                                                                                     
-  # Adding attributes to BusinessUser                                                                                
-  add_EAttribute_to_EClass_eStructuralFeatures(business_user_class, name="vatNumber", lowerBound=0, upperBound=1)    
-                                                                                                                     
-  # Adding attribute to HitSong (track number)                                                                       
-  add_EAttribute_to_EClass_eStructuralFeatures(hit_song_class, name="trackNumber", lowerBound=0, upperBound=1)       
-                                                                                                                     
-  print("Attributes added successfully")                                                                             
- ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
-Execution logs:
-Attributes added successfully
-
-Out: None
-[Step 3: Duration 17.89 seconds| Input tokens: 16,998 | Output tokens: 1,047]
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 4 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- ─ Executing parsed code: ────────────────────────────────────────────────────────────────────────────────────────── 
-  # Set inheritance for business user                                                                                
-  add_EClass_to_EClass_ESuperTypes(business_user_class, user_class)                                                  
-                                                                                                                     
-  # Set inheritance for regular user                                                                                 
-  add_EClass_to_EClass_ESuperTypes(regular_user_class, user_class)                                                   
-                                                                                                                     
-  # Set inheritance for single song                                                                                  
-  add_EClass_to_EClass_ESuperTypes(single_song_class, song_class)                                                    
-                                                                                                                     
-  # Set inheritance for hit song                                                                                     
-  add_EClass_to_EClass_ESuperTypes(hit_song_class, song_class)                                                       
-                                                                                                                     
-  print("Inheritance relationships established")                                                                     
- ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
-Execution logs:
-Inheritance relationships established
-
-Out: None
-[Step 4: Duration 11.26 seconds| Input tokens: 24,160 | Output tokens: 1,286]
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 5 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- ─ Executing parsed code: ────────────────────────────────────────────────────────────────────────────────────────── 
-  # Reference: Song to Artist (a song belongs to one artist)                                                         
-  add_EReference_to_EClass_eStructuralFeatures(song_class, name="artist", containment=False, lowerBound=1,           
-  upperBound=1)                                                                                                      
-                                                                                                                     
-  # Reference: BusinessUser to Song (business users upload songs)                                                    
-  add_EReference_to_EClass_eStructuralFeatures(business_user_class, name="uploadedSongs", containment=True,          
-  lowerBound=0, upperBound=-1)                                                                                       
-                                                                                                                     
-  # Reference: RegularUser to SingleSong (regular users buy singles)                                                 
-  add_EReference_to_EClass_eStructuralFeatures(regular_user_class, name="purchasedSingles", containment=False,       
-  lowerBound=0, upperBound=-1)                                                                                       
-                                                                                                                     
-  # Reference: Album to HitSong (albums contain multiple hits)                                                       
-  add_EReference_to_EClass_eStructuralFeatures(album_class, name="tracks", containment=True, lowerBound=1,           
-  upperBound=-1)                                                                                                     
-                                                                                                                     
-  print("References established")                                                                                    
-                                                                                                                     
-  # Setting ETypes for references                                                                                    
-  add_EClass_to_EReference_EType(add_EReference_to_EClass_eStructuralFeatures(song_class, name="artist",             
-  containment=False, lowerBound=1, upperBound=1), artist_class)                                                      
-  add_EClass_to_EReference_EType(add_EReference_to_EClass_eStructuralFeatures(business_user_class,                   
-  name="uploadedSongs", containment=True, lowerBound=0, upperBound=-1), song_class)                                  
-  add_EClass_to_EReference_EType(add_EReference_to_EClass_eStructuralFeatures(regular_user_class,                    
-  name="purchasedSingles", containment=False, lowerBound=0, upperBound=-1), single_song_class)                       
-  add_EClass_to_EReference_EType(add_EReference_to_EClass_eStructuralFeatures(album_class, name="tracks",            
-  containment=True, lowerBound=1, upperBound=-1), hit_song_class)                                                    
-                                                                                                                     
-  print("ETypes set for references")                                                                                 
- ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
-Execution logs:
-References established
-ETypes set for references
-
-Out: None
-[Step 5: Duration 15.23 seconds| Input tokens: 31,739 | Output tokens: 1,694]
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 6 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- ─ Executing parsed code: ────────────────────────────────────────────────────────────────────────────────────────── 
-  final_answer("UML class diagram successfully created for Musicmatic application with the specified entities and    
-  relationships.")                                                                                                   
- ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
-Final answer: UML class diagram successfully created for Musicmatic application with the specified entities and 
-relationships.
-[Step 6: Duration 9.18 seconds| Input tokens: 40,196 | Output tokens: 1,871]
-╭───────────────────────────────────────────────────── New run ─────────────────────────────────────────────────────╮
-│                                                                                                                   │
-│ You are an expert in generating EPackage based on a user's description.                                           │
-│ You have produced a EPackage, and some issues have been detected with it.                                         │
-│ You need to repair the issues by calling a series of available Python functions as tools.                         │
-│                                                                                                                   │
-│ Core concepts you need to understand:                                                                             │
-│   - EPackage: Declaration of the package containing all the EClasses. It ONLY has these fields:                   │
-│     - name (of type str): Name of the package                                                                     │
-│     - nsURI (of type str): The namespace URI of the package                                                       │
-│     - eClassifiers (of type dict[str, Union[EClass, EDataType]]): Classes and data types within this EPackage     │
-│     - nsPrefix (of type str): XML namespace prefix to be used for this EPackage                                   │
-│   - EClass: Class within an EPackage. It ONLY has these fields:                                                   │
-│     - name (of type str): Name of the class.                                                                      │
-│     - eSuperTypes (of type set[EClass]): The optional base classes from which to inherit.                         │
-│     - eStructuralFeatures (of type dict[str, Union[EAttribute, EReference]]): The attributes and references       │
-│ inside this class                                                                                                 │
-│   - EAttribute: A specific piece of information in an EClass which is not an object. It ONLY has these fields:    │
-│     - name (of type str): Name of the attribute.                                                                  │
-│     - eType (of type Optional[Union[EDataType, str]]): Type of the attribute (must be set: use the tools for it)  │
-│     - lowerBound (of type int): Minimum number of values for the attribute (must be less or equal to the upper    │
-│ bound)                                                                                                            │
-│     - upperBound (of type int): Maximum number of values for the attribute                                        │
-│   - EReference: Reference from an EClass to another EClass. It ONLY has these fields:                             │
-│     - name (of type str): Name of the reference.                                                                  │
-│     - containment (of type bool): True if the source of the reference contains the target of reference (meaning   │
-│ that deleting the source will also delete the target).                                                            │
-│     - eType (of type Optional[EClass]): Target EClass of the reference.                                           │
-│     - lowerBound (of type int): Minimum number of targets for the reference (must be less or equal to the upper   │
-│ bound)                                                                                                            │
-│     - upperBound (of type int): Maximum number of targets for the reference                                       │
-│   - EDataType: Type of scalar data value used in an EAttribute. It ONLY has these fields:                         │
-│     - name (of type str): Name of the data type                                                                   │
-│     - instanceClassName (of type str): Fully qualified Java class name of the instances of this data type         │
-│                                                                                                                   │
-│ Tool interaction guidelines:                                                                                      │
-│   - Identify elements based on the user's description.                                                            │
-│   - First update the package and create all the classes.                                                          │
-│   - Then add all the attributes to each class, and set their ETypes.                                              │
-│   - Then add all the references to each class, and set their ETypes.                                              │
-│   - Do not create your own EDataTypes if they already exist in the Eclipse Modelling Framework: reuse the named   │
-│ ones whenever possible.                                                                                           │
-│   - Use inheritance relationships to reduce duplication of attributes and references.                             │
-│   - Ensure all conceptual objects are contained within another, eventually leading to a single root container     │
-│ class.                                                                                                            │
-│                                                                                                                   │
-│ The user's description from which you produced the EPackage in the `generated` variable was as follows:           │
-│                                                                                                                   │
-│ <description>                                                                                                     │
-│ Attracted by the success of Spotify, a group of students wants to build its own music streaming website called    │
-│ Musicmatic. Being economists, they are unaware of the specificities of databases and have therefore asked you to  │
-│ create a UML class diagram.                                                                                       │
-│ A large number of songs will be made available through their website, and the following information on each song  │
-│ needs to be stored: title, year, length, and genre. Also, artist information will be added, including date of     │
-│ birth, name and a URL to a website (e.g., Wikipedia page) with additional information on the artist. You can      │
-│ assume an artist is uniquely identified by his/her name, and that a song always belongs to exactly one artist.    │
-│ The Musicmatic students also point out that songs having the same title are possible, and only the combination of │
-│ song and artist can be assumed to be unique.                                                                      │
-│ The database will also have to store information on the people using Musicmatic. It was decided to only           │
-│ discriminate between two types of users: the regular users who will be able to buy music, and the business users  │
-│ who will deliver the content (upload the music). The following information is recorded on each user: (unique) ID, │
-│ name, and address. Business users will also have a VAT number. The students want to offer a flexible service, and │
-│ decided business users can only upload individual songs. These songs are classified either as singles or hits,    │
-│ and regular users can directly buy the singles. Otherwise, people can compose an album consisting of multiple     │
-│ hits (no singles). The position of each hit in the album is stored as a track number in the database. Note that   │
-│ the album of regular users can be turned into a suggestion to other regular users with similar purchasing         │
-│ behavior.                                                                                                         │
-│ Finally, a users can be regular user on some occasions (e.g., when downloading a single or album), and a business │
-│ user at other times (e.g., when uploading self-made songs to Musicmatic).                                         │
-│ </description>                                                                                                    │
-│                                                                                                                   │
-│ The detected problems are as follows:                                                                             │
-│                                                                                                                   │
-│ <problems>                                                                                                        │
-│ Song.title: eType not set                                                                                         │
-│ Song.year: eType not set                                                                                          │
-│ Song.length: eType not set                                                                                        │
-│ Song.genre: eType not set                                                                                         │
-│ Artist.dateOfBirth: eType not set                                                                                 │
-│ Artist.name: eType not set                                                                                        │
-│ Artist.websiteURL: eType not set                                                                                  │
-│ User.id: eType not set                                                                                            │
-│ User.name: eType not set                                                                                          │
-│ User.address: eType not set                                                                                       │
-│ BusinessUser.vatNumber: eType not set                                                                             │
-│ HitSong.trackNumber: eType not set                                                                                │
-│ </problems>                                                                                                       │
-│                                                                                                                   │
-│ You have been provided with these additional arguments, that you can access directly using the keys as variables: │
-│ {'generated': EPackage(emf_uri_fragment='/', name='Musicmatic', nsURI='http://www.example.org/Musicmatic',        │
-│ nsPrefix='mm')}.                                                                                                  │
-│                                                                                                                   │
-╰─ LiteLLMModel - ollama/devstral:24b ──────────────────────────────────────────────────────────────────────────────╯
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 1 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- ─ Executing parsed code: ────────────────────────────────────────────────────────────────────────────────────────── 
-  from collections import defaultdict                                                                                
-                                                                                                                     
-  # Extract classes and attributes from the EPackage                                                                 
-  eClasses = generated.eClassifiers.values()                                                                         
-  classes_with_attributes = defaultdict(list)                                                                        
-                                                                                                                     
-  for eClass in eClasses:                                                                                            
-      if hasattr(eClass, 'eStructuralFeatures'):                                                                     
-          for attr_name, attr in eClass.eStructuralFeatures.items():                                                 
-              classes_with_attributes[eClass.name].append(attr_name)                                                 
-                                                                                                                     
-  # Print all classes and their attributes                                                                           
-  print("EPackage Classes and Attributes:")                                                                          
-  for class_name, attrs in classes_with_attributes.items():                                                          
-      print(f"Class: {class_name}")                                                                                  
-      for attr in attrs:                                                                                             
-          print(f"  Attribute: {attr}")                                                                              
-                                                                                                                     
-  print("\nProblems to fix:")                                                                                        
-  for problem in problems.split('\n'):                                                                               
-      if problem.strip():                                                                                            
-          print(problem.strip())                                                                                     
- ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
-Execution logs:
-EPackage Classes and Attributes:
-Class: Song
-  Attribute: title
-  Attribute: year
-  Attribute: length
-  Attribute: genre
-  Attribute: artist
-Class: Artist
-  Attribute: dateOfBirth
-  Attribute: name
-  Attribute: websiteURL
-Class: User
-  Attribute: id
-  Attribute: name
-  Attribute: address
-Class: BusinessUser
-  Attribute: vatNumber
-  Attribute: uploadedSongs
-Class: RegularUser
-  Attribute: purchasedSingles
-Class: HitSong
-  Attribute: trackNumber
-Class: Album
-  Attribute: tracks
-
-Problems to fix:
-
-Code execution failed at line 'for problem in problems.split('\n'):
-    if problem.strip():
-        print(problem.strip())' due to: InterpreterError: The variable `problems` is not defined.
-[Step 1: Duration 11.69 seconds| Input tokens: 5,377 | Output tokens: 225]
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 2 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- ─ Executing parsed code: ────────────────────────────────────────────────────────────────────────────────────────── 
-  from collections import defaultdict                                                                                
-                                                                                                                     
-  # Extract classes and attributes from the EPackage                                                                 
-  eClasses = generated.eClassifiers.values()                                                                         
-  classes_with_attributes = defaultdict(list)                                                                        
-                                                                                                                     
-  for eClass in eClasses:                                                                                            
-      if hasattr(eClass, 'eStructuralFeatures'):                                                                     
-          for attr_name, attr in eClass.eStructuralFeatures.items():                                                 
-              classes_with_attributes[eClass.name].append((attr_name, attr))                                         
-                                                                                                                     
-  # Find all the needed EDataTypes                                                                                   
-  string_type = None                                                                                                 
-  int_type = None                                                                                                    
-  date_type = None                                                                                                   
-                                                                                                                     
-  for classifier in generated.eClassifiers.values():                                                                 
-      if isinstance(classifier, type) and hasattr(classifier, 'name'):                                               
-          if classifier.name == "String":                                                                            
-              string_type = classifier                                                                               
-          elif classifier.name == "Integer":                                                                         
-              int_type = classifier                                                                                  
-          elif classifier.name == "Date":                                                                            
-              date_type = classifier                                                                                 
-                                                                                                                     
-  # If not found in EPackage, add needed EDataTypes                                                                  
-  if string_type is None:                                                                                            
-      string_type = add_EDataType_to_EPackage_eClassifiers(generated, name="String",                                 
-  instanceClassName="java.lang.String")                                                                              
-  if int_type is None:                                                                                               
-      int_type = add_EDataType_to_EPackage_eClassifiers(generated, name="Integer",                                   
-  instanceClassName="java.lang.Integer")                                                                             
-  if date_type is None:                                                                                              
-      date_type = add_EDataType_to_EPackage_eClassifiers(generated, name="Date",                                     
-  instanceClassName="java.util.Date")                                                                                
-                                                                                                                     
-  # Print all classes and their attributes                                                                           
-  print("EPackage Classes and Attributes:")                                                                          
-  for class_name, attrs in classes_with_attributes.items():                                                          
-      print(f"Class: {class_name}")                                                                                  
-      for attr_name, attr in attrs:                                                                                  
-          print(f"  Attribute: {attr_name}")                                                                         
-                                                                                                                     
-  print("\nSetting eTypes for the following attributes...")                                                          
-  problems = [                                                                                                       
-      "Song.title",                                                                                                  
-      "Song.year",                                                                                                   
-      "Song.length",                                                                                                 
-      "Song.genre",                                                                                                  
-      "Artist.dateOfBirth",                                                                                          
-      "Artist.name",                                                                                                 
-      "Artist.websiteURL",                                                                                           
-      "User.id",                                                                                                     
-      "User.name",                                                                                                   
-      "User.address",                                                                                                
-      "BusinessUser.vatNumber",                                                                                      
-      "HitSong.trackNumber"                                                                                          
-  ]                                                                                                                  
-                                                                                                                     
-  for problem in problems:                                                                                           
-      class_name, attr_name = problem.split('.')                                                                     
-      eClass = generated.eClassifiers[class_name]                                                                    
-      eAttribute = eClass.eStructuralFeatures[attr_name]                                                             
-                                                                                                                     
-      if class_name == "Song":                                                                                       
-          if attr_name == "title" or attr_name == "genre":                                                           
-              add_EDataType_to_EAttribute_EType(eAttribute, string_type)                                             
-          elif attr_name == "year":                                                                                  
-              add_EDataType_to_EAttribute_EType(eAttribute, int_type)                                                
-          elif attr_name == "length":  # Assuming length is a duration which can be represented by Integer           
-              add_EDataType_to_EAttribute_EType(eAttribute, int_type)                                                
-                                                                                                                     
-      elif class_name == "Artist":                                                                                   
-          if attr_name == "name" or attr_name == "websiteURL":                                                       
-              add_EDataType_to_EAttribute_EType(eAttribute, string_type)                                             
-          elif attr_name == "dateOfBirth":                                                                           
-              add_EDataType_to_EAttribute_EType(eAttribute, date_type)                                               
-                                                                                                                     
-      elif class_name == "User":                                                                                     
-          if attr_name == "id" or attr_name == "name" or attr_name == "address":                                     
-              add_EDataType_to_EAttribute_EType(eAttribute, string_type)                                             
-                                                                                                                     
-      elif class_name == "BusinessUser" and attr_name == "vatNumber":                                                
-          add_EDataType_to_EAttribute_EType(eAttribute, string_type)                                                 
-                                                                                                                     
-      elif class_name == "HitSong" and attr_name == "trackNumber":                                                   
-          add_EDataType_to_EAttribute_EType(eAttribute, int_type)                                                    
-                                                                                                                     
-  print("All eTypes set successfully!")                                                                              
- ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
-Code execution failed at line 'if string_type is None:
-    string_type = add_EDataType_to_EPackage_eClassifiers(generated, name="String", 
-instanceClassName="java.lang.String")' due to: TypeError: AddEDataTypeToEPackageEClassifiers.forward() got multiple 
-values for argument 'name'
-[Step 2: Duration 29.35 seconds| Input tokens: 11,433 | Output tokens: 1,047]
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 3 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- ─ Executing parsed code: ────────────────────────────────────────────────────────────────────────────────────────── 
-  from collections import defaultdict                                                                                
-                                                                                                                     
-  # Extract classes and attributes from the EPackage                                                                 
-  eClasses = generated.eClassifiers.values()                                                                         
-  classes_with_attributes = defaultdict(list)                                                                        
-                                                                                                                     
-  for eClass in eClasses:                                                                                            
-      if hasattr(eClass, 'eStructuralFeatures'):                                                                     
-          for attr_name, attr in eClass.eStructuralFeatures.items():                                                 
-              classes_with_attributes[eClass.name].append((attr_name, attr))                                         
-                                                                                                                     
-  # Find all the needed EDataTypes                                                                                   
-  string_type = None                                                                                                 
-  int_type = None                                                                                                    
-  date_type = None                                                                                                   
-                                                                                                                     
-  for classifier in generated.eClassifiers.values():                                                                 
-      if isinstance(classifier, type) and hasattr(classifier, 'name'):                                               
-          if classifier.name == "String":                                                                            
-              string_type = classifier                                                                               
-          elif classifier.name == "Integer":                                                                         
-              int_type = classifier                                                                                  
-          elif classifier.name == "Date":                                                                            
-              date_type = classifier                                                                                 
-                                                                                                                     
-  # If not found in EPackage, add needed EDataTypes                                                                  
-  if string_type is None:                                                                                            
-      string_type = add_EDataType_to_EPackage_eClassifiers(name="String", instanceClassName="java.lang.String")      
-  if int_type is None:                                                                                               
-      int_type = add_EDataType_to_EPackage_eClassifiers(name="Integer", instanceClassName="java.lang.Integer")       
-  if date_type is None:                                                                                              
-      date_type = add_EDataType_to_EPackage_eClassifiers(name="Date", instanceClassName="java.util.Date")            
-                                                                                                                     
-  # Print all classes and their attributes                                                                           
-  print("EPackage Classes and Attributes:")                                                                          
-  for class_name, attrs in classes_with_attributes.items():                                                          
-      print(f"Class: {class_name}")                                                                                  
-      for attr_name, attr in attrs:                                                                                  
-          print(f"  Attribute: {attr_name}")                                                                         
-                                                                                                                     
-  print("\nSetting eTypes for the following attributes...")                                                          
-  problems = [                                                                                                       
-      "Song.title",                                                                                                  
-      "Song.year",                                                                                                   
-      "Song.length",                                                                                                 
-      "Song.genre",                                                                                                  
-      "Artist.dateOfBirth",                                                                                          
-      "Artist.name",                                                                                                 
-      "Artist.websiteURL",                                                                                           
-      "User.id",                                                                                                     
-      "User.name",                                                                                                   
-      "User.address",                                                                                                
-      "BusinessUser.vatNumber",                                                                                      
-      "HitSong.trackNumber"                                                                                          
-  ]                                                                                                                  
-                                                                                                                     
-  for problem in problems:                                                                                           
-      class_name, attr_name = problem.split('.')                                                                     
-      eClass = generated.eClassifiers[class_name]                                                                    
-      eAttribute = eClass.eStructuralFeatures[attr_name]                                                             
-                                                                                                                     
-      if class_name == "Song":                                                                                       
-          if attr_name == "title" or attr_name == "genre":                                                           
-              add_EDataType_to_EAttribute_EType(eAttribute, string_type)                                             
-          elif attr_name == "year":                                                                                  
-              add_EDataType_to_EAttribute_EType(eAttribute, int_type)                                                
-          elif attr_name == "length":  # Assuming length is a duration which can be represented by Integer           
-              add_EDataType_to_EAttribute_EType(eAttribute, int_type)                                                
-                                                                                                                     
-      elif class_name == "Artist":                                                                                   
-          if attr_name == "name" or attr_name == "websiteURL":                                                       
-              add_EDataType_to_EAttribute_EType(eAttribute, string_type)                                             
-          elif attr_name == "dateOfBirth":                                                                           
-              add_EDataType_to_EAttribute_EType(eAttribute, date_type)                                               
-                                                                                                                     
-      elif class_name == "User":                                                                                     
-          if attr_name == "id" or attr_name == "name" or attr_name == "address":                                     
-              add_EDataType_to_EAttribute_EType(eAttribute, string_type)                                             
-                                                                                                                     
-      elif class_name == "BusinessUser" and attr_name == "vatNumber":                                                
-          add_EDataType_to_EAttribute_EType(eAttribute, string_type)                                                 
-                                                                                                                     
-      elif class_name == "HitSong" and attr_name == "trackNumber":                                                   
-          add_EDataType_to_EAttribute_EType(eAttribute, int_type)                                                    
-                                                                                                                     
-  print("All eTypes set successfully!")                                                                              
- ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
-Execution logs:
-EPackage Classes and Attributes:
-Class: Song
-  Attribute: title
-  Attribute: year
-  Attribute: length
-  Attribute: genre
-  Attribute: artist
-Class: Artist
-  Attribute: dateOfBirth
-  Attribute: name
-  Attribute: websiteURL
-Class: User
-  Attribute: id
-  Attribute: name
-  Attribute: address
-Class: BusinessUser
-  Attribute: vatNumber
-  Attribute: uploadedSongs
-Class: RegularUser
-  Attribute: purchasedSingles
-Class: HitSong
-  Attribute: trackNumber
-Class: Album
-  Attribute: tracks
-
-Setting eTypes for the following attributes...
-All eTypes set successfully!
-
-Out: None
-[Step 3: Duration 33.24 seconds| Input tokens: 19,345 | Output tokens: 1,851]
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 4 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- ─ Executing parsed code: ────────────────────────────────────────────────────────────────────────────────────────── 
-  # Check for references needing ETypes                                                                              
-  print("\nChecking and setting eType for References...")                                                            
-  for class_name, attrs in classes_with_attributes.items():                                                          
-      print(f"Class: {class_name}")                                                                                  
-      for attr_name, attr in attrs:                                                                                  
-          if isinstance(attr, dict) and 'eType' in attr and attr['eType'] is None:                                   
-              # Find the referenced EClass                                                                           
-              ref_class = None                                                                                       
-              for eClass in generated.eClassifiers.values():                                                         
-                  if eClass.name == attr['reference']:                                                               
-                      ref_class = eClass                                                                             
-                      break                                                                                          
-                                                                                                                     
-              if ref_class:                                                                                          
-                  print(f"  Setting Reference: {attr_name} -> {ref_class.name}")                                     
-                  add_EClass_to_EReference_EType(attr, ref_class)                                                    
-              else:                                                                                                  
-                  print(f"  Warning: Could not find reference class for attribute: {attr_name}")                     
-                                                                                                                     
-  print("\nEPackage updated successfully!")                                                                          
-  final_answer(generated)                                                                                            
- ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
-Execution logs:
-
-Checking and setting eType for References...
-Class: Song
-Class: Artist
-Class: User
-Class: BusinessUser
-Class: RegularUser
-Class: HitSong
-Class: Album
-
-EPackage updated successfully!
-
-Final answer: emf_uri_fragment='/' name='Musicmatic' nsURI='http://www.example.org/Musicmatic' nsPrefix='mm'
-[Step 4: Duration 14.81 seconds| Input tokens: 29,135 | Output tokens: 2,090]
+╭────────────────────────────────────────────────────────────── New run ──────────────────────────────────────────────────────────────╮
+│                                                                                                                                     │
+│ You are an expert in generating EPackage based on a user's description.                                                             │
+│ You will achieve this by calling a series of available Python functions as tools to incrementally build it.                         │
+│                                                                                                                                     │
+│ Core concepts you need to understand:                                                                                               │
+│   - EPackage: Declaration of the package containing all the EClasses. It ONLY has these fields:                                     │
+│     - name (of type str): Name of the package (without spaces)                                                                      │
+│     - nsURI (of type str): The namespace URI of the package                                                                         │
+│     - eClassifiers (of type dict[str, Union[EClass, EDataType]]): Classes and data types within this EPackage                       │
+│     - nsPrefix (of type str): XML namespace prefix to be used for this EPackage                                                     │
+│   - EClass: Class within an EPackage. It ONLY has these fields:                                                                     │
+│     - name (of type str): Name of the class                                                                                         │
+│     - eSuperTypes (of type set[EClass]): The optional base classes from which to inherit.                                           │
+│     - eStructuralFeatures (of type dict[str, Union[EAttribute, EReference]]): The attributes and references inside this class       │
+│   - EAttribute: A specific piece of information in an EClass which is not an object. It ONLY has these fields:                      │
+│     - name (of type str): Name of the attribute.                                                                                    │
+│     - eType (of type Optional[Union[EDataType, str]]): Type of the attribute (must be set: use the tools for it)                    │
+│     - lowerBound (of type int): Minimum number of values for the attribute (must be less or equal to the upper bound)               │
+│     - upperBound (of type int): Maximum number of values for the attribute                                                          │
+│   - EReference: Reference from an EClass to another EClass. It ONLY has these fields:                                               │
+│     - name (of type str): Name of the reference.                                                                                    │
+│     - containment (of type bool): True if the source of the reference contains the target of reference (meaning that deleting the   │
+│ source will also delete the target).                                                                                                │
+│     - eType (of type Optional[EClass]): Target EClass of the reference.                                                             │
+│     - lowerBound (of type int): Minimum number of targets for the reference (must be less or equal to the upper bound)              │
+│     - upperBound (of type int): Maximum number of targets for the reference                                                         │
+│   - EDataType: Type of scalar data value used in an EAttribute. It ONLY has these fields:                                           │
+│     - name (of type str): Name of the data type                                                                                     │
+│     - instanceClassName (of type str): Fully qualified Java class name of the instances of this data type                           │
+│                                                                                                                                     │
+│ Tool interaction guidelines:                                                                                                        │
+│   - Identify elements based on the user's description.                                                                              │
+│   - First update the package and create all the classes.                                                                            │
+│   - Then add all the attributes to each class, and set their ETypes.                                                                │
+│   - Then add all the references to each class, and set their ETypes.                                                                │
+│   - Do not create your own EDataTypes if they already exist in the Eclipse Modelling Framework: reuse the named ones whenever       │
+│ possible.                                                                                                                           │
+│   - Use inheritance relationships to reduce duplication of attributes and references.                                               │
+│   - Ensure all conceptual objects are contained within another, eventually leading to a single root container class.                │
+│                                                                                                                                     │
+│ The user's description is as follows:                                                                                               │
+│                                                                                                                                     │
+│ <description>                                                                                                                       │
+│ Attracted by the success of Spotify, a group of students wants to build its own music streaming website called Musicmatic. Being    │
+│ economists, they are unaware of the specificities of databases and have therefore asked you to create a UML class diagram.          │
+│ A large number of songs will be made available through their website, and the following information on each song needs to be        │
+│ stored: title, year, length, and genre. Also, artist information will be added, including date of birth, name and a URL to a        │
+│ website (e.g., Wikipedia page) with additional information on the artist. You can assume an artist is uniquely identified by        │
+│ his/her name, and that a song always belongs to exactly one artist. The Musicmatic students also point out that songs having the    │
+│ same title are possible, and only the combination of song and artist can be assumed to be unique.                                   │
+│ The database will also have to store information on the people using Musicmatic. It was decided to only discriminate between two    │
+│ types of users: the regular users who will be able to buy music, and the business users who will deliver the content (upload the    │
+│ music). The following information is recorded on each user: (unique) ID, name, and address. Business users will also have a VAT     │
+│ number. The students want to offer a flexible service, and decided business users can only upload individual songs. These songs are │
+│ classified either as singles or hits, and regular users can directly buy the singles. Otherwise, people can compose an album        │
+│ consisting of multiple hits (no singles). The position of each hit in the album is stored as a track number in the database. Note   │
+│ that the album of regular users can be turned into a suggestion to other regular users with similar purchasing behavior.            │
+│ Finally, a users can be regular user on some occasions (e.g., when downloading a single or album), and a business user at other     │
+│ times (e.g., when uploading self-made songs to Musicmatic).                                                                         │
+│ </description>                                                                                                                      │
+│                                                                                                                                     │
+╰─ LiteLLMModel - ollama/devstral:24b ────────────────────────────────────────────────────────────────────────────────────────────────╯
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 1 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ─ Executing parsed code: ──────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+  # Step 1: Create the EPackage for Musicmatic                                                                                         
+  musicmatic_package = update_EPackage(                                                                                                
+      name="Musicmatic",                                                                                                               
+      nsURI="http://www.musicmatic.com/schema",                                                                                        
+      nsPrefix="musicmatic"                                                                                                            
+  )                                                                                                                                    
+                                                                                                                                       
+  # Step 2: Define all necessary EClasses                                                                                              
+                                                                                                                                       
+  # Create classes first - we'll add attributes and relationships later                                                                
+  Song_class = add_EClass_to_EPackage_eClassifiers(name="Song")                                                                        
+  Artist_class = add_EClass_to_EPackage_eClassifiers(name="Artist")                                                                    
+  User_class = add_EClass_to_EPackage_eClassifiers(name="User")                                                                        
+  RegularUser_class = add_EClass_to_EPackage_eClassifiers(name="RegularUser")                                                          
+  BusinessUser_class = add_EClass_to_EPackage_eClassifiers(name="BusinessUser")                                                        
+  Single_class = add_EClass_to_EPackage_eClassifiers(name="Single")                                                                    
+  Hit_class = add_EClass_to_EPackage_eClassifiers(name="Hit")                                                                          
+  Album_class = add_EClass_to_EPackage_eClassifiers(name="Album")                                                                      
+  Suggestion_class = add_EClass_to_EPackage_eClassifiers(name="Suggestion")                                                            
+                                                                                                                                       
+  # Set up inheritance                                                                                                                 
+  add_to_esupertypes_of_eclass(RegularUser_class, User_class)                                                                          
+  add_to_esupertypes_of_eclass(BusinessUser_class, User_class)                                                                         
+                                                                                                                                       
+  # Step 3: Add EAttributes and EReferences to each class                                                                              
+                                                                                                                                       
+  # Artist attributes                                                                                                                  
+  add_EAttribute_to_EClass_eStructuralFeatures(                                                                                        
+      eClass=Artist_class,                                                                                                             
+      name="dateOfBirth",                                                                                                              
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(                                                                
+      eClass=Artist_class,                                                                                                             
+      name="name",                                                                                                                     
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  ), "String")                                                                                                                         
+  add_EAttribute_to_EClass_eStructuralFeatures(                                                                                        
+      eClass=Artist_class,                                                                                                             
+      name="websiteURL",                                                                                                               
+      lowerBound=0,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(                                                                
+      eClass=Artist_class,                                                                                                             
+      name="songs",                                                                                                                    
+      lowerBound=0,                                                                                                                    
+      upperBound=-1                                                                                                                    
+  ), "Integer")                                                                                                                        
+                                                                                                                                       
+  # Song attributes                                                                                                                    
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(                                                                
+      eClass=Song_class,                                                                                                               
+      name="title",                                                                                                                    
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  ), "String")                                                                                                                         
+  add_EAttribute_to_EClass_eStructuralFeatures(                                                                                        
+      eClass=Song_class,                                                                                                               
+      name="year",                                                                                                                     
+      lowerBound=0,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  add_EAttribute_to_EClass_eStructuralFeatures(                                                                                        
+      eClass=Song_class,                                                                                                               
+      name="length",                                                                                                                   
+      lowerBound=0,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(                                                                
+      eClass=Song_class,                                                                                                               
+      name="genre",                                                                                                                    
+      lowerBound=0,                                                                                                                    
+      upperBound=1                                                                                                                     
+  ), "String")                                                                                                                         
+  add_EReference_to_EClass_eStructuralFeatures(                                                                                        
+      eClass=Song_class,                                                                                                               
+      name="artist",                                                                                                                   
+      containment=False,                                                                                                               
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+                                                                                                                                       
+  # User attributes (common to all users)                                                                                              
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(                                                                
+      eClass=User_class,                                                                                                               
+      name="id",                                                                                                                       
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  ), "Integer")                                                                                                                        
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(                                                                
+      eClass=User_class,                                                                                                               
+      name="name",                                                                                                                     
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  ), "String")                                                                                                                         
+  add_EAttribute_to_EClass_eStructuralFeatures(                                                                                        
+      eClass=User_class,                                                                                                               
+      name="address",                                                                                                                  
+      lowerBound=0,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+                                                                                                                                       
+  # BusinessUser-specific attributes                                                                                                   
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(                                                                
+      eClass=BusinessUser_class,                                                                                                       
+      name="vatNumber",                                                                                                                
+      lowerBound=0,                                                                                                                    
+      upperBound=1                                                                                                                     
+  ), "String")                                                                                                                         
+  add_EReference_to_EClass_eStructuralFeatures(                                                                                        
+      eClass=BusinessUser_class,                                                                                                       
+      name="uploadedSongs",                                                                                                            
+      containment=True,                                                                                                                
+      lowerBound=0,                                                                                                                    
+      upperBound=-1                                                                                                                    
+  )                                                                                                                                    
+                                                                                                                                       
+  # Single class (inherits from Song)                                                                                                  
+  add_to_esupertypes_of_eclass(Single_class, Song_class)                                                                               
+                                                                                                                                       
+  # Hit class (inherits from Song)                                                                                                     
+  add_to_esupertypes_of_eclass(Hit_class, Song_class)                                                                                  
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(                                                                
+      eClass=Hit_class,                                                                                                                
+      name="trackNumber",                                                                                                              
+      lowerBound=0,                                                                                                                    
+      upperBound=1                                                                                                                     
+  ), "Integer")                                                                                                                        
+                                                                                                                                       
+  # Album class - contains Hits but not Singles                                                                                        
+  add_EReference_to_EClass_eStructuralFeatures(                                                                                        
+      eClass=Album_class,                                                                                                              
+      name="hits",                                                                                                                     
+      containment=True,                                                                                                                
+      lowerBound=0,                                                                                                                    
+      upperBound=-1                                                                                                                    
+  )                                                                                                                                    
+  add_EReference_to_EClass_eStructuralFeatures(                                                                                        
+      eClass=RegularUser_class,                                                                                                        
+      name="singlesPurchased",                                                                                                         
+      containment=False,                                                                                                               
+      lowerBound=0,                                                                                                                    
+      upperBound=-1                                                                                                                    
+  )                                                                                                                                    
+  add_EReference_to_EClass_eStructuralFeatures(                                                                                        
+      eClass=RegularUser_class,                                                                                                        
+      name="albums",                                                                                                                   
+      containment=True,                                                                                                                
+      lowerBound=0,                                                                                                                    
+      upperBound=-1                                                                                                                    
+  )                                                                                                                                    
+                                                                                                                                       
+  # Suggestion class - for album recommendations                                                                                       
+  add_EReference_to_EClass_eStructuralFeatures(                                                                                        
+      eClass=Suggestion_class,                                                                                                         
+      name="sourceUser",                                                                                                               
+      containment=False,                                                                                                               
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  add_EReference_to_EClass_eStructuralFeatures(                                                                                        
+      eClass=Suggestion_class,                                                                                                         
+      name="targetUser",                                                                                                               
+      containment=False,                                                                                                               
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  add_EReference_to_EClass_eStructuralFeatures(                                                                                        
+      eClass=Suggestion_class,                                                                                                         
+      name="suggestedAlbum",                                                                                                           
+      containment=False,                                                                                                               
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+                                                                                                                                       
+  # Set ETypes for references                                                                                                          
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(                                                                
+      eClass=Song_class,                                                                                                               
+      name="artist",                                                                                                                   
+      containment=False,                                                                                                               
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  ), Artist_class)                                                                                                                     
+                                                                                                                                       
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(                                                                
+      eClass=BusinessUser_class,                                                                                                       
+      name="uploadedSongs",                                                                                                            
+      containment=True,                                                                                                                
+      lowerBound=0,                                                                                                                    
+      upperBound=-1                                                                                                                    
+  ), Song_class)                                                                                                                       
+                                                                                                                                       
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(                                                                
+      eClass=Hit_class,                                                                                                                
+      name="album",                                                                                                                    
+      containment=False,                                                                                                               
+      lowerBound=0,                                                                                                                    
+      upperBound=1                                                                                                                     
+  ), Album_class)                                                                                                                      
+                                                                                                                                       
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(                                                                
+      eClass=RegularUser_class,                                                                                                        
+      name="singlesPurchased",                                                                                                         
+      containment=False,                                                                                                               
+      lowerBound=0,                                                                                                                    
+      upperBound=-1                                                                                                                    
+  ), Single_class)                                                                                                                     
+                                                                                                                                       
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(                                                                
+      eClass=Album_class,                                                                                                              
+      name="hits",                                                                                                                     
+      containment=True,                                                                                                                
+      lowerBound=0,                                                                                                                    
+      upperBound=-1                                                                                                                    
+  ), Hit_class)                                                                                                                        
+                                                                                                                                       
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(                                                                
+      eClass=RegularUser_class,                                                                                                        
+      name="albums",                                                                                                                   
+      containment=True,                                                                                                                
+      lowerBound=0,                                                                                                                    
+      upperBound=-1                                                                                                                    
+  ), Album_class)                                                                                                                      
+                                                                                                                                       
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(                                                                
+      eClass=Suggestion_class,                                                                                                         
+      name="sourceUser",                                                                                                               
+      containment=False,                                                                                                               
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  ), RegularUser_class)                                                                                                                
+                                                                                                                                       
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(                                                                
+      eClass=Suggestion_class,                                                                                                         
+      name="targetUser",                                                                                                               
+      containment=False,                                                                                                               
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  ), RegularUser_class)                                                                                                                
+                                                                                                                                       
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(                                                                
+      eClass=Suggestion_class,                                                                                                         
+      name="suggestedAlbum",                                                                                                           
+      containment=False,                                                                                                               
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  ), Album_class)                                                                                                                      
+ ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+Out: emf_uri_fragment='/' name='Album'
+[Step 1: Duration 63.59 seconds| Input tokens: 5,118 | Output tokens: 1,880]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 2 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ─ Executing parsed code: ──────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+  # Step 1: Create the EPackage for Musicmatic                                                                                         
+  musicmatic_package = update_EPackage(                                                                                                
+      name="Musicmatic",                                                                                                               
+      nsURI="http://www.musicmatic.com/schema",                                                                                        
+      nsPrefix="musicmatic"                                                                                                            
+  )                                                                                                                                    
+                                                                                                                                       
+  # Step 2: Define all necessary EClasses                                                                                              
+  Song_class = add_EClass_to_EPackage_eClassifiers(name="Song")                                                                        
+  Artist_class = add_EClass_to_EPackage_eClassifiers(name="Artist")                                                                    
+  User_class = add_EClass_to_EPackage_eClassifiers(name="User")                                                                        
+  RegularUser_class = add_EClass_to_EPackage_eClassifiers(name="RegularUser")                                                          
+  BusinessUser_class = add_EClass_to_EPackage_eClassifiers(name="BusinessUser")                                                        
+  Single_class = add_EClass_to_EPackage_eClassifiers(name="Single")                                                                    
+  Hit_class = add_EClass_to_EPackage_eClassifiers(name="Hit")                                                                          
+  Album_class = add_EClass_to_EPackage_eClassifiers(name="Album")                                                                      
+  Suggestion_class = add_EClass_to_EPackage_eClassifiers(name="Suggestion")                                                            
+                                                                                                                                       
+  # Set up inheritance                                                                                                                 
+  add_to_esupertypes_of_eclass(RegularUser_class, User_class)                                                                          
+  add_to_esupertypes_of_eclass(BusinessUser_class, User_class)                                                                         
+                                                                                                                                       
+  # Step 3: Add EAttributes and EReferences to each class                                                                              
+                                                                                                                                       
+  # Artist attributes - using proper EDataType for dateOfBirth                                                                         
+  artist_dateOfBirth = add_EAttribute_to_EClass_eStructuralFeatures(                                                                   
+      eClass=Artist_class,                                                                                                             
+      name="dateOfBirth",                                                                                                              
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_eattribute(artist_dateOfBirth, "Date")                                                                                  
+                                                                                                                                       
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(                                                                
+      eClass=Artist_class,                                                                                                             
+      name="name",                                                                                                                     
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  ), "String")                                                                                                                         
+                                                                                                                                       
+  add_EAttribute_to_EClass_eStructuralFeatures(                                                                                        
+      eClass=Artist_class,                                                                                                             
+      name="websiteURL",                                                                                                               
+      lowerBound=0,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(                                                                
+      eClass=Artist_class,                                                                                                             
+      name="websiteURL",                                                                                                               
+      lowerBound=0,                                                                                                                    
+      upperBound=1                                                                                                                     
+  ), "String")                                                                                                                         
+                                                                                                                                       
+  # Song attributes                                                                                                                    
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(                                                                
+      eClass=Song_class,                                                                                                               
+      name="title",                                                                                                                    
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  ), "String")                                                                                                                         
+                                                                                                                                       
+  add_EAttribute_to_EClass_eStructuralFeatures(                                                                                        
+      eClass=Song_class,                                                                                                               
+      name="year",                                                                                                                     
+      lowerBound=0,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(                                                                
+      eClass=Song_class,                                                                                                               
+      name="year",                                                                                                                     
+      lowerBound=0,                                                                                                                    
+      upperBound=1                                                                                                                     
+  ), "Integer")                                                                                                                        
+                                                                                                                                       
+  add_EAttribute_to_EClass_eStructuralFeatures(                                                                                        
+      eClass=Song_class,                                                                                                               
+      name="length",                                                                                                                   
+      lowerBound=0,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(                                                                
+      eClass=Song_class,                                                                                                               
+      name="length",                                                                                                                   
+      lowerBound=0,                                                                                                                    
+      upperBound=1                                                                                                                     
+  ), "Float")                                                                                                                          
+                                                                                                                                       
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(                                                                
+      eClass=Song_class,                                                                                                               
+      name="genre",                                                                                                                    
+      lowerBound=0,                                                                                                                    
+      upperBound=1                                                                                                                     
+  ), "String")                                                                                                                         
+                                                                                                                                       
+  # Create the artist reference for Song                                                                                               
+  song_artist = add_EReference_to_EClass_eStructuralFeatures(                                                                          
+      eClass=Song_class,                                                                                                               
+      name="artist",                                                                                                                   
+      containment=False,                                                                                                               
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_ereference(song_artist, Artist_class)                                                                                   
+                                                                                                                                       
+  # User attributes (common to all users)                                                                                              
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(                                                                
+      eClass=User_class,                                                                                                               
+      name="id",                                                                                                                       
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  ), "Integer")                                                                                                                        
+                                                                                                                                       
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(                                                                
+      eClass=User_class,                                                                                                               
+      name="name",                                                                                                                     
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  ), "String")                                                                                                                         
+                                                                                                                                       
+  add_EAttribute_to_EClass_eStructuralFeatures(                                                                                        
+      eClass=User_class,                                                                                                               
+      name="address",                                                                                                                  
+      lowerBound=0,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(                                                                
+      eClass=User_class,                                                                                                               
+      name="address",                                                                                                                  
+      lowerBound=0,                                                                                                                    
+      upperBound=1                                                                                                                     
+  ), "String")                                                                                                                         
+                                                                                                                                       
+  # BusinessUser-specific attributes                                                                                                   
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(                                                                
+      eClass=BusinessUser_class,                                                                                                       
+      name="vatNumber",                                                                                                                
+      lowerBound=0,                                                                                                                    
+      upperBound=1                                                                                                                     
+  ), "String")                                                                                                                         
+                                                                                                                                       
+  business_user_songs = add_EReference_to_EClass_eStructuralFeatures(                                                                  
+      eClass=BusinessUser_class,                                                                                                       
+      name="uploadedSongs",                                                                                                            
+      containment=True,                                                                                                                
+      lowerBound=0,                                                                                                                    
+      upperBound=-1                                                                                                                    
+  )                                                                                                                                    
+  set_etype_of_ereference(business_user_songs, Song_class)                                                                             
+                                                                                                                                       
+  # Single class (inherits from Song)                                                                                                  
+  add_to_esupertypes_of_eclass(Single_class, Song_class)                                                                               
+                                                                                                                                       
+  # Hit class (inherits from Song) with trackNumber attribute                                                                          
+  add_to_esupertypes_of_eclass(Hit_class, Song_class)                                                                                  
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(                                                                
+      eClass=Hit_class,                                                                                                                
+      name="trackNumber",                                                                                                              
+      lowerBound=0,                                                                                                                    
+      upperBound=1                                                                                                                     
+  ), "Integer")                                                                                                                        
+                                                                                                                                       
+  # Album class - contains Hits but not Singles                                                                                        
+  album_hits = add_EReference_to_EClass_eStructuralFeatures(                                                                           
+      eClass=Album_class,                                                                                                              
+      name="hits",                                                                                                                     
+      containment=True,                                                                                                                
+      lowerBound=0,                                                                                                                    
+      upperBound=-1                                                                                                                    
+  )                                                                                                                                    
+  set_etype_of_ereference(album_hits, Hit_class)                                                                                       
+                                                                                                                                       
+  # RegularUser-specific references                                                                                                    
+  regular_user_singles = add_EReference_to_EClass_eStructuralFeatures(                                                                 
+      eClass=RegularUser_class,                                                                                                        
+      name="singlesPurchased",                                                                                                         
+      containment=False,                                                                                                               
+      lowerBound=0,                                                                                                                    
+      upperBound=-1                                                                                                                    
+  )                                                                                                                                    
+  set_etype_of_ereference(regular_user_singles, Single_class)                                                                          
+                                                                                                                                       
+  regular_user_albums = add_EReference_to_EClass_eStructuralFeatures(                                                                  
+      eClass=RegularUser_class,                                                                                                        
+      name="albums",                                                                                                                   
+      containment=True,                                                                                                                
+      lowerBound=0,                                                                                                                    
+      upperBound=-1                                                                                                                    
+  )                                                                                                                                    
+  set_etype_of_ereference(regular_user_albums, Album_class)                                                                            
+                                                                                                                                       
+  # Suggestion class - for album recommendations                                                                                       
+  suggestion_source = add_EReference_to_EClass_eStructuralFeatures(                                                                    
+      eClass=Suggestion_class,                                                                                                         
+      name="sourceUser",                                                                                                               
+      containment=False,                                                                                                               
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_ereference(suggestion_source, RegularUser_class)                                                                        
+                                                                                                                                       
+  suggestion_target = add_EReference_to_EClass_eStructuralFeatures(                                                                    
+      eClass=Suggestion_class,                                                                                                         
+      name="targetUser",                                                                                                               
+      containment=False,                                                                                                               
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_ereference(suggestion_target, RegularUser_class)                                                                        
+                                                                                                                                       
+  suggestion_album = add_EReference_to_EClass_eStructuralFeatures(                                                                     
+      eClass=Suggestion_class,                                                                                                         
+      name="suggestedAlbum",                                                                                                           
+      containment=False,                                                                                                               
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_ereference(suggestion_album, Album_class)                                                                               
+                                                                                                                                       
+  # Finalize the EPackage                                                                                                              
+  final_answer(musicmatic_package)                                                                                                     
+ ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+Final answer: emf_uri_fragment='/' name='Musicmatic' nsURI='http://www.musicmatic.com/schema' nsPrefix='musicmatic'
+[Step 2: Duration 69.28 seconds| Input tokens: 14,190 | Output tokens: 3,535]

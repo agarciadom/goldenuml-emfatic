@@ -1,349 +1,254 @@
-╭───────────────────────────────────────────────────── New run ─────────────────────────────────────────────────────╮
-│                                                                                                                   │
-│ You are an expert in generating EPackage based on a user's description.                                           │
-│ You will achieve this by calling a series of available Python functions as tools to incrementally build it.       │
-│                                                                                                                   │
-│ Core concepts you need to understand:                                                                             │
-│   - EPackage: Declaration of the package containing all the EClasses. It ONLY has these fields:                   │
-│     - name (of type str): Name of the package                                                                     │
-│     - nsURI (of type str): The namespace URI of the package                                                       │
-│     - eClassifiers (of type dict[str, Union[EClass, EDataType]]): Classes and data types within this EPackage     │
-│     - nsPrefix (of type str): XML namespace prefix to be used for this EPackage                                   │
-│   - EClass: Class within an EPackage. It ONLY has these fields:                                                   │
-│     - name (of type str): Name of the class.                                                                      │
-│     - eSuperTypes (of type set[EClass]): The optional base classes from which to inherit.                         │
-│     - eStructuralFeatures (of type dict[str, Union[EAttribute, EReference]]): The attributes and references       │
-│ inside this class                                                                                                 │
-│   - EAttribute: A specific piece of information in an EClass which is not an object. It ONLY has these fields:    │
-│     - name (of type str): Name of the attribute.                                                                  │
-│     - eType (of type Optional[Union[EDataType, str]]): Type of the attribute (must be set: use the tools for it)  │
-│     - lowerBound (of type int): Minimum number of values for the attribute (must be less or equal to the upper    │
-│ bound)                                                                                                            │
-│     - upperBound (of type int): Maximum number of values for the attribute                                        │
-│   - EReference: Reference from an EClass to another EClass. It ONLY has these fields:                             │
-│     - name (of type str): Name of the reference.                                                                  │
-│     - containment (of type bool): True if the source of the reference contains the target of reference (meaning   │
-│ that deleting the source will also delete the target).                                                            │
-│     - eType (of type Optional[EClass]): Target EClass of the reference.                                           │
-│     - lowerBound (of type int): Minimum number of targets for the reference (must be less or equal to the upper   │
-│ bound)                                                                                                            │
-│     - upperBound (of type int): Maximum number of targets for the reference                                       │
-│   - EDataType: Type of scalar data value used in an EAttribute. It ONLY has these fields:                         │
-│     - name (of type str): Name of the data type                                                                   │
-│     - instanceClassName (of type str): Fully qualified Java class name of the instances of this data type         │
-│                                                                                                                   │
-│ Tool interaction guidelines:                                                                                      │
-│   - Identify elements based on the user's description.                                                            │
-│   - First update the package and create all the classes.                                                          │
-│   - Then add all the attributes to each class, and set their ETypes.                                              │
-│   - Then add all the references to each class, and set their ETypes.                                              │
-│   - Do not create your own EDataTypes if they already exist in the Eclipse Modelling Framework: reuse the named   │
-│ ones whenever possible.                                                                                           │
-│   - Use inheritance relationships to reduce duplication of attributes and references.                             │
-│   - Ensure all conceptual objects are contained within another, eventually leading to a single root container     │
-│ class.                                                                                                            │
-│                                                                                                                   │
-│ The user's description is as follows:                                                                             │
-│                                                                                                                   │
-│ <description>                                                                                                     │
-│ 100% Driven by technology                                                                                         │
-│ Sober is new taxi company deploying self-driving cars to provide cap services. Although it operates its own fleet │
-│ of self-driving cabs, people can also register their cars as Sober cabs and have them provide taxi services       │
-│ whenever they are not using their cars. For the latter, Sober also wants to keep track of the car owners.         │
-│ Sober offers two types of taxi services: ride-hailing and ride-sharing. Ride-hailing is a service whereby         │
-│ customers can hail a taxi so they can be picked up and driven to their destination for a time-and distance-based  │
-│ fee. The hailing is an immediate, on-demand service and requests can be made with the Sober App. With just one    │
-│ tap on the screen, a customer can request a cab from anywhere, receive an estimated wait time, and a notification │
-│ when the car has arrived. Besides the Sober App, users can also hail Sober cabs by hand-waving them as they see   │
-│ them pass, in which case Sober’s deep-learning based image recognition system identifies the wave gesture as a    │
-│ cab request. For each use of the ride-hail service, Sober wants to store the time of pick-up and drop-off, the    │
-│ location of pick-up and drop-off, the ride duration, the distance, the number of passengers, the fee, the type of │
-│ request (via Sober App or hand-waving) and the number and name of the lead customer (the one who pays). The       │
-│ maximum number of passengers for a ride-hail service is six.                                                      │
-│ Ride-sharing is another service offered by Sober, which requires more careful planning. It can also be referred   │
-│ to as carpooling and aims at reducing costs, traffic congestion, and the carbon footprint.  Because of the        │
-│ planning, both Sober and its customers can negotiate the fee whereby more customers per cab means a lower fee per │
-│ customer (flexible pricing). To provide an eco-friendly incentive, Sober pledges to plant a tree for each         │
-│ customer who books 20 uses of the Sober ride-sharing service. For each ride-share service, Sober wants to store   │
-│ the time of pick-up and drop-off, the location of pick-up and drop-off, the ride duration, the distance, the      │
-│ number and names of all customers, and the upfront negotiated fee. The maximum number of passengers for a         │
-│ ride-share service is ten.                                                                                        │
-│ Due to the novelty of the self-driving car technology, accidents cannot be 100% ruled out. Sober also wants to    │
-│ store information about accident dates, location, and damage amounts per car.                                     │
-│ </description>                                                                                                    │
-│                                                                                                                   │
-╰─ LiteLLMModel - ollama/devstral:24b ──────────────────────────────────────────────────────────────────────────────╯
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 1 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- ─ Executing parsed code: ────────────────────────────────────────────────────────────────────────────────────────── 
-  package = update_EPackage(                                                                                         
-      name="SoberTaxi",                                                                                              
-      nsURI="http://sober-taxi.com/model",                                                                           
-      nsPrefix="st"                                                                                                  
-  )                                                                                                                  
-  print("EPackage created successfully.")                                                                            
- ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+╭────────────────────────────────────────────────────────────── New run ──────────────────────────────────────────────────────────────╮
+│                                                                                                                                     │
+│ You are an expert in generating EPackage based on a user's description.                                                             │
+│ You will achieve this by calling a series of available Python functions as tools to incrementally build it.                         │
+│                                                                                                                                     │
+│ Core concepts you need to understand:                                                                                               │
+│   - EPackage: Declaration of the package containing all the EClasses. It ONLY has these fields:                                     │
+│     - name (of type str): Name of the package (without spaces)                                                                      │
+│     - nsURI (of type str): The namespace URI of the package                                                                         │
+│     - eClassifiers (of type dict[str, Union[EClass, EDataType]]): Classes and data types within this EPackage                       │
+│     - nsPrefix (of type str): XML namespace prefix to be used for this EPackage                                                     │
+│   - EClass: Class within an EPackage. It ONLY has these fields:                                                                     │
+│     - name (of type str): Name of the class                                                                                         │
+│     - eSuperTypes (of type set[EClass]): The optional base classes from which to inherit.                                           │
+│     - eStructuralFeatures (of type dict[str, Union[EAttribute, EReference]]): The attributes and references inside this class       │
+│   - EAttribute: A specific piece of information in an EClass which is not an object. It ONLY has these fields:                      │
+│     - name (of type str): Name of the attribute.                                                                                    │
+│     - eType (of type Optional[Union[EDataType, str]]): Type of the attribute (must be set: use the tools for it)                    │
+│     - lowerBound (of type int): Minimum number of values for the attribute (must be less or equal to the upper bound)               │
+│     - upperBound (of type int): Maximum number of values for the attribute                                                          │
+│   - EReference: Reference from an EClass to another EClass. It ONLY has these fields:                                               │
+│     - name (of type str): Name of the reference.                                                                                    │
+│     - containment (of type bool): True if the source of the reference contains the target of reference (meaning that deleting the   │
+│ source will also delete the target).                                                                                                │
+│     - eType (of type Optional[EClass]): Target EClass of the reference.                                                             │
+│     - lowerBound (of type int): Minimum number of targets for the reference (must be less or equal to the upper bound)              │
+│     - upperBound (of type int): Maximum number of targets for the reference                                                         │
+│   - EDataType: Type of scalar data value used in an EAttribute. It ONLY has these fields:                                           │
+│     - name (of type str): Name of the data type                                                                                     │
+│     - instanceClassName (of type str): Fully qualified Java class name of the instances of this data type                           │
+│                                                                                                                                     │
+│ Tool interaction guidelines:                                                                                                        │
+│   - Identify elements based on the user's description.                                                                              │
+│   - First update the package and create all the classes.                                                                            │
+│   - Then add all the attributes to each class, and set their ETypes.                                                                │
+│   - Then add all the references to each class, and set their ETypes.                                                                │
+│   - Do not create your own EDataTypes if they already exist in the Eclipse Modelling Framework: reuse the named ones whenever       │
+│ possible.                                                                                                                           │
+│   - Use inheritance relationships to reduce duplication of attributes and references.                                               │
+│   - Ensure all conceptual objects are contained within another, eventually leading to a single root container class.                │
+│                                                                                                                                     │
+│ The user's description is as follows:                                                                                               │
+│                                                                                                                                     │
+│ <description>                                                                                                                       │
+│ 100% Driven by technology                                                                                                           │
+│ Sober is new taxi company deploying self-driving cars to provide cap services. Although it operates its own fleet of self-driving   │
+│ cabs, people can also register their cars as Sober cabs and have them provide taxi services whenever they are not using their cars. │
+│ For the latter, Sober also wants to keep track of the car owners.                                                                   │
+│ Sober offers two types of taxi services: ride-hailing and ride-sharing. Ride-hailing is a service whereby customers can hail a taxi │
+│ so they can be picked up and driven to their destination for a time-and distance-based fee. The hailing is an immediate, on-demand  │
+│ service and requests can be made with the Sober App. With just one tap on the screen, a customer can request a cab from anywhere,   │
+│ receive an estimated wait time, and a notification when the car has arrived. Besides the Sober App, users can also hail Sober cabs  │
+│ by hand-waving them as they see them pass, in which case Sober’s deep-learning based image recognition system identifies the wave   │
+│ gesture as a cab request. For each use of the ride-hail service, Sober wants to store the time of pick-up and drop-off, the         │
+│ location of pick-up and drop-off, the ride duration, the distance, the number of passengers, the fee, the type of request (via      │
+│ Sober App or hand-waving) and the number and name of the lead customer (the one who pays). The maximum number of passengers for a   │
+│ ride-hail service is six.                                                                                                           │
+│ Ride-sharing is another service offered by Sober, which requires more careful planning. It can also be referred to as carpooling    │
+│ and aims at reducing costs, traffic congestion, and the carbon footprint.  Because of the planning, both Sober and its customers    │
+│ can negotiate the fee whereby more customers per cab means a lower fee per customer (flexible pricing). To provide an eco-friendly  │
+│ incentive, Sober pledges to plant a tree for each customer who books 20 uses of the Sober ride-sharing service. For each ride-share │
+│ service, Sober wants to store the time of pick-up and drop-off, the location of pick-up and drop-off, the ride duration, the        │
+│ distance, the number and names of all customers, and the upfront negotiated fee. The maximum number of passengers for a ride-share  │
+│ service is ten.                                                                                                                     │
+│ Due to the novelty of the self-driving car technology, accidents cannot be 100% ruled out. Sober also wants to store information    │
+│ about accident dates, location, and damage amounts per car.                                                                         │
+│ </description>                                                                                                                      │
+│                                                                                                                                     │
+╰─ LiteLLMModel - ollama/devstral:24b ────────────────────────────────────────────────────────────────────────────────────────────────╯
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 1 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ─ Executing parsed code: ──────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+  soberPackage = update_EPackage(name="SoberSystem", nsURI="http://www.sober.com/system", nsPrefix="ss")                               
+ ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+Out: emf_uri_fragment='/' name='SoberSystem' nsURI='http://www.sober.com/system' nsPrefix='ss'
+[Step 1: Duration 8.87 seconds| Input tokens: 5,263 | Output tokens: 129]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 2 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ─ Executing parsed code: ──────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+  carClass = add_EClass_to_EPackage_eClassifiers(name="Car")                                                                           
+  cabClass = add_EClass_to_EPackage_eClassifiers(name="Cab")                                                                           
+  ownerClass = add_EClass_to_EPackage_eClassifiers(name="Owner")                                                                       
+  customerClass = add_EClass_to_EPackage_eClassifiers(name="Customer")                                                                 
+  rideHailServiceClass = add_EClass_to_EPackage_eClassifiers(name="RideHailService")                                                   
+  rideShareServiceClass = add_EClass_to_EPackage_eClassifiers(name="RideShareService")                                                 
+                                                                                                                                       
+  # Set up inheritance                                                                                                                 
+  add_to_esupertypes_of_eclass(eClass=cabClass, addition=carClass)                                                                     
+                                                                                                                                       
+  print("Created all EClasses with inheritance.")                                                                                      
+ ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
 Execution logs:
-EPackage created successfully.
+Created all EClasses with inheritance.
 
 Out: None
-[Step 1: Duration 8.54 seconds| Input tokens: 5,319 | Output tokens: 180]
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 2 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- ─ Executing parsed code: ────────────────────────────────────────────────────────────────────────────────────────── 
-  # Create company class first                                                                                       
-  companyClass = add_EClass_to_EPackage_eClassifiers(name="Company")                                                 
-                                                                                                                     
-  # Create other classes                                                                                             
-  carClass = add_EClass_to_EPackage_eClassifiers(name="Car")                                                         
-  ownerClass = add_EClass_to_EPackage_eClassifiers(name="Owner")                                                     
-  rideHailServiceClass = add_EClass_to_EPackage_eClassifiers(name="RideHailService")                                 
-  rideShareServiceClass = add_EClass_to_EPackage_eClassifiers(name="RideShareService")                               
-  customerClass = add_EClass_to_EPackage_eClassifiers(name="Customer")                                               
-  accidentClass = add_EClass_to_EPackage_eClassifiers(name="Accident")                                               
-                                                                                                                     
-  # Print all created classes for verification                                                                       
-  print("Created EClasses:", [companyClass.name, carClass.name, ownerClass.name,                                     
-                             rideHailServiceClass.name, rideShareServiceClass.name,                                  
-                             customerClass.name, accidentClass.name])                                                
- ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+[Step 2: Duration 9.76 seconds| Input tokens: 10,766 | Output tokens: 397]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 3 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ─ Executing parsed code: ──────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+  # Add attributes to Car                                                                                                              
+  carLicensePlate = add_EAttribute_to_EClass_eStructuralFeatures(eClass=carClass, name="licensePlate", lowerBound=1, upperBound=1)     
+  carMake = add_EAttribute_to_EClass_eStructuralFeatures(eClass=carClass, name="make", lowerBound=1, upperBound=1)                     
+  carModel = add_EAttribute_to_EClass_eStructuralFeatures(eClass=carClass, name="model", lowerBound=1, upperBound=1)                   
+  carYear = add_EAttribute_to_EClass_eStructuralFeatures(eClass=carClass, name="year", lowerBound=1, upperBound=1)                     
+                                                                                                                                       
+  # Add attributes to Cab                                                                                                              
+  cabIsAvailable = add_EAttribute_to_EClass_eStructuralFeatures(eClass=cabClass, name="isAvailable", lowerBound=1, upperBound=1)       
+  cabCurrentLocation = add_EAttribute_to_EClass_eStructuralFeatures(eClass=cabClass, name="currentLocation", lowerBound=0,             
+  upperBound=1)                                                                                                                        
+                                                                                                                                       
+  # Set attribute types                                                                                                                
+  set_etype_of_eattribute(carLicensePlate, "String")                                                                                   
+  set_etype_of_eattribute(carMake, "String")                                                                                           
+  set_etype_of_eattribute(carModel, "String")                                                                                          
+  set_etype_of_eattribute(carYear, "Integer")                                                                                          
+  set_etype_of_eattribute(cabIsAvailable, "Boolean")                                                                                   
+  set_etype_of_eattribute(cabCurrentLocation, "String")                                                                                
+                                                                                                                                       
+  print("Added attributes to Car and Cab classes.")                                                                                    
+ ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
 Execution logs:
-Created EClasses: ['Company', 'Car', 'Owner', 'RideHailService', 'RideShareService', 'Customer', 'Accident']
+Added attributes to Car and Cab classes.
 
 Out: None
-[Step 2: Duration 12.21 seconds| Input tokens: 10,927 | Output tokens: 517]
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 3 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- ─ Executing parsed code: ────────────────────────────────────────────────────────────────────────────────────────── 
-  # Create a base RideService class                                                                                  
-  rideServiceClass = add_EClass_to_EPackage_eClassifiers(name="RideService")                                         
-                                                                                                                     
-  # Set up inheritance relationships                                                                                 
-  add_EClass_to_EClass_ESuperTypes(eClass=rideHailServiceClass, addition=rideServiceClass)                           
-  add_EClass_to_EClass_ESuperTypes(eClass=rideShareServiceClass, addition=rideServiceClass)                          
-                                                                                                                     
-  print("Inheritance structure created successfully.")                                                               
- ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+[Step 3: Duration 15.56 seconds| Input tokens: 16,758 | Output tokens: 816]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 4 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ─ Executing parsed code: ──────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+  # Add attributes to Owner                                                                                                            
+  ownerName = add_EAttribute_to_EClass_eStructuralFeatures(eClass=ownerClass, name="name", lowerBound=1, upperBound=1)                 
+  ownerContactInfo = add_EAttribute_to_EClass_eStructuralFeatures(eClass=ownerClass, name="contactInfo", lowerBound=0, upperBound=1)   
+                                                                                                                                       
+  # Add reference from Owner to Car                                                                                                    
+  ownerCar = add_EReference_to_EClass_eStructuralFeatures(eClass=ownerClass, name="car", containment=True, lowerBound=1,               
+  upperBound=1)                                                                                                                        
+                                                                                                                                       
+  # Set attribute types and reference type                                                                                             
+  set_etype_of_eattribute(ownerName, "String")                                                                                         
+  set_etype_of_eattribute(ownerContactInfo, "String")                                                                                  
+  set_etype_of_ereference(ownerCar, carClass)                                                                                          
+                                                                                                                                       
+  print("Added attributes and references to Owner class.")                                                                             
+ ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
 Execution logs:
-Inheritance structure created successfully.
+Added attributes and references to Owner class.
 
 Out: None
-[Step 3: Duration 9.77 seconds| Input tokens: 17,164 | Output tokens: 745]
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 4 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- ─ Executing parsed code: ────────────────────────────────────────────────────────────────────────────────────────── 
-  # Add attributes to Company                                                                                        
-  add_EAttribute_to_EClass_eStructuralFeatures(eClass=companyClass, name="name", lowerBound=1, upperBound=1)         
-  add_EAttribute_to_EClass_eStructuralFeatures(eClass=companyClass, name="fleetSize", lowerBound=0, upperBound=1)    
-                                                                                                                     
-  # Add attributes to Car                                                                                            
-  add_EAttribute_to_EClass_eStructuralFeatures(eClass=carClass, name="licensePlate", lowerBound=1, upperBound=1)     
-  add_EAttribute_to_EClass_eStructuralFeatures(eClass=carClass, name="model", lowerBound=1, upperBound=1)            
-  add_EAttribute_to_EClass_eStructuralFeatures(eClass=carClass, name="year", lowerBound=0, upperBound=1)             
-                                                                                                                     
-  # Add attributes to Owner                                                                                          
-  add_EAttribute_to_EClass_eStructuralFeatures(eClass=ownerClass, name="name", lowerBound=1, upperBound=1)           
-  add_EAttribute_to_EClass_eStructuralFeatures(eClass=ownerClass, name="contactInfo", lowerBound=0, upperBound=1)    
-                                                                                                                     
-  # Add attributes to RideService (base class)                                                                       
-  add_EAttribute_to_EClass_eStructuralFeatures(eClass=rideServiceClass, name="pickUpTime", lowerBound=0,             
-  upperBound=1)                                                                                                      
-  add_EAttribute_to_EClass_eStructuralFeatures(eClass=rideServiceClass, name="dropOffTime", lowerBound=0,            
-  upperBound=1)                                                                                                      
-  add_EAttribute_to_EClass_eStructuralFeatures(eClass=rideServiceClass, name="pickUpLocation", lowerBound=1,         
-  upperBound=1)                                                                                                      
-  add_EAttribute_to_EClass_eStructuralFeatures(eClass=rideServiceClass, name="dropOffLocation", lowerBound=1,        
-  upperBound=1)                                                                                                      
-  add_EAttribute_to_EClass_eStructuralFeatures(eClass=rideServiceClass, name="duration", lowerBound=0,               
-  upperBound=1)                                                                                                      
-  add_EAttribute_to_EClass_eStructuralFeatures(eClass=rideServiceClass, name="distance", lowerBound=0,               
-  upperBound=1)                                                                                                      
-                                                                                                                     
-  print("Attributes added to Company, Car, Owner, and RideService classes.")                                         
- ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+[Step 4: Duration 10.18 seconds| Input tokens: 23,572 | Output tokens: 1,035]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 5 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ─ Executing parsed code: ──────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+  # Add attributes to Customer                                                                                                         
+  customerName = add_EAttribute_to_EClass_eStructuralFeatures(eClass=customerClass, name="name", lowerBound=1, upperBound=1)           
+  customerContactInfo = add_EAttribute_to_EClass_eStructuralFeatures(eClass=customerClass, name="contactInfo", lowerBound=0,           
+  upperBound=1)                                                                                                                        
+                                                                                                                                       
+  # Set attribute types                                                                                                                
+  set_etype_of_eattribute(customerName, "String")                                                                                      
+  set_etype_of_eattribute(customerContactInfo, "String")                                                                               
+                                                                                                                                       
+  print("Added attributes to Customer class.")                                                                                         
+ ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
 Execution logs:
-Attributes added to Company, Car, Owner, and RideService classes.
+Added attributes to Customer class.
 
 Out: None
-[Step 4: Duration 27.86 seconds| Input tokens: 23,788 | Output tokens: 1,546]
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 5 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- ─ Executing parsed code: ────────────────────────────────────────────────────────────────────────────────────────── 
-  # Add attributes to RideHailService                                                                                
-  add_EAttribute_to_EClass_eStructuralFeatures(eClass=rideHailServiceClass, name="numberOfPassengers",               
-  lowerBound=0, upperBound=1)                                                                                        
-  add_EAttribute_to_EClass_eStructuralFeatures(eClass=rideHailServiceClass, name="fee", lowerBound=0, upperBound=1)  
-  add_EAttribute_to_EClass_eStructuralFeatures(eClass=rideHailServiceClass, name="requestType", lowerBound=0,        
-  upperBound=1)                                                                                                      
-  add_EAttribute_to_EClass_eStructuralFeatures(eClass=rideHailServiceClass, name="leadCustomerName", lowerBound=0,   
-  upperBound=1)                                                                                                      
-                                                                                                                     
-  # Add attributes to RideShareService                                                                               
-  add_EAttribute_to_EClass_eStructuralFeatures(eClass=rideShareServiceClass, name="numberOfPassengers",              
-  lowerBound=0, upperBound=1)                                                                                        
-  add_EAttribute_to_EClass_eStructuralFeatures(eClass=rideShareServiceClass, name="negotiatedFee", lowerBound=0,     
-  upperBound=1)                                                                                                      
-  add_EAttribute_to_EClass_eStructuralFeatures(eClass=rideShareServiceClass, name="customerNames", lowerBound=0,     
-  upperBound=1)                                                                                                      
-                                                                                                                     
-  # Add attributes to Customer                                                                                       
-  add_EAttribute_to_EClass_eStructuralFeatures(eClass=customerClass, name="name", lowerBound=1, upperBound=1)        
-  add_EAttribute_to_EClass_eStructuralFeatures(eClass=customerClass, name="contactInfo", lowerBound=0,               
-  upperBound=1)                                                                                                      
-  add_EAttribute_to_EClass_eStructuralFeatures(eClass=customerClass, name="rideShareCount", lowerBound=0,            
-  upperBound=1)                                                                                                      
-                                                                                                                     
-  # Add attributes to Accident                                                                                       
-  add_EAttribute_to_EClass_eStructuralFeatures(eClass=accidentClass, name="date", lowerBound=0, upperBound=1)        
-  add_EAttribute_to_EClass_eStructuralFeatures(eClass=accidentClass, name="location", lowerBound=1, upperBound=1)    
-  add_EAttribute_to_EClass_eStructuralFeatures(eClass=accidentClass, name="damageAmount", lowerBound=0,              
-  upperBound=1)                                                                                                      
-                                                                                                                     
-  print("Attributes added to all classes.")                                                                          
- ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+[Step 5: Duration 7.38 seconds| Input tokens: 30,859 | Output tokens: 1,202]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 6 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ─ Executing parsed code: ──────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+  # Common attributes for both ride services                                                                                           
+  def add_common_ride_attributes(rideClass):                                                                                           
+      pickUpTime = add_EAttribute_to_EClass_eStructuralFeatures(eClass=rideClass, name="pickUpTime", lowerBound=1, upperBound=1)       
+      dropOffTime = add_EAttribute_to_EClass_eStructuralFeatures(eClass=rideClass, name="dropOffTime", lowerBound=1, upperBound=1)     
+      pickUpLocation = add_EAttribute_to_EClass_eStructuralFeatures(eClass=rideClass, name="pickUpLocation", lowerBound=1,             
+  upperBound=1)                                                                                                                        
+      dropOffLocation = add_EAttribute_to_EClass_eStructuralFeatures(eClass=rideClass, name="dropOffLocation", lowerBound=1,           
+  upperBound=1)                                                                                                                        
+      rideDuration = add_EAttribute_to_EClass_eStructuralFeatures(eClass=rideClass, name="rideDuration", lowerBound=1, upperBound=1)   
+      distance = add_EAttribute_to_EClass_eStructuralFeatures(eClass=rideClass, name="distance", lowerBound=1, upperBound=1)           
+                                                                                                                                       
+      # Set attribute types                                                                                                            
+      set_etype_of_eattribute(pickUpTime, "Date")                                                                                      
+      set_etype_of_eattribute(dropOffTime, "Date")                                                                                     
+      set_etype_of_eattribute(pickUpLocation, "String")                                                                                
+      set_etype_of_eattribute(dropOffLocation, "String")                                                                               
+      set_etype_of_eattribute(rideDuration, "Double")  # Duration in hours                                                             
+      set_etype_of_eattribute(distance, "Double")  # Distance in km                                                                    
+                                                                                                                                       
+  # RideHailService specific attributes                                                                                                
+  add_common_ride_attributes(rideHailServiceClass)                                                                                     
+  numPassengers = add_EAttribute_to_EClass_eStructuralFeatures(eClass=rideHailServiceClass, name="numPassengers", lowerBound=1,        
+  upperBound=1)                                                                                                                        
+  fee = add_EAttribute_to_EClass_eStructuralFeatures(eClass=rideHailServiceClass, name="fee", lowerBound=1, upperBound=1)              
+  requestType = add_EAttribute_to_EClass_eStructuralFeatures(eClass=rideHailServiceClass, name="requestType", lowerBound=1,            
+  upperBound=1)                                                                                                                        
+                                                                                                                                       
+  # Set attribute types for RideHailService                                                                                            
+  set_etype_of_eattribute(numPassengers, "Integer")                                                                                    
+  set_etype_of_eattribute(fee, "Double")                                                                                               
+  set_etype_of_eattribute(requestType, "String")                                                                                       
+                                                                                                                                       
+  # Add reference to lead customer                                                                                                     
+  leadCustomer = add_EReference_to_EClass_eStructuralFeatures(eClass=rideHailServiceClass, name="leadCustomer", containment=False,     
+  lowerBound=1, upperBound=1)                                                                                                          
+  set_etype_of_ereference(leadCustomer, customerClass)                                                                                 
+                                                                                                                                       
+  # RideShareService specific attributes                                                                                               
+  add_common_ride_attributes(rideShareServiceClass)                                                                                    
+  negotiatedFee = add_EAttribute_to_EClass_eStructuralFeatures(eClass=rideShareServiceClass, name="negotiatedFee", lowerBound=1,       
+  upperBound=1)                                                                                                                        
+                                                                                                                                       
+  # Set attribute types for RideShareService                                                                                           
+  set_etype_of_eattribute(negotiatedFee, "Double")                                                                                     
+                                                                                                                                       
+  # Add reference to customers (multiple customers in ride-sharing)                                                                    
+  customers = add_EReference_to_EClass_eStructuralFeatures(eClass=rideShareServiceClass, name="customers", containment=False,          
+  lowerBound=2, upperBound=10)                                                                                                         
+  set_etype_of_ereference(customers, customerClass)                                                                                    
+                                                                                                                                       
+  print("Added attributes to RideHailService and RideShareService classes.")                                                           
+ ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
 Execution logs:
-Attributes added to all classes.
+Added attributes to RideHailService and RideShareService classes.
 
 Out: None
-[Step 5: Duration 20.86 seconds| Input tokens: 31,752 | Output tokens: 2,031]
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 6 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- ─ Executing parsed code: ────────────────────────────────────────────────────────────────────────────────────────── 
-  # Set data types for Company                                                                                       
-  stringType = add_EDataType_to_EPackage_eClassifiers(name="String", instanceClassName="java.lang.String")           
-  add_EDataType_to_EAttribute_EType(eAttribute=companyClass.eStructuralFeatures["name"], addition=stringType)        
-  integerType = add_EDataType_to_EPackage_eClassifiers(name="Integer", instanceClassName="java.lang.Integer")        
-  add_EDataType_to_EAttribute_EType(eAttribute=companyClass.eStructuralFeatures["fleetSize"], addition=integerType)  
-                                                                                                                     
-  # Set data types for Car                                                                                           
-  add_EDataType_to_EAttribute_EType(eAttribute=carClass.eStructuralFeatures["licensePlate"], addition=stringType)    
-  add_EDataType_to_EAttribute_EType(eAttribute=carClass.eStructuralFeatures["model"], addition=stringType)           
-  add_EDataType_to_EAttribute_EType(eAttribute=carClass.eStructuralFeatures["year"], addition=integerType)           
-                                                                                                                     
-  # Set data types for Owner                                                                                         
-  add_EDataType_to_EAttribute_EType(eAttribute=ownerClass.eStructuralFeatures["name"], addition=stringType)          
-  add_EDataType_to_EAttribute_EType(eAttribute=ownerClass.eStructuralFeatures["contactInfo"], addition=stringType)   
-                                                                                                                     
-  # Set data types for RideService (base class)                                                                      
-  dateType = add_EDataType_to_EPackage_eClassifiers(name="Date", instanceClassName="java.util.Date")                 
-  add_EDataType_to_EAttribute_EType(eAttribute=rideServiceClass.eStructuralFeatures["pickUpTime"],                   
-  addition=dateType)                                                                                                 
-  add_EDataType_to_EAttribute_EType(eAttribute=rideServiceClass.eStructuralFeatures["dropOffTime"],                  
-  addition=dateType)                                                                                                 
-  add_EDataType_to_EAttribute_EType(eAttribute=rideServiceClass.eStructuralFeatures["pickUpLocation"],               
-  addition=stringType)                                                                                               
-  add_EDataType_to_EAttribute_EType(eAttribute=rideServiceClass.eStructuralFeatures["dropOffLocation"],              
-  addition=stringType)                                                                                               
-                                                                                                                     
-  floatType = add_EDataType_to_EPackage_eClassifiers(name="Float", instanceClassName="java.lang.Float")              
-  add_EDataType_to_EAttribute_EType(eAttribute=rideServiceClass.eStructuralFeatures["duration"],                     
-  addition=floatType)                                                                                                
-  add_EDataType_to_EAttribute_EType(eAttribute=rideServiceClass.eStructuralFeatures["distance"],                     
-  addition=floatType)                                                                                                
-                                                                                                                     
-  print("Data types set for Company, Car, Owner, and RideService classes.")                                          
- ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+[Step 6: Duration 28.07 seconds| Input tokens: 38,496 | Output tokens: 2,005]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 7 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ─ Executing parsed code: ──────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+  # Create Accident EClass                                                                                                             
+  accidentClass = add_EClass_to_EPackage_eClassifiers(name="Accident")                                                                 
+                                                                                                                                       
+  # Add attributes to Accident                                                                                                         
+  accidentDate = add_EAttribute_to_EClass_eStructuralFeatures(eClass=accidentClass, name="date", lowerBound=1, upperBound=1)           
+  accidentLocation = add_EAttribute_to_EClass_eStructuralFeatures(eClass=accidentClass, name="location", lowerBound=1, upperBound=1)   
+  damageAmount = add_EAttribute_to_EClass_eStructuralFeatures(eClass=accidentClass, name="damageAmount", lowerBound=1, upperBound=1)   
+                                                                                                                                       
+  # Set attribute types                                                                                                                
+  set_etype_of_eattribute(accidentDate, "Date")                                                                                        
+  set_etype_of_eattribute(accidentLocation, "String")                                                                                  
+  set_etype_of_eattribute(damageAmount, "Double")                                                                                      
+                                                                                                                                       
+  # Add reference from Car to Accidents (one-to-many)                                                                                  
+  carAccidents = add_EReference_to_EClass_eStructuralFeatures(eClass=carClass, name="accidents", containment=True, lowerBound=0,       
+  upperBound=-1)                                                                                                                       
+  set_etype_of_ereference(carAccidents, accidentClass)                                                                                 
+                                                                                                                                       
+  print("Added Accident class and reference from Car to Accidents.")                                                                   
+ ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
 Execution logs:
-Data types set for Company, Car, Owner, and RideService classes.
+Added Accident class and reference from Car to Accidents.
 
 Out: None
-[Step 6: Duration 22.18 seconds| Input tokens: 40,746 | Output tokens: 2,578]
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 7 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- ─ Executing parsed code: ────────────────────────────────────────────────────────────────────────────────────────── 
-  # Set data types for RideHailService                                                                               
-  add_EDataType_to_EAttribute_EType(eAttribute=rideHailServiceClass.eStructuralFeatures["numberOfPassengers"],       
-  addition=integerType)                                                                                              
-  add_EDataType_to_EAttribute_EType(eAttribute=rideHailServiceClass.eStructuralFeatures["fee"], addition=floatType)  
-  add_EDataType_to_EAttribute_EType(eAttribute=rideHailServiceClass.eStructuralFeatures["requestType"],              
-  addition=stringType)                                                                                               
-  add_EDataType_to_EAttribute_EType(eAttribute=rideHailServiceClass.eStructuralFeatures["leadCustomerName"],         
-  addition=stringType)                                                                                               
-                                                                                                                     
-  # Set data types for RideShareService                                                                              
-  add_EDataType_to_EAttribute_EType(eAttribute=rideShareServiceClass.eStructuralFeatures["numberOfPassengers"],      
-  addition=integerType)                                                                                              
-  add_EDataType_to_EAttribute_EType(eAttribute=rideShareServiceClass.eStructuralFeatures["negotiatedFee"],           
-  addition=floatType)                                                                                                
-  add_EDataType_to_EAttribute_EType(eAttribute=rideShareServiceClass.eStructuralFeatures["customerNames"],           
-  addition=stringType)                                                                                               
-                                                                                                                     
-  # Set data types for Customer                                                                                      
-  add_EDataType_to_EAttribute_EType(eAttribute=customerClass.eStructuralFeatures["name"], addition=stringType)       
-  add_EDataType_to_EAttribute_EType(eAttribute=customerClass.eStructuralFeatures["contactInfo"],                     
-  addition=stringType)                                                                                               
-  add_EDataType_to_EAttribute_EType(eAttribute=customerClass.eStructuralFeatures["rideShareCount"],                  
-  addition=integerType)                                                                                              
-                                                                                                                     
-  # Set data types for Accident                                                                                      
-  add_EDataType_to_EAttribute_EType(eAttribute=accidentClass.eStructuralFeatures["date"], addition=dateType)         
-  add_EDataType_to_EAttribute_EType(eAttribute=accidentClass.eStructuralFeatures["location"], addition=stringType)   
-  add_EDataType_to_EAttribute_EType(eAttribute=accidentClass.eStructuralFeatures["damageAmount"],                    
-  addition=floatType)                                                                                                
-                                                                                                                     
-  print("Data types set for all classes.")                                                                           
- ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
-Execution logs:
-Data types set for all classes.
-
-Out: None
-[Step 7: Duration 19.00 seconds| Input tokens: 50,887 | Output tokens: 3,013]
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 8 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- ─ Executing parsed code: ────────────────────────────────────────────────────────────────────────────────────────── 
-  # Reference: Company -> Cars (1..* cars)                                                                           
-  add_EReference_to_EClass_eStructuralFeatures(                                                                      
-      eClass=companyClass,                                                                                           
-      name="cars",                                                                                                   
-      containment=True,                                                                                              
-      lowerBound=0,                                                                                                  
-      upperBound=-1  # Many                                                                                          
-  )                                                                                                                  
-                                                                                                                     
-  # Set the EType for this reference to Car class                                                                    
-  add_EClass_to_EReference_EType(eReference=companyClass.eStructuralFeatures["cars"], addition=carClass)             
-                                                                                                                     
-  # Reference: Car -> Owner (0..1 owner)                                                                             
-  add_EReference_to_EClass_eStructuralFeatures(                                                                      
-      eClass=carClass,                                                                                               
-      name="owner",                                                                                                  
-      containment=True,                                                                                              
-      lowerBound=0,                                                                                                  
-      upperBound=1  # One                                                                                            
-  )                                                                                                                  
-                                                                                                                     
-  # Set the EType for this reference to Owner class                                                                  
-  add_EClass_to_EReference_EType(eReference=carClass.eStructuralFeatures["owner"], addition=ownerClass)              
-                                                                                                                     
-  # Reference: Car -> Accidents (0..* accidents)                                                                     
-  add_EReference_to_EClass_eStructuralFeatures(                                                                      
-      eClass=carClass,                                                                                               
-      name="accidents",                                                                                              
-      containment=True,                                                                                              
-      lowerBound=0,                                                                                                  
-      upperBound=-1  # Many                                                                                          
-  )                                                                                                                  
-                                                                                                                     
-  # Set the EType for this reference to Accident class                                                               
-  add_EClass_to_EReference_EType(eReference=carClass.eStructuralFeatures["accidents"], addition=accidentClass)       
-                                                                                                                     
-  # Reference: RideService -> Customers (1..* for ride-sharing, 1 for ride-hailing)                                  
-  add_EReference_to_EClass_eStructuralFeatures(                                                                      
-      eClass=rideServiceClass,                                                                                       
-      name="customers",                                                                                              
-      containment=True,                                                                                              
-      lowerBound=1,                                                                                                  
-      upperBound=-1  # Many                                                                                          
-  )                                                                                                                  
-                                                                                                                     
-  # Set the EType for this reference to Customer class                                                               
-  add_EClass_to_EReference_EType(eReference=rideServiceClass.eStructuralFeatures["customers"],                       
-  addition=customerClass)                                                                                            
-                                                                                                                     
-  print("References between classes established successfully.")                                                      
- ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
-Execution logs:
-References between classes established successfully.
-
-Out: None
-[Step 8: Duration 21.06 seconds| Input tokens: 61,959 | Output tokens: 3,524]
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 9 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- ─ Executing parsed code: ────────────────────────────────────────────────────────────────────────────────────────── 
-  final_answer("EPackage 'SoberTaxi' successfully created with all required classes, attributes, data types, and     
-  relationships.")                                                                                                   
- ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
-Final answer: EPackage 'SoberTaxi' successfully created with all required classes, attributes, data types, and 
-relationships.
-[Step 9: Duration 17.24 seconds| Input tokens: 74,042 | Output tokens: 3,911]
+[Step 7: Duration 16.85 seconds| Input tokens: 47,800 | Output tokens: 2,326]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 8 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ─ Executing parsed code: ──────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+  final_answer("SoberSystem EPackage with all required classes and relationships has been created successfully.")                      
+ ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+Final answer: SoberSystem EPackage with all required classes and relationships has been created successfully.
+[Step 8: Duration 9.48 seconds| Input tokens: 57,779 | Output tokens: 2,526]

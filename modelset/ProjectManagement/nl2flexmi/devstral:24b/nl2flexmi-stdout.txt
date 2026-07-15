@@ -1,250 +1,320 @@
-╭───────────────────────────────────────────────────── New run ─────────────────────────────────────────────────────╮
-│                                                                                                                   │
-│ You are an expert in generating EPackage based on a user's description.                                           │
-│ You will achieve this by calling a series of available Python functions as tools to incrementally build it.       │
-│                                                                                                                   │
-│ Core concepts you need to understand:                                                                             │
-│   - EPackage: Declaration of the package containing all the EClasses. It ONLY has these fields:                   │
-│     - name (of type str): Name of the package                                                                     │
-│     - nsURI (of type str): The namespace URI of the package                                                       │
-│     - eClassifiers (of type dict[str, Union[EClass, EDataType]]): Classes and data types within this EPackage     │
-│     - nsPrefix (of type str): XML namespace prefix to be used for this EPackage                                   │
-│   - EClass: Class within an EPackage. It ONLY has these fields:                                                   │
-│     - name (of type str): Name of the class.                                                                      │
-│     - eSuperTypes (of type set[EClass]): The optional base classes from which to inherit.                         │
-│     - eStructuralFeatures (of type dict[str, Union[EAttribute, EReference]]): The attributes and references       │
-│ inside this class                                                                                                 │
-│   - EAttribute: A specific piece of information in an EClass which is not an object. It ONLY has these fields:    │
-│     - name (of type str): Name of the attribute.                                                                  │
-│     - eType (of type Optional[Union[EDataType, str]]): Type of the attribute (must be set: use the tools for it)  │
-│     - lowerBound (of type int): Minimum number of values for the attribute (must be less or equal to the upper    │
-│ bound)                                                                                                            │
-│     - upperBound (of type int): Maximum number of values for the attribute                                        │
-│   - EReference: Reference from an EClass to another EClass. It ONLY has these fields:                             │
-│     - name (of type str): Name of the reference.                                                                  │
-│     - containment (of type bool): True if the source of the reference contains the target of reference (meaning   │
-│ that deleting the source will also delete the target).                                                            │
-│     - eType (of type Optional[EClass]): Target EClass of the reference.                                           │
-│     - lowerBound (of type int): Minimum number of targets for the reference (must be less or equal to the upper   │
-│ bound)                                                                                                            │
-│     - upperBound (of type int): Maximum number of targets for the reference                                       │
-│   - EDataType: Type of scalar data value used in an EAttribute. It ONLY has these fields:                         │
-│     - name (of type str): Name of the data type                                                                   │
-│     - instanceClassName (of type str): Fully qualified Java class name of the instances of this data type         │
-│                                                                                                                   │
-│ Tool interaction guidelines:                                                                                      │
-│   - Identify elements based on the user's description.                                                            │
-│   - First update the package and create all the classes.                                                          │
-│   - Then add all the attributes to each class, and set their ETypes.                                              │
-│   - Then add all the references to each class, and set their ETypes.                                              │
-│   - Do not create your own EDataTypes if they already exist in the Eclipse Modelling Framework: reuse the named   │
-│ ones whenever possible.                                                                                           │
-│   - Use inheritance relationships to reduce duplication of attributes and references.                             │
-│   - Ensure all conceptual objects are contained within another, eventually leading to a single root container     │
-│ class.                                                                                                            │
-│                                                                                                                   │
-│ The user's description is as follows:                                                                             │
-│                                                                                                                   │
-│ <description>                                                                                                     │
-│ The following case describes a universe of research project management. The university has many research groups   │
-│ that belong to different departments. Researchers belong to exactly one research group. Projects are decomposed   │
-│ into Work Packages (WP), and each WP has exactly one research group assigned to it as WP leader. To execute a     │
-│ research project, researchers need to be assigned to Work Packages.                                               │
-│ A researcher can be assigned to any WP, independent of which RG is leading the WP.                                │
-│ However, “service delivery” from one group to another needs to be traceable. It should be possible to have an     │
-│ overview of researchers from other groups working on WPs led by a RG. This “service delivery” implies that        │
-│ whenever a researcher changes research group, the current assignments as team member of a WP are terminated and   │
-│ new ones are created to keep a correct record of the service delivery. Likewise, if WP leadership is re-assigned, │
-│ team member assignments are re-recorded to ensure correct recording of the service delivery.                      │
-│ </description>                                                                                                    │
-│                                                                                                                   │
-╰─ LiteLLMModel - ollama/devstral:24b ──────────────────────────────────────────────────────────────────────────────╯
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 1 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- ─ Executing parsed code: ────────────────────────────────────────────────────────────────────────────────────────── 
-  research_management_package = update_EPackage(                                                                     
-      name="ResearchManagement",                                                                                     
-      nsURI="http://www.example.org/researchmanagement",                                                             
-      nsPrefix="rm"                                                                                                  
-  )                                                                                                                  
-                                                                                                                     
-  # Create EClasses                                                                                                  
-  department_eclass = add_EClass_to_EPackage_eClassifiers(name="Department")                                         
-  research_group_eclass = add_EClass_to_EPackage_eClassifiers(name="ResearchGroup")                                  
-  researcher_eclass = add_EClass_to_EPackage_eClassifiers(name="Researcher")                                         
-  project_eclass = add_EClass_to_EPackage_eClassifiers(name="Project")                                               
-  work_package_eclass = add_EClass_to_EPackage_eClassifiers(name="WorkPackage")                                      
-  assignment_eclass = add_EClass_to_EPackage_eClassifiers(name="Assignment")                                         
-                                                                                                                     
-  print("EPackage and EClasses created successfully.")                                                               
- ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+╭────────────────────────────────────────────────────────────── New run ──────────────────────────────────────────────────────────────╮
+│                                                                                                                                     │
+│ You are an expert in generating EPackage based on a user's description.                                                             │
+│ You will achieve this by calling a series of available Python functions as tools to incrementally build it.                         │
+│                                                                                                                                     │
+│ Core concepts you need to understand:                                                                                               │
+│   - EPackage: Declaration of the package containing all the EClasses. It ONLY has these fields:                                     │
+│     - name (of type str): Name of the package (without spaces)                                                                      │
+│     - nsURI (of type str): The namespace URI of the package                                                                         │
+│     - eClassifiers (of type dict[str, Union[EClass, EDataType]]): Classes and data types within this EPackage                       │
+│     - nsPrefix (of type str): XML namespace prefix to be used for this EPackage                                                     │
+│   - EClass: Class within an EPackage. It ONLY has these fields:                                                                     │
+│     - name (of type str): Name of the class                                                                                         │
+│     - eSuperTypes (of type set[EClass]): The optional base classes from which to inherit.                                           │
+│     - eStructuralFeatures (of type dict[str, Union[EAttribute, EReference]]): The attributes and references inside this class       │
+│   - EAttribute: A specific piece of information in an EClass which is not an object. It ONLY has these fields:                      │
+│     - name (of type str): Name of the attribute.                                                                                    │
+│     - eType (of type Optional[Union[EDataType, str]]): Type of the attribute (must be set: use the tools for it)                    │
+│     - lowerBound (of type int): Minimum number of values for the attribute (must be less or equal to the upper bound)               │
+│     - upperBound (of type int): Maximum number of values for the attribute                                                          │
+│   - EReference: Reference from an EClass to another EClass. It ONLY has these fields:                                               │
+│     - name (of type str): Name of the reference.                                                                                    │
+│     - containment (of type bool): True if the source of the reference contains the target of reference (meaning that deleting the   │
+│ source will also delete the target).                                                                                                │
+│     - eType (of type Optional[EClass]): Target EClass of the reference.                                                             │
+│     - lowerBound (of type int): Minimum number of targets for the reference (must be less or equal to the upper bound)              │
+│     - upperBound (of type int): Maximum number of targets for the reference                                                         │
+│   - EDataType: Type of scalar data value used in an EAttribute. It ONLY has these fields:                                           │
+│     - name (of type str): Name of the data type                                                                                     │
+│     - instanceClassName (of type str): Fully qualified Java class name of the instances of this data type                           │
+│                                                                                                                                     │
+│ Tool interaction guidelines:                                                                                                        │
+│   - Identify elements based on the user's description.                                                                              │
+│   - First update the package and create all the classes.                                                                            │
+│   - Then add all the attributes to each class, and set their ETypes.                                                                │
+│   - Then add all the references to each class, and set their ETypes.                                                                │
+│   - Do not create your own EDataTypes if they already exist in the Eclipse Modelling Framework: reuse the named ones whenever       │
+│ possible.                                                                                                                           │
+│   - Use inheritance relationships to reduce duplication of attributes and references.                                               │
+│   - Ensure all conceptual objects are contained within another, eventually leading to a single root container class.                │
+│                                                                                                                                     │
+│ The user's description is as follows:                                                                                               │
+│                                                                                                                                     │
+│ <description>                                                                                                                       │
+│ The following case describes a universe of research project management. The university has many research groups that belong to      │
+│ different departments. Researchers belong to exactly one research group. Projects are decomposed into Work Packages (WP), and each  │
+│ WP has exactly one research group assigned to it as WP leader. To execute a research project, researchers need to be assigned to    │
+│ Work Packages.                                                                                                                      │
+│ A researcher can be assigned to any WP, independent of which RG is leading the WP.                                                  │
+│ However, “service delivery” from one group to another needs to be traceable. It should be possible to have an overview of           │
+│ researchers from other groups working on WPs led by a RG. This “service delivery” implies that whenever a researcher changes        │
+│ research group, the current assignments as team member of a WP are terminated and new ones are created to keep a correct record of  │
+│ the service delivery. Likewise, if WP leadership is re-assigned, team member assignments are re-recorded to ensure correct          │
+│ recording of the service delivery.                                                                                                  │
+│ </description>                                                                                                                      │
+│                                                                                                                                     │
+╰─ LiteLLMModel - ollama/devstral:24b ────────────────────────────────────────────────────────────────────────────────────────────────╯
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 1 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ─ Executing parsed code: ──────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+  # 1. Create the EPackage for research project management                                                                             
+  pkg = update_EPackage(                                                                                                               
+      name="ResearchProjectManagement",                                                                                                
+      nsURI="http://www.example.com/researchprojectmanagement",                                                                        
+      nsPrefix="rpm"                                                                                                                   
+  )                                                                                                                                    
+                                                                                                                                       
+  # 2. Create all necessary EClasses                                                                                                   
+  departmentClass = add_EClass_to_EPackage_eClassifiers(name="Department")                                                             
+  researchGroupClass = add_EClass_to_EPackage_eClassifiers(name="ResearchGroup")                                                       
+  researcherClass = add_EClass_to_EPackage_eClassifiers(name="Researcher")                                                             
+  projectClass = add_EClass_to_EPackage_eClassifiers(name="Project")                                                                   
+  workPackageClass = add_EClass_to_EPackage_eClassifiers(name="WorkPackage")                                                           
+                                                                                                                                       
+  # Now let's print the created classes to see their IDs for further references                                                        
+  print(f"Department class: {departmentClass}")                                                                                        
+  print(f"ResearchGroup class: {researchGroupClass}")                                                                                  
+  print(f"Researcher class: {researcherClass}")                                                                                        
+  print(f"Project class: {projectClass}")                                                                                              
+  print(f"WorkPackage class: {workPackageClass}")                                                                                      
+ ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
 Execution logs:
-EPackage and EClasses created successfully.
+Department class: emf_uri_fragment='/' name='Department'
+ResearchGroup class: emf_uri_fragment='/' name='ResearchGroup'
+Researcher class: emf_uri_fragment='/' name='Researcher'
+Project class: emf_uri_fragment='/' name='Project'
+WorkPackage class: emf_uri_fragment='/' name='WorkPackage'
 
 Out: None
-[Step 1: Duration 16.13 seconds| Input tokens: 4,984 | Output tokens: 448]
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 2 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- ─ Executing parsed code: ────────────────────────────────────────────────────────────────────────────────────────── 
-  # Add attributes to Department                                                                                     
-  id_attr_department = add_EAttribute_to_EClass_eStructuralFeatures(                                                 
-      eClass=department_eclass,                                                                                      
-      name="id",                                                                                                     
-      lowerBound=0,                                                                                                  
-      upperBound=1                                                                                                   
-  )                                                                                                                  
-  name_attr_department = add_EAttribute_to_EClass_eStructuralFeatures(                                               
-      eClass=department_eclass,                                                                                      
-      name="name",                                                                                                   
-      lowerBound=0,                                                                                                  
-      upperBound=1                                                                                                   
-  )                                                                                                                  
-  add_named_to_EAttribute_EType(id_attr_department, "String")                                                        
-  add_named_to_EAttribute_EType(name_attr_department, "String")                                                      
-                                                                                                                     
-  # Add attributes to ResearchGroup                                                                                  
-  id_attr_research_group = add_EAttribute_to_EClass_eStructuralFeatures(                                             
-      eClass=research_group_eclass,                                                                                  
-      name="id",                                                                                                     
-      lowerBound=0,                                                                                                  
-      upperBound=1                                                                                                   
-  )                                                                                                                  
-  name_attr_research_group = add_EAttribute_to_EClass_eStructuralFeatures(                                           
-      eClass=research_group_eclass,                                                                                  
-      name="name",                                                                                                   
-      lowerBound=0,                                                                                                  
-      upperBound=1                                                                                                   
-  )                                                                                                                  
-  department_ref = add_EReference_to_EClass_eStructuralFeatures(                                                     
-      eClass=research_group_eclass,                                                                                  
-      name="department",                                                                                             
-      containment=True,                                                                                              
-      lowerBound=1,                                                                                                  
-      upperBound=1                                                                                                   
-  )                                                                                                                  
-  add_named_to_EAttribute_EType(id_attr_research_group, "String")                                                    
-  add_named_to_EAttribute_EType(name_attr_research_group, "String")                                                  
-                                                                                                                     
-  # Add attributes to Researcher                                                                                     
-  id_attr_researcher = add_EAttribute_to_EClass_eStructuralFeatures(                                                 
-      eClass=researcher_eclass,                                                                                      
-      name="id",                                                                                                     
-      lowerBound=0,                                                                                                  
-      upperBound=1                                                                                                   
-  )                                                                                                                  
-  name_attr_researcher = add_EAttribute_to_EClass_eStructuralFeatures(                                               
-      eClass=researcher_eclass,                                                                                      
-      name="name",                                                                                                   
-      lowerBound=0,                                                                                                  
-      upperBound=1                                                                                                   
-  )                                                                                                                  
-  research_group_ref = add_EReference_to_EClass_eStructuralFeatures(                                                 
-      eClass=researcher_eclass,                                                                                      
-      name="researchGroup",                                                                                          
-      containment=False,                                                                                             
-      lowerBound=1,                                                                                                  
-      upperBound=1                                                                                                   
-  )                                                                                                                  
-  add_named_to_EAttribute_EType(id_attr_researcher, "String")                                                        
-  add_named_to_EAttribute_EType(name_attr_researcher, "String")                                                      
-                                                                                                                     
-  # Add attributes to Project                                                                                        
-  id_attr_project = add_EAttribute_to_EClass_eStructuralFeatures(                                                    
-      eClass=project_eclass,                                                                                         
-      name="id",                                                                                                     
-      lowerBound=0,                                                                                                  
-      upperBound=1                                                                                                   
-  )                                                                                                                  
-  title_attr_project = add_EAttribute_to_EClass_eStructuralFeatures(                                                 
-      eClass=project_eclass,                                                                                         
-      name="title",                                                                                                  
-      lowerBound=0,                                                                                                  
-      upperBound=1                                                                                                   
-  )                                                                                                                  
-  add_named_to_EAttribute_EType(id_attr_project, "String")                                                           
-  add_named_to_EAttribute_EType(title_attr_project, "String")                                                        
-                                                                                                                     
-  # Add attributes to WorkPackage                                                                                    
-  id_attr_work_package = add_EAttribute_to_EClass_eStructuralFeatures(                                               
-      eClass=work_package_eclass,                                                                                    
-      name="id",                                                                                                     
-      lowerBound=0,                                                                                                  
-      upperBound=1                                                                                                   
-  )                                                                                                                  
-  description_attr_work_package = add_EAttribute_to_EClass_eStructuralFeatures(                                      
-      eClass=work_package_eclass,                                                                                    
-      name="description",                                                                                            
-      lowerBound=0,                                                                                                  
-      upperBound=1                                                                                                   
-  )                                                                                                                  
-  project_ref = add_EReference_to_EClass_eStructuralFeatures(                                                        
-      eClass=work_package_eclass,                                                                                    
-      name="project",                                                                                                
-      containment=True,                                                                                              
-      lowerBound=1,                                                                                                  
-      upperBound=1                                                                                                   
-  )                                                                                                                  
-  leader_ref = add_EReference_to_EClass_eStructuralFeatures(                                                         
-      eClass=work_package_eclass,                                                                                    
-      name="leader",                                                                                                 
-      containment=False,                                                                                             
-      lowerBound=1,                                                                                                  
-      upperBound=1                                                                                                   
-  )                                                                                                                  
-  add_named_to_EAttribute_EType(id_attr_work_package, "String")                                                      
-  add_named_to_EAttribute_EType(description_attr_work_package, "String")                                             
-                                                                                                                     
-  # Add attributes to Assignment                                                                                     
-  researcher_ref = add_EReference_to_EClass_eStructuralFeatures(                                                     
-      eClass=assignment_eclass,                                                                                      
-      name="researcher",                                                                                             
-      containment=False,                                                                                             
-      lowerBound=1,                                                                                                  
-      upperBound=1                                                                                                   
-  )                                                                                                                  
-  work_package_ref = add_EReference_to_EClass_eStructuralFeatures(                                                   
-      eClass=assignment_eclass,                                                                                      
-      name="workPackage",                                                                                            
-      containment=False,                                                                                             
-      lowerBound=1,                                                                                                  
-      upperBound=1                                                                                                   
-  )                                                                                                                  
-                                                                                                                     
-  print("Attributes and references added successfully.")                                                             
- ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+[Step 1: Duration 12.34 seconds| Input tokens: 4,928 | Output tokens: 325]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 2 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ─ Executing parsed code: ──────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+  # Add attributes to Department class                                                                                                 
+  departmentIdAttr = add_EAttribute_to_EClass_eStructuralFeatures(                                                                     
+      eClass=departmentClass,                                                                                                          
+      name="id",                                                                                                                       
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_eattribute(departmentIdAttr, "String")                                                                                  
+                                                                                                                                       
+  departmentNameAttr = add_EAttribute_to_EClass_eStructuralFeatures(                                                                   
+      eClass=departmentClass,                                                                                                          
+      name="name",                                                                                                                     
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_eattribute(departmentNameAttr, "String")                                                                                
+                                                                                                                                       
+  # Add attributes to ResearchGroup class                                                                                              
+  researchGroupIdAttr = add_EAttribute_to_EClass_eStructuralFeatures(                                                                  
+      eClass=researchGroupClass,                                                                                                       
+      name="id",                                                                                                                       
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_eattribute(researchGroupIdAttr, "String")                                                                               
+                                                                                                                                       
+  researchGroupNameAttr = add_EAttribute_to_EClass_eStructuralFeatures(                                                                
+      eClass=researchGroupClass,                                                                                                       
+      name="name",                                                                                                                     
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_eattribute(researchGroupNameAttr, "String")                                                                             
+                                                                                                                                       
+  # Add department reference to ResearchGroup (each RG belongs to a department)                                                        
+  departmentRef = add_EReference_to_EClass_eStructuralFeatures(                                                                        
+      eClass=researchGroupClass,                                                                                                       
+      name="department",                                                                                                               
+      containment=False,                                                                                                               
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+                                                                                                                                       
+  # Add attributes to Researcher class                                                                                                 
+  researcherIdAttr = add_EAttribute_to_EClass_eStructuralFeatures(                                                                     
+      eClass=researcherClass,                                                                                                          
+      name="id",                                                                                                                       
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_eattribute(researcherIdAttr, "String")                                                                                  
+                                                                                                                                       
+  researcherNameAttr = add_EAttribute_to_EClass_eStructuralFeatures(                                                                   
+      eClass=researcherClass,                                                                                                          
+      name="name",                                                                                                                     
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_eattribute(researcherNameAttr, "String")                                                                                
+                                                                                                                                       
+  # Add research group reference to Researcher (each researcher belongs to one RG)                                                     
+  researchGroupRef = add_EReference_to_EClass_eStructuralFeatures(                                                                     
+      eClass=researcherClass,                                                                                                          
+      name="researchGroup",                                                                                                            
+      containment=False,                                                                                                               
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+                                                                                                                                       
+  # Add attributes to Project class                                                                                                    
+  projectIdAttr = add_EAttribute_to_EClass_eStructuralFeatures(                                                                        
+      eClass=projectClass,                                                                                                             
+      name="id",                                                                                                                       
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_eattribute(projectIdAttr, "String")                                                                                     
+                                                                                                                                       
+  projectNameAttr = add_EAttribute_to_EClass_eStructuralFeatures(                                                                      
+      eClass=projectClass,                                                                                                             
+      name="name",                                                                                                                     
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_eattribute(projectNameAttr, "String")                                                                                   
+                                                                                                                                       
+  # Add containment reference for WorkPackages in Project                                                                              
+  workPackagesRef = add_EReference_to_EClass_eStructuralFeatures(                                                                      
+      eClass=projectClass,                                                                                                             
+      name="workPackages",                                                                                                             
+      containment=True,                                                                                                                
+      lowerBound=0,                                                                                                                    
+      upperBound=-1  # Many work packages can belong to a project                                                                      
+  )                                                                                                                                    
+                                                                                                                                       
+  # Add attributes to WorkPackage class                                                                                                
+  workPackageIdAttr = add_EAttribute_to_EClass_eStructuralFeatures(                                                                    
+      eClass=workPackageClass,                                                                                                         
+      name="id",                                                                                                                       
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_eattribute(workPackageIdAttr, "String")                                                                                 
+                                                                                                                                       
+  workPackageNameAttr = add_EAttribute_to_EClass_eStructuralFeatures(                                                                  
+      eClass=workPackageClass,                                                                                                         
+      name="name",                                                                                                                     
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_eattribute(workPackageNameAttr, "String")                                                                               
+                                                                                                                                       
+  # Add project reference to WorkPackage (each WP belongs to a project)                                                                
+  projectRef = add_EReference_to_EClass_eStructuralFeatures(                                                                           
+      eClass=workPackageClass,                                                                                                         
+      name="project",                                                                                                                  
+      containment=False,                                                                                                               
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+                                                                                                                                       
+  # Add research group reference as WP leader (each WP has exactly one RG as leader)                                                   
+  wpLeaderRef = add_EReference_to_EClass_eStructuralFeatures(                                                                          
+      eClass=workPackageClass,                                                                                                         
+      name="leader",                                                                                                                   
+      containment=False,                                                                                                               
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+                                                                                                                                       
+  # Now let's print the created attributes and references to verify them                                                               
+  print(f"Department attributes: {departmentIdAttr}, {departmentNameAttr}")                                                            
+  print(f"ResearchGroup attributes: {researchGroupIdAttr}, {researchGroupNameAttr}")                                                   
+  print(f"Researcher attributes: {researcherIdAttr}, {researcherNameAttr}")                                                            
+ ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
 Execution logs:
-Attributes and references added successfully.
+Department attributes: emf_uri_fragment='/' name='id' eType='//EString' lowerBound=1 upperBound=1, emf_uri_fragment='/' name='name' 
+eType='//EString' lowerBound=1 upperBound=1
+ResearchGroup attributes: emf_uri_fragment='/' name='id' eType='//EString' lowerBound=1 upperBound=1, emf_uri_fragment='/' name='name' 
+eType='//EString' lowerBound=1 upperBound=1
+Researcher attributes: emf_uri_fragment='/' name='id' eType='//EString' lowerBound=1 upperBound=1, emf_uri_fragment='/' name='name' 
+eType='//EString' lowerBound=1 upperBound=1
 
 Out: None
-[Step 2: Duration 41.47 seconds| Input tokens: 10,665 | Output tokens: 1,645]
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 3 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- ─ Executing parsed code: ────────────────────────────────────────────────────────────────────────────────────────── 
-  # Set the EType for department reference in ResearchGroup                                                          
-  add_EClass_to_EReference_EType(eReference=department_ref, addition=department_eclass)                              
-                                                                                                                     
-  # Set the EType for researchGroup reference in Researcher                                                          
-  add_EClass_to_EReference_EType(eReference=research_group_ref, addition=research_group_eclass)                      
-                                                                                                                     
-  # Set the EType for project reference in WorkPackage                                                               
-  add_EClass_to_EReference_EType(eReference=project_ref, addition=project_eclass)                                    
-                                                                                                                     
-  # Set the EType for leader reference in WorkPackage                                                                
-  add_EClass_to_EReference_EType(eReference=leader_ref, addition=research_group_eclass)                              
-                                                                                                                     
-  # Set the EType for researcher reference in Assignment                                                             
-  add_EClass_to_EReference_EType(eReference=researcher_ref, addition=researcher_eclass)                              
-                                                                                                                     
-  # Set the EType for workPackage reference in Assignment                                                            
-  add_EClass_to_EReference_EType(eReference=work_package_ref, addition=work_package_eclass)                          
-                                                                                                                     
-  print("Reference types set successfully.")                                                                         
- ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+[Step 2: Duration 39.85 seconds| Input tokens: 10,564 | Output tokens: 1,469]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 3 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ─ Executing parsed code: ──────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+  # Set reference types for all the created references                                                                                 
+  set_etype_of_ereference(departmentRef, departmentClass)                                                                              
+  set_etype_of_ereference(researchGroupRef, researchGroupClass)                                                                        
+  set_etype_of_ereference(projectRef, projectClass)                                                                                    
+  set_etype_of_ereference(wpLeaderRef, researchGroupClass)                                                                             
+  set_etype_of_ereference(workPackagesRef, workPackageClass)                                                                           
+                                                                                                                                       
+  # Print the references to verify                                                                                                     
+  print(f"Department reference in ResearchGroup: {departmentRef}")                                                                     
+  print(f"ResearchGroup reference in Researcher: {researchGroupRef}")                                                                  
+  print(f"Project reference in WorkPackage: {projectRef}")                                                                             
+  print(f"Leader (ResearchGroup) reference in WorkPackage: {wpLeaderRef}")                                                             
+  print(f"WorkPackages reference in Project: {workPackagesRef}")                                                                       
+                                                                                                                                       
+  # Now we need to handle the assignment of researchers to work packages                                                               
+  # This is a many-to-many relationship where a researcher can be assigned to multiple WPs                                             
+  researcherToWpAssignment = add_EReference_to_EClass_eStructuralFeatures(                                                             
+      eClass=researcherClass,                                                                                                          
+      name="workPackageAssignments",                                                                                                   
+      containment=False,  # Researcher doesn't contain WorkPackages                                                                    
+      lowerBound=0,       # A researcher might have no WP assignments                                                                  
+      upperBound=-1       # A researcher can be assigned to multiple WPs                                                               
+  )                                                                                                                                    
+                                                                                                                                       
+  # Set the type of this reference to WorkPackage                                                                                      
+  set_etype_of_ereference(researcherToWpAssignment, workPackageClass)                                                                  
+                                                                                                                                       
+  # Print the new reference for verification                                                                                           
+  print(f"WorkPackage assignments in Researcher: {researcherToWpAssignment}")                                                          
+                                                                                                                                       
+  # Also need to add the inverse reference in WorkPackage to keep track of assigned researchers                                        
+  assignedResearchers = add_EReference_to_EClass_eStructuralFeatures(                                                                  
+      eClass=workPackageClass,                                                                                                         
+      name="assignedResearchers",                                                                                                      
+      containment=False,  # WP doesn't contain Researchers                                                                             
+      lowerBound=0,       # A WP might have no researchers                                                                             
+      upperBound=-1       # A WP can have multiple researchers                                                                         
+  )                                                                                                                                    
+                                                                                                                                       
+  # Set the type of this reference to Researcher                                                                                       
+  set_etype_of_ereference(assignedResearchers, researcherClass)                                                                        
+                                                                                                                                       
+  # Print the new reference for verification                                                                                           
+  print(f"Assigned Researchers in WorkPackage: {assignedResearchers}")                                                                 
+                                                                                                                                       
+  # Now let's summarize all our classes and their relationships                                                                        
+  print("\n--- SUMMARY OF MODEL ---")                                                                                                  
+  print(f"1. Department (id, name)")                                                                                                   
+  print(f"2. ResearchGroup (id, name, department -> Department)")                                                                      
+  print(f"3. Researcher (id, name, researchGroup -> ResearchGroup, workPackageAssignments -> WorkPackage*)")                           
+  print(f"4. Project (id, name, workPackages* -> WorkPackage)")                                                                        
+  print(f"5. WorkPackage (id, name, project -> Project, leader -> ResearchGroup, assignedResearchers* -> Researcher)")                 
+                                                                                                                                       
+  # Finally, let's return the complete package as our answer                                                                           
+  final_answer(pkg)                                                                                                                    
+ ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
 Execution logs:
-Reference types set successfully.
+Department reference in ResearchGroup: emf_uri_fragment='/' name='department' containment=False eType=EClass(emf_uri_fragment='/', 
+name='Department') lowerBound=1 upperBound=1
+ResearchGroup reference in Researcher: emf_uri_fragment='/' name='researchGroup' containment=False eType=EClass(emf_uri_fragment='/', 
+name='ResearchGroup') lowerBound=1 upperBound=1
+Project reference in WorkPackage: emf_uri_fragment='/' name='project' containment=False eType=EClass(emf_uri_fragment='/', 
+name='Project') lowerBound=1 upperBound=1
+Leader (ResearchGroup) reference in WorkPackage: emf_uri_fragment='/' name='leader' containment=False 
+eType=EClass(emf_uri_fragment='/', name='ResearchGroup') lowerBound=1 upperBound=1
+WorkPackages reference in Project: emf_uri_fragment='/' name='workPackages' containment=True eType=EClass(emf_uri_fragment='/', 
+name='WorkPackage') lowerBound=0 upperBound=-1
+WorkPackage assignments in Researcher: emf_uri_fragment='/' name='workPackageAssignments' containment=False 
+eType=EClass(emf_uri_fragment='/', name='WorkPackage') lowerBound=0 upperBound=-1
+Assigned Researchers in WorkPackage: emf_uri_fragment='/' name='assignedResearchers' containment=False 
+eType=EClass(emf_uri_fragment='/', name='Researcher') lowerBound=0 upperBound=-1
 
-Out: None
-[Step 3: Duration 20.59 seconds| Input tokens: 18,656 | Output tokens: 2,023]
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 4 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- ─ Executing parsed code: ────────────────────────────────────────────────────────────────────────────────────────── 
-  final_answer("EPackage for research project management system created successfully.")                              
- ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
-Final answer: EPackage for research project management system created successfully.
-[Step 4: Duration 7.65 seconds| Input tokens: 27,308 | Output tokens: 2,176]
+--- SUMMARY OF MODEL ---
+1. Department (id, name)
+2. ResearchGroup (id, name, department -> Department)
+3. Researcher (id, name, researchGroup -> ResearchGroup, workPackageAssignments -> WorkPackage*)
+4. Project (id, name, workPackages* -> WorkPackage)
+5. WorkPackage (id, name, project -> Project, leader -> ResearchGroup, assignedResearchers* -> Researcher)
+
+Final answer: emf_uri_fragment='/' name='ResearchProjectManagement' nsURI='http://www.example.com/researchprojectmanagement' 
+nsPrefix='rpm'
+[Step 3: Duration 33.61 seconds| Input tokens: 18,714 | Output tokens: 2,218]
