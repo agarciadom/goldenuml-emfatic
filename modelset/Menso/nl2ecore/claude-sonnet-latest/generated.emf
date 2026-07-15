@@ -1,0 +1,134 @@
+@namespace(uri="http://www.delijn.be/menso", prefix="deLijn")
+package deLijn;
+
+datatype LocalTime : java.time.LocalTime;
+
+enum TrajectoryStatus {
+	PENDING_APPROVAL = 0;
+	REFUSED = 1;
+	CHANGE_REQUESTED = 2;
+	APPROVED = 3;
+	OPERATIONAL = 4;
+	SUSPENDED = 5;
+	CANCELLED = 6;
+}
+
+enum LineCategory {
+	CATEGORY_A = 0;
+	CATEGORY_B = 1;
+	CATEGORY_C = 2;
+	CATEGORY_D = 3;
+}
+
+class DeLijnSystem {
+	val Bus[*] busses;
+	val Line[*] lines;
+	val Trajectory[*] trajectories;
+	val Customer[*] customers;
+	val MensoCard[*] mensoCards;
+	val Invoice[*] invoices;
+	val TownAuthority[*] townAuthorities;
+}
+
+class Bus {
+	attr String busId;
+	ref Trajectory[*] assignedTrajectory;
+}
+
+class Line {
+	attr String lineNumber;
+	attr String lineName;
+	attr LineCategory category;
+	ref Trajectory[*]#line trajectories;
+}
+
+class Trajectory {
+	op void requestApproval(TownAuthority authority);
+	op void suspend(String reason, EDate startDate, EDate endDate);
+	op void cancel(EDate cancellationDate);
+	op void assignBus(Bus bus);
+	attr String trajectoryId;
+	attr String description;
+	attr TrajectoryStatus status;
+	attr EDate operationalStartDate;
+	attr EDate cancellationDate;
+	ref Line#trajectories line;
+	val ApprovalRequest[*] approvalRequests;
+	val Suspension[*] suspensions;
+	ref Bus[*] assignedBusses;
+}
+
+class Suspension {
+	attr String reason;
+	attr EDate startDate;
+	attr EDate endDate;
+}
+
+class TownAuthority {
+	op boolean processApprovalRequest(ApprovalRequest request);
+	attr String name;
+	attr String address;
+}
+
+class ApprovalRequest {
+	attr EDate requestDate;
+	attr ApprovalOutcome outcome;
+	attr EDate responseDate;
+	attr String changeComments;
+	ref TownAuthority authority;
+}
+
+enum ApprovalOutcome {
+	PENDING = 0;
+	APPROVED = 1;
+	REFUSED = 2;
+	CHANGE_REQUESTED = 3;
+}
+
+class Customer {
+	op MensoCard subscribeToMenso();
+	attr String customerId;
+	attr String firstName;
+	attr String lastName;
+	attr String homeAddress;
+	attr String officeAddress;
+	attr LocalTime workStartTime;
+	attr LocalTime workEndTime;
+	ref MensoCard#customer mensoCard;
+	ref Invoice[*]#customer invoices;
+}
+
+class MensoCard {
+	op TripRegistration registerTrip(Line line, EDate timestamp);
+	attr String cardId;
+	attr EDate validFrom;
+	attr EDate validUntil;
+	ref Customer#mensoCard customer;
+	val TripRegistration[*]#mensoCard tripRegistrations;
+}
+
+class TripRegistration {
+	attr EDate timestamp;
+	ref Line line;
+	ref MensoCard#tripRegistrations mensoCard;
+	attr double tripCost;
+}
+
+class Invoice {
+	op double calculateDiscount();
+	op void generateInvoice();
+	op void recordPayment(EDate paymentDate);
+	attr String invoiceId;
+	attr EDate invoiceDate;
+	attr EDate periodStart;
+	attr EDate periodEnd;
+	attr double totalAmount;
+	attr double discountPercentage;
+	attr double amountDue;
+	attr boolean paid;
+	attr EDate paymentDate;
+	ref Customer#invoices customer;
+	ref TripRegistration[*] tripRegistrations;
+}
+
+

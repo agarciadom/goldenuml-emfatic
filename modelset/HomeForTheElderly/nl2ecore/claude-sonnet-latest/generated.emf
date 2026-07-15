@@ -1,0 +1,198 @@
+@namespace(uri="http://www.example.org/elderlyHome", prefix="elderlyHome")
+package elderlyHome;
+
+datatype LocalTime : java.time.LocalTime;
+
+enum StayCategory {
+	RH = 0;
+	RNH = 1;
+	SF = 2;
+}
+
+enum ProposalStatus {
+	PENDING = 0;
+	ACCEPTED = 1;
+	REFUSED = 2;
+	INVALIDATED = 3;
+}
+
+enum InvoiceStatus {
+	OPEN = 0;
+	SENT = 1;
+	PAID = 2;
+}
+
+enum StayStatus {
+	ACTIVE = 0;
+	SUSPENDED = 1;
+	ENDED = 2;
+}
+
+class ElderlyHomeSystem {
+	val Home home;
+	val Person[*] persons;
+	val Category[*] categories;
+	val WaitingList[*] waitingLists;
+	val RegistrationQuestion[*] registrationQuestions;
+	val AssessmentQuestion[*] assessmentQuestions;
+}
+
+class Home {
+	attr String name;
+	val Department[*]#home departments;
+}
+
+class Department {
+	attr String name;
+	ref Home#departments home;
+	val Room[*]#department rooms;
+}
+
+class Room {
+	attr String roomNumber;
+	ref Department#rooms department;
+	val Bed[*]#room beds;
+}
+
+class Bed {
+	attr String bedNumber;
+	ref Room#beds room;
+	ref Category category;
+	attr boolean isFree;
+}
+
+class Category {
+	attr StayCategory stayCategory;
+	attr double pricePerDay;
+}
+
+class Person {
+	attr String firstName;
+	attr String lastName;
+	attr EDate dateOfBirth;
+	attr String contactDetails;
+	val Registration#person registration;
+	val Stay[*]#inhabitant stays;
+	val Proposal[*]#person proposals;
+	val Assessment[*]#person assessments;
+	ref Person representative;
+}
+
+class Registration {
+	attr EDate registrationDate;
+	attr boolean isComplete;
+	ref Person#registration person;
+	val RegistrationAnswer[*] answers;
+}
+
+class RegistrationQuestion {
+	attr String questionText;
+}
+
+class RegistrationAnswer {
+	attr String answerText;
+	ref RegistrationQuestion question;
+}
+
+class Assessment {
+	op StayCategory determineStayCategory();
+	attr EDate assessmentDate;
+	attr boolean isReAssessment;
+	ref Person#assessments person;
+	attr StayCategory determinedStayCategory;
+	val AssessmentAnswer[*] answers;
+}
+
+class AssessmentQuestion {
+	attr String questionText;
+	attr String activity;
+}
+
+class AssessmentAnswer {
+	attr String answerText;
+	ref AssessmentQuestion question;
+}
+
+class WaitingList {
+	op WaitingListEntry getNextCandidate();
+	op void addEntry(WaitingListEntry entry);
+	op void removeEntry(WaitingListEntry entry);
+	attr StayCategory stayCategory;
+	val WaitingListEntry[*]#waitingList entries;
+}
+
+class WaitingListEntry {
+	attr int position;
+	attr StayCategory requestedCategory;
+	ref WaitingList#entries waitingList;
+	ref Person person;
+}
+
+class Proposal {
+	op void accept();
+	op void refuse();
+	op void invalidate();
+	attr EDate proposalDate;
+	attr EDate responseDeadline;
+	attr EDate responseDate;
+	attr ProposalStatus status;
+	ref Person#proposals person;
+	ref Bed bed;
+	ref Category category;
+}
+
+class Stay {
+	op void suspend();
+	op void resume();
+	op void end();
+	attr EDate startDate;
+	attr EDate endDate;
+	attr StayStatus status;
+	attr boolean discountApplied;
+	attr double discountRate;
+	ref Person#stays inhabitant;
+	ref Bed bed;
+	ref Category category;
+	val Invoice[*]#stay invoices;
+	ref Proposal proposal;
+}
+
+class Invoice {
+	op void registerPayment(double amount);
+	op void modify();
+	op void resend();
+	op void markAsPaid();
+	attr EDate invoiceDate;
+	attr EDate periodStart;
+	attr EDate periodEnd;
+	attr double totalAmount;
+	attr double outstandingAmount;
+	attr InvoiceStatus status;
+	ref Stay#invoices stay;
+	val InvoiceLine[*]#invoice invoiceLines;
+	val Payment[*]#invoice payments;
+	val CreditNote#invoice creditNote;
+}
+
+class InvoiceLine {
+	attr String description;
+	attr double amount;
+	attr int quantity;
+	ref Invoice#invoiceLines invoice;
+}
+
+class Payment {
+	attr EDate paymentDate;
+	attr double amount;
+	ref Invoice#payments invoice;
+}
+
+class CreditNote {
+	op void executeRefund();
+	attr EDate issueDate;
+	attr double refundAmount;
+	attr boolean refundExecuted;
+	ref Invoice#creditNote invoice;
+}
+
+

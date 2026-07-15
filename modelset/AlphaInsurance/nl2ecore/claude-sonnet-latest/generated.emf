@@ -1,0 +1,203 @@
+@namespace(uri="http://www.alphainsurance.com/metamodel", prefix="alphaInsurance")
+package alphaInsurance;
+
+datatype MonthYear : java.time.YearMonth;
+
+enum InvoicingFrequency {
+	MONTHLY = 0;
+	YEARLY = 1;
+}
+
+enum AssessmentMethod {
+	ON_THE_SPOT = 0;
+	HEAD_OFFICE = 1;
+}
+
+enum OfferChannel {
+	IN_PERSON = 0;
+	EMAIL = 1;
+}
+
+enum ClaimCaseStatus {
+	OPEN = 0;
+	UNDER_ASSESSMENT = 1;
+	APPROVED = 2;
+	REJECTED = 3;
+	PAID = 4;
+}
+
+enum PolicyType {
+	MATERIAL_DAMAGE = 0;
+	PHYSICAL_DAMAGE = 1;
+	HEALTH = 2;
+	LIFE = 3;
+	PROPERTY = 4;
+	OTHER = 5;
+}
+
+class AlphaInsuranceSystem {
+	val Customer[*] customers;
+	val Broker[*] brokers;
+	val InsuranceProduct[*] insuranceProducts;
+	val Offer[*] offers;
+	val Contract[*] contracts;
+	val Claim[*] claims;
+	val Estimator[*] estimators;
+	val Invoice[*] invoices;
+}
+
+abstract class Person {
+	attr String firstName;
+	attr String lastName;
+	attr String email;
+	attr String phone;
+}
+
+class Customer extends Person {
+	op void requestInsurance(PolicyType[*] policyTypes);
+	attr String customerId;
+	attr String bankAccountNumber;
+	ref Broker assignedBroker;
+	val CustomerProfile customerProfile;
+	ref Contract[*] contracts;
+	ref Claim[*] claims;
+}
+
+class Broker extends Person {
+	op void assessCustomerProfile(Customer customer, AssessmentMethod method);
+	op Offer makeOffer(Customer customer, InsuranceProduct product, OfferChannel channel);
+	attr String brokerId;
+	attr String registrationNumber;
+	ref Customer[*] customers;
+}
+
+class CustomerProfile {
+	attr EDate assessmentDate;
+	attr AssessmentMethod assessmentMethod;
+	attr boolean trustworthy;
+	attr String notes;
+	val PolicyTypeRequest[*] requestedPolicyTypes;
+}
+
+class PolicyTypeRequest {
+	attr PolicyType policyType;
+}
+
+class InsuranceProduct {
+	attr String productId;
+	attr String name;
+	attr String description;
+	attr PolicyType policyType;
+	attr double basePrice;
+}
+
+class Offer {
+	op Contract accept();
+	op void reject();
+	attr String offerId;
+	attr EDate offerDate;
+	attr OfferChannel channel;
+	attr Boolean accepted;
+	ref Customer customer;
+	ref InsuranceProduct insuranceProduct;
+	ref Broker issuedBy;
+	ref Contract resultingContract;
+}
+
+class Contract {
+	op Invoice generateInvoice();
+	attr String contractId;
+	attr EDate signingDate;
+	attr EDate startDate;
+	attr EDate endDate;
+	attr InvoicingFrequency invoicingFrequency;
+	ref Customer customer;
+	ref Broker broker;
+	ref InsuranceProduct insuranceProduct;
+	ref Offer offer;
+	ref Invoice[*] invoices;
+}
+
+class Invoice {
+	attr String invoiceId;
+	attr EDate issueDate;
+	attr EDate dueDate;
+	attr double amount;
+	attr boolean paid;
+	attr MonthYear billingPeriod;
+	ref Contract contract;
+}
+
+class Claim {
+	op void submitClaim();
+	attr String claimId;
+	attr EDate submissionDate;
+	attr String description;
+	ref Customer customer;
+	ref Contract contract;
+	val ClaimCase[*] claimCases;
+}
+
+class ClaimCase {
+	op void sendForAssessment();
+	op void approve();
+	op void reject();
+	attr String claimCaseId;
+	attr EDate openingDate;
+	attr ClaimCaseStatus status;
+	attr PolicyType policyType;
+	attr boolean fileComplete;
+	val SupportingDocument[*] supportingDocuments;
+	val EstimatorReport[*] estimatorReports;
+	val CompensationDecision compensationDecision;
+}
+
+class SupportingDocument {
+	attr String documentId;
+	attr String name;
+	attr EDate uploadDate;
+	attr String fileReference;
+}
+
+class Estimator extends Person {
+	op EstimatorReport issueReport(ClaimCase claimCase);
+	attr String estimatorId;
+	attr PolicyType areaOfExpertise;
+}
+
+class EstimatorReport {
+	attr String reportId;
+	attr EDate issueDate;
+	attr String content;
+	attr boolean recommendsApproval;
+	attr EDate retentionDeadline;
+	ref Estimator issuedBy;
+}
+
+class CompensationDecision {
+	op double calculateCompensation();
+	attr String decisionId;
+	attr EDate decisionDate;
+	attr boolean approved;
+	attr String notes;
+	val EligibleCostItem[*] eligibleCostItems;
+	val Compensation compensation;
+}
+
+class EligibleCostItem {
+	attr String description;
+	attr double claimedAmount;
+	attr double refundPercentage;
+	ref SupportingDocument supportingDocument;
+}
+
+class Compensation {
+	op void executePayment();
+	attr String compensationId;
+	attr double totalAmount;
+	attr EDate paymentDate;
+	attr boolean paid;
+	attr String targetBankAccount;
+}
+
+

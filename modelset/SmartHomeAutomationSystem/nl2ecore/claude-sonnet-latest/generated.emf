@@ -1,0 +1,154 @@
+@namespace(uri="http://www.example.org/shas", prefix="shas")
+package shas;
+
+datatype Timestamp : java.util.Date;
+
+enum CommandStatus {
+	requested = 0;
+	completed = 1;
+	failed = 2;
+	pending = 3;
+}
+
+enum RuleStatus {
+	active = 0;
+	deactivated = 1;
+}
+
+enum DeviceStatus {
+	activated = 0;
+	deactivated = 1;
+}
+
+enum BooleanOperator {
+	AND = 0;
+	OR = 1;
+	NOT = 2;
+}
+
+enum RelationalOperator {
+	LESS_THAN = 0;
+	LESS_THAN_OR_EQUAL = 1;
+	EQUAL = 2;
+	GREATER_THAN_OR_EQUAL = 3;
+	GREATER_THAN = 4;
+	NOT_EQUAL = 5;
+}
+
+class SHAS {
+	val User[*] users;
+	val SmartHome[*] smartHomes;
+}
+
+class User {
+	attr String userId;
+	attr String name;
+	attr String email;
+}
+
+class Owner extends User {
+	op void createRule(SmartHome home, AutomationRule rule);
+	op void editRule(AutomationRule rule);
+	op void activateRule(AutomationRule rule);
+	op void deactivateRule(AutomationRule rule);
+	ref SmartHome[*]#owner ownedHomes;
+}
+
+class SmartHome {
+	attr String physicalAddress;
+	ref Owner#ownedHomes owner;
+	val Room[*] rooms;
+	val ActivityLog activityLog;
+	val AutomationRule[*] automationRules;
+	val InfrastructureMap infrastructureMap;
+}
+
+class Room {
+	attr String name;
+	val Device[*] devices;
+}
+
+class InfrastructureMap {
+	op void registerDevice(Device device);
+	op void unregisterDevice(Device device);
+	op void updateDeviceStatus(Device device, DeviceStatus status);
+	ref Device[*] registeredDevices;
+}
+
+abstract class Device {
+	attr String deviceId;
+	attr String deviceType;
+	attr DeviceStatus status;
+}
+
+class SensorDevice extends Device {
+	op SensorReading provideSensorReading();
+	val SensorReading[*] sensorReadings;
+}
+
+class ActuatorDevice extends Device {
+	op void sendCommand(ControlCommand command);
+	val ControlCommand[*] controlCommands;
+}
+
+class SensorReading {
+	attr double measuredValue;
+	attr Timestamp timestamp;
+	attr String unit;
+}
+
+class ControlCommand {
+	attr String commandName;
+	attr Timestamp timestamp;
+	attr CommandStatus status;
+	ref ActuatorDevice targetActuator;
+	ref Room targetRoom;
+}
+
+class ActivityLog {
+	ref SensorReading[*] sensorReadings;
+	ref ControlCommand[*] controlCommands;
+	val RuleTriggeredEvent[*] ruleTriggeredEvents;
+}
+
+class RuleTriggeredEvent {
+	attr Timestamp timestamp;
+	ref AutomationRule triggeredRule;
+}
+
+class AutomationRule {
+	op void activate();
+	op void deactivate();
+	op void edit();
+	op boolean isEditable();
+	attr String name;
+	attr RuleStatus status;
+	val BooleanExpression precondition;
+	val RuleAction action;
+	ref AutomationRule[*] dependsOn;
+	ref AutomationRule[*] conflictsWith;
+}
+
+class RuleAction {
+	val ControlCommand[*] commands;
+}
+
+abstract class BooleanExpression {
+}
+
+class CompositeBooleanExpression extends BooleanExpression {
+	attr BooleanOperator operator;
+	val BooleanExpression[*] operands;
+}
+
+class RelationalTerm extends BooleanExpression {
+	attr RelationalOperator operator;
+	attr String value;
+	ref Room referencedRoom;
+	ref SensorDevice referencedSensor;
+	ref ActuatorDevice referencedActuator;
+	ref SensorReading referencedSensorReading;
+	ref ControlCommand referencedCommand;
+}
+
+

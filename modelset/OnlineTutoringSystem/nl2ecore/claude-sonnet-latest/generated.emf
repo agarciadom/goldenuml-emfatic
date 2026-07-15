@@ -1,0 +1,141 @@
+@namespace(uri="http://www.example.org/ots", prefix="ots")
+package ots;
+
+datatype LocalTime : java.time.LocalTime;
+
+datatype DayOfWeek : java.time.DayOfWeek;
+
+enum ExpertiseLevel {
+	PRIMARY_SCHOOL = 0;
+	HIGH_SCHOOL = 0;
+	UNIVERSITY = 0;
+}
+
+enum PaymentMethod {
+	CREDIT_CARD = 0;
+	WIRE_TRANSFER = 0;
+}
+
+enum SessionStatus {
+	REQUESTED = 0;
+	CONFIRMED = 0;
+	AGREED = 0;
+	ONGOING = 0;
+	COMPLETED = 0;
+	CANCELLED_BY_STUDENT = 0;
+	CANCELLED_BY_TUTOR = 0;
+}
+
+enum CancellationParty {
+	STUDENT = 0;
+	TUTOR = 0;
+}
+
+class OTSSystem {
+	val Student[*] students;
+	val Tutor[*] tutors;
+	val Subject[*] subjects;
+	val TutoringOffer[*] tutoringOffers;
+	val TutoringRequest[*] tutoringRequests;
+	val TutoringSession[*] tutoringSessions;
+	val TutorOfTheMonthAward[*] awards;
+	val Payment[*] payments;
+}
+
+abstract class Person {
+	attr String name;
+	attr String email;
+}
+
+class Student extends Person {
+	op void browseTutoringOffers(Subject subject);
+	op TutoringRequest makeTutoringRequest(TutoringOffer offer, ExpertiseLevel level, EDate suggestedDateTime);
+	op void cancelSession(TutoringSession session);
+	op void payForSession(TutoringSession session, PaymentMethod method);
+	ref Tutor tutorRole;
+	ref TutoringRequest[*]#student tutoringRequests;
+}
+
+class Tutor extends Person {
+	op TutoringOffer offerTutoring(Subject subject, ExpertiseLevel level, double hourlyPrice);
+	op void confirmSession(TutoringRequest request);
+	op void proposeAlternativeSlot(TutoringRequest request, EDate alternativeDateTime);
+	op void cancelSession(TutoringSession session);
+	op void setAvailability(AvailabilitySlot slot);
+	attr String bankAccount;
+	ref Student studentRole;
+	ref TutoringOffer[*]#tutor tutoringOffers;
+	val AvailabilitySlot[*] availabilitySlots;
+	val Discount[*] discounts;
+}
+
+class Subject {
+	attr String name;
+}
+
+class TutoringOffer {
+	ref Tutor#tutoringOffers tutor;
+	ref Subject subject;
+	attr ExpertiseLevel expertiseLevel;
+	attr double hourlyPrice;
+}
+
+class AvailabilitySlot {
+	attr DayOfWeek dayOfWeek;
+	attr LocalTime startTime;
+	attr LocalTime endTime;
+}
+
+class TutoringRequest {
+	ref Student#tutoringRequests student;
+	ref TutoringOffer tutoringOffer;
+	attr ExpertiseLevel requestedLevel;
+	attr EDate suggestedDateTime;
+	attr EDate alternativeDateTime;
+	ref TutoringSession resultingSession;
+}
+
+class TutoringSession {
+	op TutoringSession scheduleFollowUp(EDate dateTime);
+	op double calculatePrice();
+	ref Tutor tutor;
+	ref Student student;
+	ref Subject subject;
+	attr EDate agreedDateTime;
+	attr int durationMinutes;
+	attr double hourlyPrice;
+	attr SessionStatus status;
+	attr double appliedDiscountPercent;
+	ref TutoringSession followUpSession;
+	val Cancellation cancellation;
+	ref Payment#session payment;
+}
+
+class Cancellation {
+	attr CancellationParty cancelledBy;
+	attr EDate cancellationTime;
+	attr boolean withinDeadline;
+	attr double penaltyAmount;
+}
+
+class Discount {
+	ref Student student;
+	attr double discountPercent;
+	attr boolean used;
+}
+
+class Payment {
+	ref TutoringSession#payment session;
+	attr PaymentMethod method;
+	attr double amount;
+	attr EDate paymentDate;
+}
+
+class TutorOfTheMonthAward {
+	ref Tutor tutor;
+	ref Subject subject;
+	attr int year;
+	attr int month;
+}
+
+

@@ -1,0 +1,179 @@
+@namespace(uri="http://www.example.org/oilcompany", prefix="oilcompany")
+package oilcompany;
+
+datatype LocalTime : java.time.LocalTime;
+
+enum CustomerStatus {
+	NORMAL = 0;
+	SUSPENDED = 1;
+}
+
+enum PumpStatus {
+	AVAILABLE = 0;
+	IN_USE = 1;
+	BLOCKED_DIRT_CRITICAL = 2;
+	BLOCKED_REFILL = 3;
+}
+
+enum PaymentMethod {
+	CASH = 0;
+	CREDIT_CARD = 1;
+	FUEL_CARD = 2;
+}
+
+enum InvoiceStatus {
+	SENT = 0;
+	PAID = 1;
+	OVERDUE = 2;
+}
+
+class OilCompanySystem {
+	val OilCompany oilCompany;
+	val DiscountRule[*] discountRules;
+	val DailyReport[*] dailyReports;
+}
+
+class OilCompany {
+	attr String name;
+	val GasStation[*] gasStations;
+	val Customer[*] customers;
+	val FuelCard[*] fuelCards;
+	val Invoice[*] invoices;
+}
+
+class GasStation {
+	op String produceDailyReport();
+	attr String name;
+	attr String address;
+	val Pump[*] pumps;
+	val GasStationResponsible responsible;
+}
+
+class GasStationResponsible {
+	op void blockPump(Pump pump);
+	op void releasePump(Pump pump);
+	attr String name;
+	attr String contactInfo;
+}
+
+class Pump {
+	op void takeNozzle(Customer customer);
+	op void putBackNozzle();
+	op boolean isAvailable();
+	attr String pumpId;
+	attr String gasolineType;
+	attr PumpStatus status = "AVAILABLE";
+	val Reservoir reservoir;
+	val RefuelTurn[*] refuelTurns;
+}
+
+class Reservoir {
+	op boolean needsRefill();
+	op boolean isBelowCriticalLevel();
+	op double quantityToOrder();
+	attr double currentLevel;
+	attr double capacity;
+	attr double reorderLevel;
+	attr double criticalLevel;
+	val RefillEvent[*] refillEvents;
+}
+
+class RefillEvent {
+	attr EDate refillDate;
+	attr double quantityAdded;
+	attr double levelBeforeRefill;
+	attr boolean pumpBlockedForSettling;
+	attr LocalTime blockStartTime;
+}
+
+class Customer {
+	op void suspend();
+	op void reinstate();
+	op boolean isBlocked();
+	attr String customerId;
+	attr String name;
+	attr String address;
+	attr CustomerStatus status = "NORMAL";
+	attr int nonPaymentThreshold = 2;
+	attr int consecutiveUnpaidMonths = 0;
+	ref FuelCard fuelCard;
+	ref RefuelTurn[*]#customer refuelTurns;
+	ref Invoice[*]#customer invoices;
+}
+
+class FuelCard {
+	op void block();
+	op void unblock();
+	attr String cardNumber;
+	attr boolean isBlocked = false;
+	attr EDate issueDate;
+	ref Customer owner;
+}
+
+class RefuelTurn {
+	op double computeTotalAmount();
+	attr EDate startTime;
+	attr EDate endTime;
+	attr double quantity;
+	attr double pricePerUnit;
+	attr double totalAmount;
+	attr PaymentMethod paymentMethod;
+	ref Customer#refuelTurns customer;
+	ref Pump pump;
+	ref InvoiceLine invoiceLine;
+}
+
+class Invoice {
+	op void send();
+	op void resend();
+	op void receivePayment(Payment payment);
+	op void applyDiscount();
+	op boolean isPaid();
+	attr String invoiceId;
+	attr EDate invoiceMonth;
+	attr EDate sentDate;
+	attr EDate paidDate;
+	attr InvoiceStatus status = "SENT";
+	attr double totalBeforeDiscount;
+	attr double discountRate;
+	attr double totalAfterDiscount;
+	attr int timesSent = 0;
+	ref Customer#invoices customer;
+	val InvoiceLine[*] lines;
+	val Payment[*] payments;
+}
+
+class InvoiceLine {
+	attr String description;
+	attr double amount;
+	ref RefuelTurn refuelTurn;
+}
+
+class Payment {
+	attr EDate paymentDate;
+	attr double amount;
+	attr PaymentMethod paymentMethod;
+	ref Invoice invoice;
+}
+
+class DiscountRule {
+	op boolean applies(double turnover, Customer customer);
+	attr double minimumTurnover;
+	attr double discountRate;
+	attr String description;
+}
+
+class DailyReport {
+	attr EDate reportDate;
+	val DailyReportEntry[*] entries;
+	ref GasStation gasStation;
+}
+
+class DailyReportEntry {
+	ref Pump pump;
+	attr double currentLevel;
+	attr double quantityToOrder;
+	attr boolean needsRefill;
+}
+
+

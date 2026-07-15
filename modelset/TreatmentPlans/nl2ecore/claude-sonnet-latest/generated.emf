@@ -1,0 +1,100 @@
+@namespace(uri="http://www.example.org/hospital", prefix="hospital")
+package hospital;
+
+datatype LocalTime : java.time.LocalTime;
+
+class HospitalSystem {
+	val Hospital[*] hospitals;
+	val ExaminationType[*] examinationTypes;
+	val TreatmentPlan[*] treatmentPlans;
+	val Patient[*] patients;
+	val Problem[*] problems;
+}
+
+class ExaminationType {
+	attr String name;
+	attr String description;
+}
+
+class Hospital {
+	attr String name;
+	attr String address;
+	val Doctor[*]#hospital affiliatedDoctors;
+	val Permission[*]#hospital permissions;
+	val Examination[*]#performingHospital examinations;
+}
+
+class Permission {
+	attr EDate grantedDate;
+	attr EDate expiryDate;
+	ref Hospital#permissions hospital;
+	ref ExaminationType examinationType;
+}
+
+class Doctor {
+	attr String name;
+	attr String specialization;
+	ref Hospital#affiliatedDoctors hospital;
+	val Diagnosis[*]#doctor diagnoses;
+}
+
+class Patient {
+	attr String name;
+	attr EDate dateOfBirth;
+	ref Diagnosis[*]#patient diagnoses;
+}
+
+class Problem {
+	attr String name;
+	attr String description;
+	ref TreatmentPlan[*]#problem treatmentPlans;
+}
+
+class TreatmentPlan {
+	attr String name;
+	attr String version;
+	ref Problem#treatmentPlans problem;
+	ref ExaminationType[*] advisedExaminationTypes;
+	ref ActualTreatment[*]#basedOnPlan actualTreatments;
+}
+
+class Diagnosis {
+	attr EDate date;
+	attr String notes;
+	ref Doctor#diagnoses doctor;
+	ref Patient#diagnoses patient;
+	ref Problem problem;
+	val ActualTreatment#diagnosis actualTreatment;
+}
+
+class ActualTreatment {
+	op double computeDivergence();
+	attr EDate startDate;
+	attr String notes;
+	ref TreatmentPlan#actualTreatments basedOnPlan;
+	ref Diagnosis#actualTreatment diagnosis;
+	val MedicalAction[*]#actualTreatment medicalActions;
+}
+
+abstract class MedicalAction {
+	attr EDate date;
+	attr String description;
+	attr boolean isAdvised;
+	ref ActualTreatment#medicalActions actualTreatment;
+}
+
+class Examination extends MedicalAction {
+	attr String result;
+	attr LocalTime scheduledTime;
+	ref ExaminationType examinationType;
+	ref Hospital#examinations performingHospital;
+	ref Permission permission;
+	ref Doctor requestingDoctor;
+}
+
+class FreeAction extends MedicalAction {
+	attr String actionType;
+	attr String justification;
+}
+
+

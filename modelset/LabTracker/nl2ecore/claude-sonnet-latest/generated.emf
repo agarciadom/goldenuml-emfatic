@@ -1,0 +1,126 @@
+@namespace(uri="http://www.example.org/labtracker", prefix="labtracker")
+package labtracker;
+
+datatype LocalTime : java.time.LocalTime;
+
+datatype ByteArray : "byte[]";
+
+enum RepetitionInterval {
+	WEEKLY = 0;
+	MONTHLY = 0;
+	EVERY_HALF_YEAR = 0;
+	YEARLY = 0;
+}
+
+enum TestAccessType {
+	APPOINTMENT_REQUIRED = 0;
+	WALK_IN_ONLY = 0;
+	DROP_OFF = 0;
+}
+
+class LabTrackerSystem {
+	val Person[*] persons;
+	val Lab[*] labs;
+	val TestType[*] testTypes;
+	val TestGroup[*] testGroups;
+	val Requisition[*] requisitions;
+	val Appointment[*] appointments;
+}
+
+class Address {
+	attr String street;
+	attr String city;
+	attr String province;
+	attr String postalCode;
+	attr String country;
+}
+
+abstract class Person {
+	attr String firstName;
+	attr String lastName;
+	attr String phoneNumber;
+	val Address address;
+}
+
+class Patient extends Person {
+	attr String healthNumber;
+	attr EDate dateOfBirth;
+	ref Requisition[*]#patient requisitions;
+	ref Appointment[*]#patient appointments;
+}
+
+class Doctor extends Person {
+	op void prescribeTest(Requisition requisition, Patient patient);
+	attr int practitionerNumber;
+	attr ByteArray signature;
+	ref Requisition[*]#issuingDoctor issuedRequisitions;
+}
+
+class TestGroup {
+	attr String name;
+	ref TestType[*]#group testTypes;
+}
+
+class TestType {
+	attr String name;
+	attr int duration = 0;
+	attr boolean fixedDuration;
+	attr TestAccessType accessType;
+	ref TestGroup#testTypes group;
+}
+
+class RepetitionPattern {
+	attr int numberOfTimes;
+	attr RepetitionInterval interval;
+}
+
+class Requisition {
+	attr EDate validFrom;
+	ref Doctor#issuedRequisitions issuingDoctor;
+	ref Patient#requisitions patient;
+	ref TestGroup testGroup;
+	val OrderedTest[*] orderedTests;
+	val RepetitionPattern repetitionPattern;
+	volatile transient derived attr int totalDuration;
+}
+
+class OrderedTest {
+	ref TestType testType;
+	val TestResult result;
+}
+
+class TestResult {
+	op String viewResult();
+	attr boolean positive;
+	attr String report;
+}
+
+class Lab {
+	attr String name;
+	attr String registrationNumber;
+	val Address address;
+	attr double cancellationFee;
+	val DailyBusinessHours[*] businessHours;
+	ref Appointment[*]#lab appointments;
+}
+
+class DailyBusinessHours {
+	attr String dayOfWeek;
+	attr LocalTime startTime;
+	attr LocalTime endTime;
+}
+
+class Appointment {
+	op void change(EDate newDate, LocalTime newStartTime, Lab newLab);
+	op void cancel();
+	op double getChangeCancellationFee();
+	attr String confirmationNumber;
+	attr EDate date;
+	attr LocalTime startTime;
+	attr LocalTime endTime;
+	ref Patient#appointments patient;
+	ref Lab#appointments lab;
+	ref Requisition requisition;
+}
+
+

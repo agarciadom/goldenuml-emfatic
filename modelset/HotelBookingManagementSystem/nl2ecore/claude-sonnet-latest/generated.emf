@@ -1,0 +1,169 @@
+@namespace(uri="http://www.example.org/hbms", prefix="hbms")
+package hbms;
+
+datatype LocalTime : java.time.LocalTime;
+
+enum RoomType {
+	SINGLE = 0;
+	DOUBLE = 0;
+	TWIN = 0;
+}
+
+enum BookingStatus {
+	PRELIMINARY = 0;
+	FINALIZED = 0;
+	CONFIRMED = 0;
+	CANCELLED = 0;
+	COMPLETED = 0;
+}
+
+enum PaymentMode {
+	PRE_PAID = 0;
+	PAY_AT_HOTEL = 0;
+}
+
+class HBMSSystem {
+	val Traveller[*] travellers;
+	val Hotel[*] hotels;
+	val HotelChain[*] hotelChains;
+	val City[*] cities;
+	val Booking[*] bookings;
+	val SearchRequest[*] searchRequests;
+}
+
+class City {
+	attr String name;
+	attr String country;
+}
+
+class Address {
+	attr String street;
+	attr String postalCode;
+	attr String area;
+	ref City city;
+}
+
+class BillingInformation {
+	attr String companyName;
+	val Address companyAddress;
+}
+
+class CreditCardInformation {
+	attr String cardNumber;
+	attr String cardHolderName;
+	attr EDate expiryDate;
+	attr String cvv;
+}
+
+class TravelPreference {
+	attr String name;
+	attr String description;
+}
+
+class Traveller {
+	op double calculateReliabilityRating();
+	op SearchRequest searchAccommodation(SearchRequest request);
+	attr String name;
+	attr double reliabilityRating;
+	val BillingInformation billingInformation;
+	val TravelPreference[*] travelPreferences;
+	val CreditCardInformation creditCardInformation;
+	ref Booking[*]#traveller bookings;
+}
+
+class HotelChain {
+	attr String name;
+	ref Hotel[*]#hotelChain hotels;
+}
+
+class Hotel {
+	op void announceRoomAvailability(RoomAvailability availability);
+	op void reportRoomFullyBooked(RoomType roomType, EDate periodStart, EDate periodEnd);
+	op SpecialOffer provideSpecialOffer(PreliminaryBooking preliminaryBooking);
+	op void confirmBooking(FinalizedBooking booking);
+	op void cancelConfirmedBooking(FinalizedBooking booking);
+	attr String name;
+	attr int starRating;
+	val Address address;
+	ref HotelChain#hotels hotelChain;
+	val RoomAvailability[*] roomAvailabilities;
+	val HotelOffer[*]#hotel offers;
+}
+
+class RoomAvailability {
+	attr RoomType roomType;
+	attr EDate periodStart;
+	attr EDate periodEnd;
+	attr int numberOfRooms;
+	attr double pricePerNight;
+	attr boolean fullyBooked;
+}
+
+class SearchRequest {
+	ref City city;
+	attr EDate arrivalDate;
+	attr EDate departureDate;
+	attr int numberOfRooms;
+	attr RoomType roomType;
+	attr int minimumStarRating;
+	attr double maxCostPerNight;
+	ref TravelPreference[*] additionalPreferences;
+	ref HotelOffer[*] results;
+}
+
+abstract class HotelOffer {
+	attr double pricePerNight;
+	attr RoomType roomType;
+	attr EDate availableFrom;
+	attr EDate availableTo;
+	ref Hotel#offers hotel;
+	ref TravelPreference[*] includedPreferences;
+}
+
+class RegularOffer extends HotelOffer {
+}
+
+class SpecialOffer extends HotelOffer {
+	attr EDate submittedAt;
+	ref PreliminaryBooking relatedPreliminaryBooking;
+}
+
+abstract class Booking {
+	attr String bookingId;
+	attr BookingStatus status;
+	attr EDate arrivalDate;
+	attr EDate departureDate;
+	attr int numberOfRooms;
+	attr RoomType roomType;
+	attr double totalCost;
+	attr EDate createdAt;
+	ref Traveller#bookings traveller;
+	ref HotelOffer offer;
+	ref TravelPreference[*] appliedPreferences;
+}
+
+class PreliminaryBooking extends Booking {
+	op FinalizedBooking selectSpecialOffer(SpecialOffer specialOffer);
+	op FinalizedBooking proceedWithOriginal(CreditCardInformation creditCard, PaymentMode paymentMode);
+	attr EDate specialOfferDeadline;
+	ref SpecialOffer[*] receivedSpecialOffers;
+	attr String cityArea;
+	attr int hotelRating;
+}
+
+class FinalizedBooking extends Booking {
+	op void cancel(EDate cancelledAt);
+	op void confirm(EDate confirmedAt);
+	op void reimburse();
+	attr PaymentMode paymentMode;
+	val CreditCardInformation creditCardInformation;
+	attr EDate confirmationDeadline;
+	attr EDate confirmedAt;
+	attr EDate cancellationDeadline;
+	attr EDate cancelledAt;
+	attr boolean cancellationFeeCharged;
+	attr boolean financialCompensationOffered;
+	attr boolean reimbursed;
+}
+
+
