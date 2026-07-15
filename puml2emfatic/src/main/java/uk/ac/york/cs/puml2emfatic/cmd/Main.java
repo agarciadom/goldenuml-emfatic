@@ -8,6 +8,7 @@ import picocli.CommandLine;
         A2AStream.class,
         PlantUMLToEcore.class,
         EcoreToEmfatic.class,
+        CompareModels.class,
         NaturalLanguageToEcore.class,
     }
 )

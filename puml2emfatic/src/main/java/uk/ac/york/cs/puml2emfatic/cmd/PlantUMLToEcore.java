@@ -9,6 +9,7 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
 import uk.ac.york.cs.puml2emfatic.llm.ConverterAssistant;
 import uk.ac.york.cs.puml2emfatic.util.EPackageValidator;
+import uk.ac.york.cs.puml2emfatic.util.EmfUtilities;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -37,6 +38,8 @@ public class PlantUMLToEcore extends LLMCommand {
 
   @Override
   public Integer call() throws Exception {
+    EmfUtilities.registerResourceFactories();
+
     if (retries < 0) {
       throw new CommandLine.ParameterException(spec.commandLine(), String.format("Invalid value %d for " +
           "retries: must be >= 0", retries));

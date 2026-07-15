@@ -7,10 +7,12 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.emf.ecore.resource.impl.ResourceSetImpl;
 import org.eclipse.emf.ecore.xmi.impl.EcoreResourceFactoryImpl;
+import org.eclipse.emf.ecore.xmi.impl.XMIResourceFactoryImpl;
 import org.eclipse.emf.emfatic.core.EmfaticResourceFactory;
 import org.eclipse.epsilon.flexmi.FlexmiResourceFactory;
 import picocli.CommandLine;
 import uk.ac.york.cs.puml2emfatic.util.EPackageValidator;
+import uk.ac.york.cs.puml2emfatic.util.EmfUtilities;
 
 import java.io.File;
 import java.util.Map;
@@ -29,8 +31,8 @@ public class EcoreToEmfatic implements Callable<Integer> {
 
   @Override
   public Integer call() {
-    EcorePackage.eINSTANCE.getEPackage();
-    Resource ecoreResource = loadEcore();
+    EmfUtilities.registerResourceFactories();
+    Resource ecoreResource = EmfUtilities.loadModel(ecoreFile);
 
     var validator = new EPackageValidator(runEvl);
     var diagnostics = validator.validate((EPackage) ecoreResource.getContents().getFirst());
@@ -48,13 +50,5 @@ public class EcoreToEmfatic implements Callable<Integer> {
     return emfaticWriter.write(ecoreResource, null, null);
   }
 
-  protected Resource loadEcore() {
-    ResourceSet resourceSet = new ResourceSetImpl();
-    Map<String, Object> extMap = resourceSet.getResourceFactoryRegistry().getExtensionToFactoryMap();
-    extMap.put("*", new EcoreResourceFactoryImpl());
-    extMap.put("flexmi", new FlexmiResourceFactory());
-    extMap.put("emf", new EmfaticResourceFactory());
-    return resourceSet.getResource(URI.createFileURI(ecoreFile.getAbsolutePath()), true);
-  }
 
 }

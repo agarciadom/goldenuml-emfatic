@@ -30,12 +30,7 @@ public class EPackageValidator {
   }
   
   public List<String> validate(File ecoreFile) {
-      ResourceSet resourceSet = new ResourceSetImpl();
-      Map<String, Object> extMap = resourceSet.getResourceFactoryRegistry().getExtensionToFactoryMap();
-      extMap.put("*", new EcoreResourceFactoryImpl());
-      extMap.put("flexmi", new FlexmiResourceFactory());
-      extMap.put("emf", new EmfaticResourceFactory());
-      Resource ecoreResource = resourceSet.getResource(URI.createFileURI(ecoreFile.getAbsolutePath()), true);
+      Resource ecoreResource = EmfUtilities.loadModel(ecoreFile);
       return validate((EPackage) ecoreResource.getContents().get(0));
   }
 
