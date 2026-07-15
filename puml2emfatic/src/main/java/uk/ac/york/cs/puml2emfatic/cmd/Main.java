@@ -9,6 +9,7 @@ import picocli.CommandLine;
         PlantUMLToEcore.class,
         EcoreToEmfatic.class,
         CompareModels.class,
+        CompareNames.class,
         NaturalLanguageToEcore.class,
     }
 )
