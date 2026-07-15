@@ -58,8 +58,8 @@ class ModelAgent:
     def run_post_repair(self):
         # Deterministic repair: remove fields already mentioned in a supertype
         for ec in self.epackage.eClassifiers.values():
-            super_names = all_super_feature_names(ec)
             try:
+                super_names = all_super_feature_names(ec)
                 for super_name in super_names:
                     if super_name in ec.eStructuralFeatures:
                         print("Repair: removing {}.{} as it is repeated in a superclass".format(ec.name, super_name))

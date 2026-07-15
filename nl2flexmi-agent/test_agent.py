@@ -1,7 +1,7 @@
 from smolagents import LiteLLMModel
 
 from agent import ModelAgent
-from model_types import EAttribute, EClass
+from model_types import EAttribute, EClass, EDataType
 
 
 def test_remove_duplicated_fields():
@@ -25,3 +25,9 @@ def test_keep_nonduplicated_fields():
     agent.epackage.eClassifiers["Supertype"] = ec
     agent.run_post_repair()
     assert "x" in ec.eStructuralFeatures
+
+def test_repair_with_edatatype():
+    agent = ModelAgent(LiteLLMModel(model_id="dummy"))
+    dt = EDataType(name="Date", instanceClassName="java.time.LocalDate")
+    agent.epackage.eClassifiers["Date"] = dt
+    agent.run_post_repair()
