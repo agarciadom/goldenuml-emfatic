@@ -233,29 +233,6 @@ class SetETypeOfEAttribute(Tool):
   output_type = "object"
 
   def forward(self, eAttribute: EAttribute, addition: Union[EDataType, str]) -> Union[EDataType, str]:
-    options = {
-      "BigDecimal": "//EBigDecimal",
-      "String": "//EString",
-      "BigInteger": "//EBigInteger",
-      "Boolean": "//EBoolean",
-      "Byte": "//EByte",
-      "Date": "//EDate",
-      "Double": "//EDouble",
-      "Float": "//EFloat",
-      "Integer": "//EInt",
-      "Long": "//ELong",
-      "Short": "//EShort",
-      "BooleanObject": "//EBooleanObject",
-      "ByteObject": "//EByteObject",
-      "CharacterObject": "//ECharacterObject",
-      "DoubleObject": "//EDoubleObject",
-      "FloatObject": "//EFloatObject",
-      "IntegerObject": "//EIntegerObject",
-      "LongObject": "//ELongObject",
-      "ShortObject": "//EShortObject",
-    }
-    if isinstance(addition, str):
-      addition = options[addition]
     eAttribute.eType = addition
     return addition
 

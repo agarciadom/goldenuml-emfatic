@@ -4,9 +4,34 @@
 from __future__ import annotations
 
 import xml.etree.ElementTree as ET
-from pydantic import BaseModel, Field, model_validator, ConfigDict
+from pydantic import BaseModel, Field, model_validator, field_validator, ConfigDict
 from typing import Union, Optional, override
 
+# Constants
+
+POSSIBLE_VALUES_EATTRIBUTE_ETYPE = {
+  "BigDecimal": "//EBigDecimal",
+  "String": "//EString",
+  "BigInteger": "//EBigInteger",
+  "Boolean": "//EBoolean",
+  "Byte": "//EByte",
+  "Date": "//EDate",
+  "Double": "//EDouble",
+  "Float": "//EFloat",
+  "Integer": "//EInt",
+  "Long": "//ELong",
+  "Short": "//EShort",
+  "BooleanObject": "//EBooleanObject",
+  "ByteObject": "//EByteObject",
+  "CharacterObject": "//ECharacterObject",
+  "DoubleObject": "//EDoubleObject",
+  "FloatObject": "//EFloatObject",
+  "IntegerObject": "//EIntegerObject",
+  "LongObject": "//ELongObject",
+  "ShortObject": "//EShortObject",
+}
+
+# Base model class
 
 class EObjectBaseModel(BaseModel):
   model_config = ConfigDict(
@@ -108,6 +133,13 @@ class EAttribute(EObjectBaseModel):
     if self.eType:
       element.set("eType", (self.eType.emf_uri_fragment if hasattr(self.eType, 'emf_uri_fragment') else self.eType))
     return element
+
+  @field_validator('eType', mode="after")
+  @classmethod
+  def translate_etype_possible_values(cls, value: Optional[Union[EDataType, str]]) -> Optional[Union[EDataType, str]]:
+    if isinstance(value, str) and value in POSSIBLE_VALUES_EATTRIBUTE_ETYPE.keys():
+      return POSSIBLE_VALUES_EATTRIBUTE_ETYPE[value]
+    return value
 
 # protected region EAttribute on begin
   @model_validator(mode="after")

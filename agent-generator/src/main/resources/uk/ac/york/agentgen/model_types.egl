@@ -5,9 +5,24 @@
 from __future__ import annotations
 
 import xml.etree.ElementTree as ET
-from pydantic import BaseModel, Field, model_validator, ConfigDict
+from pydantic import BaseModel, Field, model_validator, field_validator, ConfigDict
 from typing import Union, Optional, override
 
+[%
+var ftWithPValues = toolset.classTools.collect(ct|ct.featureTools.select(ft:EReferenceTool | not ft.possibleValues.isEmpty())).flatten();
+if (not ftWithPValues.isEmpty()) { %]
+# Constants
+
+[%  for (ft in ftWithPValues) { %]
+[%=ft.possibleValuesConstant()%] = {
+[%    for (pv in ft.possibleValues) { %]
+  "[%=pv.description%]": "[%=pv.value.eResource.getURIFragment(pv.value)%]",
+[%    } %]
+}
+
+[%  } %]
+[% } %]
+# Base model class
 
 class EObjectBaseModel(BaseModel):
   model_config = ConfigDict(
@@ -31,6 +46,9 @@ class [%=ct.eClass.name.ftuc()%](EObjectBaseModel):
     writeToFile();
   }
   ct.toFlexmi();
+  for (tool in ct.featureTools.select(ft:EReferenceTool | not ft.possibleValues.isEmpty())) {
+    tool.validatePossibleValues();
+  }
   if (ct.featureTools.exists(ft:EReferenceTool|ft.eReference.isContainment)) {
     ct.setUriFragments();
   }
@@ -149,6 +167,21 @@ operation EReferenceTool fragmentOrString(varName: String): String {
     return "(" + varName + ".emf_uri_fragment if hasattr(" + varName + ", 'emf_uri_fragment') else " + varName + ")";
   }
 }
+
+@cached
+operation EReferenceTool possibleValuesConstant(): String {
+  return 'POSSIBLE_VALUES_' + self.eContainer.eClass.name.toUpperCase() + '_' + self.eReference.name.toUpperCase();
+}
+
+operation EReferenceTool validatePossibleValues() {%]
+  @field_validator('[%=self.fieldName()%]', mode="after")
+  @classmethod
+  def translate_[%=self.fieldName().toLowerCase()%]_possible_values(cls, value: [%=self.fieldType()%]) -> [%=self.fieldType()%]:
+    if isinstance(value, str) and value in [%=self.possibleValuesConstant()%].keys():
+      return [%=self.possibleValuesConstant()%][value]
+    return value
+
+[% }
 
 operation EFeatureTool renderOptions(): String {
   var options = self.fieldOptions();
