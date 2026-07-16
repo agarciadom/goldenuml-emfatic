@@ -18,14 +18,18 @@ find "$MODELSET" -name converted.ecore -o -name generated.ecore -o -name generat
   CONVERTED="$PUML_DIR/${ECORE_FILENAME%.*}.emf"
   CONVERSION_STDERR="$PUML_DIR/emfatic-stderr.txt"
 
-  echo -n "Converting ${ECORE} to ${CONVERTED}... "
-  if puml2emfatic ecore2emfatic "$ECORE" > "$CONVERTED" 2> "$CONVERSION_STDERR"; then
-    echo "success"
-    # delete empty stderr files if successful
-    if ! test -s "$CONVERSION_STDERR"; then
-      rm "$CONVERSION_STDERR"
-    fi
+  if test -s "${CONVERTED}"; then
+    echo "Skipping ${CONVERTED} as it already exists and is non-empty"
   else
-    echo "failed (see emfatic-stderr.txt)"
+    echo -n "Converting ${ECORE} to ${CONVERTED}... "
+    if puml2emfatic ecore2emfatic "$ECORE" > "$CONVERTED" 2> "$CONVERSION_STDERR"; then
+      echo "success"
+      # delete empty stderr files if successful
+      if ! test -s "$CONVERSION_STDERR"; then
+        rm "$CONVERSION_STDERR"
+      fi
+    else
+      echo "failed (see emfatic-stderr.txt)"
+    fi
   fi
 done
