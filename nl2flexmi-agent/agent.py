@@ -1,6 +1,6 @@
 from smolagents import CodeAgent, ApiModel, LogLevel
 
-from model_types import EClass
+from model_types import EClass, EAttribute, EReference
 import model_tools as mt
 import prompts
 
@@ -56,14 +56,21 @@ class ModelAgent:
         return problems
 
     def run_post_repair(self):
-        # Deterministic repair: remove fields already mentioned in a supertype
+        # Deterministic repairs of common LLM mistakes
         for ec in self.epackage.eClassifiers.values():
             try:
+                # Remove fields already mentioned in a supertype
                 super_names = all_super_feature_names(ec)
                 for super_name in super_names:
                     if super_name in ec.eStructuralFeatures:
                         print("Repair: removing {}.{} as it is repeated in a superclass".format(ec.name, super_name))
                         del ec.eStructuralFeatures[super_name]
+
+                for sf in ec.eStructuralFeatures.values():
+                    if isinstance(sf, EAttribute) and sf.eType in self.epackage.eClassifiers:
+                        print("Repair: morphing EAttribute {}.{} to EReference as it points to EClass {}".format(ec.name, sf.name, sf.eType))
+                        ec.eStructuralFeatures[sf.name] = EReference(name=sf.name, containment=False, lowerBound=sf.lowerBound, upperBound=sf.upperBound)
+                        ec.eStructuralFeatures[sf.name].eType = self.epackage.eClassifiers[sf.eType]
             except AttributeError:
                 # not an EClass
                 pass
