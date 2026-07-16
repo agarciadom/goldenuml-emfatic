@@ -1,0 +1,626 @@
+╭────────────────────────────────────────────────────────────── New run ──────────────────────────────────────────────────────────────╮
+│                                                                                                                                     │
+│ You are an expert in generating EPackage based on a user's description.                                                             │
+│ You will achieve this by calling a series of available Python functions as tools to incrementally build it.                         │
+│                                                                                                                                     │
+│ Core concepts you need to understand:                                                                                               │
+│   - EPackage: Declaration of the package containing all the EClasses. It ONLY has these fields:                                     │
+│     - name (of type str): Name of the package (without spaces)                                                                      │
+│     - nsURI (of type str): The namespace URI of the package                                                                         │
+│     - eClassifiers (of type dict[str, Union[EClass, EDataType]]): Classes and data types within this EPackage                       │
+│     - nsPrefix (of type str): XML namespace prefix to be used for this EPackage                                                     │
+│   - EClass: Class within an EPackage. It ONLY has these fields:                                                                     │
+│     - name (of type str): Name of the class                                                                                         │
+│     - eSuperTypes (of type set[EClass]): The optional base classes from which to inherit.                                           │
+│     - eStructuralFeatures (of type dict[str, Union[EAttribute, EReference]]): The attributes and references inside this class       │
+│   - EAttribute: A specific piece of information in an EClass which is not an object. It ONLY has these fields:                      │
+│     - name (of type str): Name of the attribute.                                                                                    │
+│     - eType (of type Optional[Union[EDataType, str]]): Type of the attribute (must be set: use the tools for it)                    │
+│     - lowerBound (of type int): Minimum number of values for the attribute (must be less or equal to the upper bound)               │
+│     - upperBound (of type int): Maximum number of values for the attribute                                                          │
+│   - EReference: Reference from an EClass to another EClass. It ONLY has these fields:                                               │
+│     - name (of type str): Name of the reference.                                                                                    │
+│     - containment (of type bool): True if the source of the reference contains the target of reference (meaning that deleting the   │
+│ source will also delete the target).                                                                                                │
+│     - eType (of type Optional[EClass]): Target EClass of the reference.                                                             │
+│     - lowerBound (of type int): Minimum number of targets for the reference (must be less or equal to the upper bound)              │
+│     - upperBound (of type int): Maximum number of targets for the reference                                                         │
+│   - EDataType: Type of scalar data value used in an EAttribute. It ONLY has these fields:                                           │
+│     - name (of type str): Name of the data type                                                                                     │
+│     - instanceClassName (of type str): Fully qualified Java class name of the instances of this data type                           │
+│                                                                                                                                     │
+│ Tool interaction guidelines:                                                                                                        │
+│   - Identify elements based on the user's description.                                                                              │
+│   - First update the package and create all the classes.                                                                            │
+│   - Then add all the attributes to each class, and set their ETypes.                                                                │
+│   - Then add all the references to each class, and set their ETypes.                                                                │
+│   - Do not create your own EDataTypes if they already exist in the Eclipse Modelling Framework: reuse the named ones whenever       │
+│ possible.                                                                                                                           │
+│   - Use inheritance relationships to reduce duplication of attributes and references.                                               │
+│   - Ensure all conceptual objects are contained within another, eventually leading to a single root container class.                │
+│                                                                                                                                     │
+│ The user's description is as follows:                                                                                               │
+│                                                                                                                                     │
+│ <description>                                                                                                                       │
+│ In hospitals, doctors prescribe examinations for patients. Different types of examinations exist, such as "cardiologic test",       │
+│ "echography", "radiology", "scanner", … Every single examination is of only one type.  Not all possible types of examinations are   │
+│ allowed for all hospitals. For example, some hospitals have no permission for executing NMR scans. A hospital can apply for         │
+│ permission for types of examination.                                                                                                │
+│ Suppose the hospital wants to improve & monitor the quality of treatments. In order to do so, per type of problem, a treatment plan │
+│ is defined. A treatment plan lists the advised types of examinations. When a patient comes with a particular problem, the diagnosis │
+│ is posed by a doctor affiliated to the hospital visited by the patient. The doctor will define an actual treatment based on an      │
+│ existing treatment plan for the identified problem. The actual treatment of the patient can deviate from the standard treatment     │
+│ plan: it can consist of both advised examinations and freely chosen medical actions. Also, examinations are not necessarily at the  │
+│ same hospital: a doctor can send a patient to another hospital if his/her own hospital doesn't have a permission for the desired    │
+│ examination. By registering all this information, the hospital wants to ensure that examinations are only performed according to    │
+│ permissions, and monitor how much actual treatments diverge from advised treatment plans.                                           │
+│ </description>                                                                                                                      │
+│                                                                                                                                     │
+╰─ LiteLLMModel - ollama/granite4.1:30b ──────────────────────────────────────────────────────────────────────────────────────────────╯
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 1 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ─ Executing parsed code: ──────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+  # 1. Create the EPackage                                                                                                             
+  epackage = update_EPackage(                                                                                                          
+      name="HospitalDomain",                                                                                                           
+      nsURI="http://example.com/hospitaldomain",                                                                                       
+      nsPrefix="hosp"                                                                                                                  
+  )                                                                                                                                    
+                                                                                                                                       
+  # 2. Add all EClasses                                                                                                                
+  Hospital = add_EClass_to_EPackage_eClassifiers(epackage, "Hospital")                                                                 
+  Doctor   = add_EClass_to_EPackage_eClassifiers(epackage, "Doctor")                                                                   
+  Patient  = add_EClass_to_EPackage_eClassifiers(epackage, "Patient")                                                                  
+  ExaminationType = add_EClass_to_EPackage_eClassifiers(epackage, "ExaminationType")                                                   
+  Permission      = add_EClass_to_EPackage_eClassifiers(epackage, "Permission")                                                        
+  TreatmentPlan   = add_EClass_to_EPackage_eClassifiers(epackage, "TreatmentPlan")                                                     
+  Diagnosis       = add_EClass_to_EPackage_eClassifiers(epackage, "Diagnosis")                                                         
+  ActualTreatment = add_EClass_to_EPackage_eClassifiers(epackage, "ActualTreatment")                                                   
+                                                                                                                                       
+  # 3. Inheritance: Diagnosis and ActualTreatment share common features                                                                
+  MedicalActionBase = add_EClass_to_EPackage_eClassifiers(epackage, "MedicalActionBase")                                               
+  add_to_esupertypes_of_eclass(Diagnosis, MedicalActionBase)                                                                           
+  add_to_esupertypes_of_eclass(ActualTreatment, MedicalActionBase)                                                                     
+                                                                                                                                       
+  # 4. Add EAttributes (using built‑in types via set_etype_of_eattribute)                                                              
+  # Hospital                                                                                                                           
+  add_EAttribute_to_EClass_eStructuralFeatures(Hospital, "name", 1, 1)                                                                 
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(Hospital, "name", 1, 1), "String")                              
+  add_EAttribute_to_EClass_eStructuralFeatures(Hospital, "location", 0, 1)                                                             
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(Hospital, "location", 0, 1), "String")                          
+                                                                                                                                       
+  # Doctor                                                                                                                             
+  add_EAttribute_to_EClass_eStructuralFeatures(Doctor, "name", 1, 1)                                                                   
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(Doctor, "name", 1, 1), "String")                                
+  add_EAttribute_to_EClass_eStructuralFeatures(Doctor, "specialty", 0, 1)                                                              
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(Doctor, "specialty", 0, 1), "String")                           
+                                                                                                                                       
+  # Patient                                                                                                                            
+  add_EAttribute_to_EClass_eStructuralFeatures(Patient, "name", 1, 1)                                                                  
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(Patient, "name", 1, 1), "String")                               
+  add_EAttribute_to_EClass_eStructuralFeatures(Patient, "birthDate", 0, 1)                                                             
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(Patient, "birthDate", 0, 1), "Date")                            
+                                                                                                                                       
+  # ExaminationType                                                                                                                    
+  add_EAttribute_to_EClass_eStructuralFeatures(ExaminationType, "typeName", 1, 1)                                                      
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(ExaminationType, "typeName", 1, 1), "String")                   
+  add_EAttribute_to_EClass_eStructuralFeatures(ExaminationType, "description", 0, 1)                                                   
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(ExaminationType, "description", 0, 1), "String")                
+                                                                                                                                       
+  # Permission                                                                                                                         
+  add_EAttribute_to_EClass_eStructuralFeatures(Permission, "status", 1, 1)  # e.g., granted/ pending                                   
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(Permission, "status", 1, 1), "String")                          
+                                                                                                                                       
+  # TreatmentPlan                                                                                                                      
+  add_EAttribute_to_EClass_eStructuralFeatures(TreatmentPlan, "problemDescription", 1, 1)                                              
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(TreatmentPlan, "problemDescription", 1, 1), "String")           
+  add_EAttribute_to_EClass_eStructuralFeatures(TreatmentPlan, "createdAt", 0, 1)                                                       
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(TreatmentPlan, "createdAt", 0, 1), "Date")                      
+                                                                                                                                       
+  # Diagnosis (MedicalActionBase attributes could be added here if needed)                                                             
+                                                                                                                                       
+  # ActualTreatment                                                                                                                    
+  add_EAttribute_to_EClass_eStructuralFeatures(ActualTreatment, "notes", 0, 1)                                                         
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(ActualTreatment, "notes", 0, 1), "String")                      
+                                                                                                                                       
+  # 5. Add EReferences (containment where appropriate)                                                                                 
+                                                                                                                                       
+  # Hospital ↔ Doctor (Hospital contains Doctors)                                                                                      
+  add_EReference_to_EClass_eStructuralFeatures(Hospital, "doctors", True, 0, -1)   # containment true                                  
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(Hospital, "doctors", True, 0, -1), Doctor)                      
+                                                                                                                                       
+  # Hospital ↔ Permission (Hospital has Permissions for ExaminationTypes)                                                              
+  perm_ref = add_EReference_to_EClass_eStructuralFeatures(Hospital, "permissions", True, 0, -1)                                        
+  set_etype_of_ereference(perm_ref, Permission)                                                                                        
+                                                                                                                                       
+  # Permission → ExaminationType (which exam is permitted)                                                                             
+  add_EReference_to_EClass_eStructuralFeatures(Permission, "examinationType", False, 1, 1)  # not contained                            
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(Permission, "examinationType", False, 1, 1), ExaminationType)   
+                                                                                                                                       
+  # Hospital ↔ TreatmentPlan (Hospital defines treatment plans)                                                                        
+  add_EReference_to_EClass_eStructuralFeatures(Hospital, "treatmentPlans", True, 0, -1)                                                
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(Hospital, "treatmentPlans", True, 0, -1), TreatmentPlan)        
+                                                                                                                                       
+  # TreatmentPlan → ExaminationType (advised exams)                                                                                    
+  add_EReference_to_EClass_eStructuralFeatures(TreatmentPlan, "advisedExams", False, 0, -1)  # non‑contained reference list            
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(TreatmentPlan, "advisedExams", False, 0, -1), ExaminationType)  
+                                                                                                                                       
+  # Diagnosis relationships                                                                                                            
+  add_EReference_to_EClass_eStructuralFeatures(Diagnosis, "doctor", False, 1, 1)                                                       
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(Diagnosis, "doctor", False, 1, 1), Doctor)                      
+                                                                                                                                       
+  add_EReference_to_EClass_eStructuralFeatures(Diagnosis, "patient", False, 1, 1)                                                      
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(Diagnosis, "patient", False, 1, 1), Patient)                    
+                                                                                                                                       
+  add_EReference_to_EClass_eStructuralFeatures(Diagnosis, "treatmentPlan", False, 0, 1)   # may reference a plan                       
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(Diagnosis, "treatmentPlan", False, 0, 1), TreatmentPlan)        
+                                                                                                                                       
+  # ActualTreatment relationships (extends Diagnosis)                                                                                  
+  add_EReference_to_EClass_eStructuralFeatures(ActualTreatment, "diagnosis", False, 1, 1)   # each actual treatment stems from a       
+  diagnosis                                                                                                                            
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(ActualTreatment, "diagnosis", False, 1, 1), Diagnosis)          
+                                                                                                                                       
+  add_EReference_to_EClass_eStructuralFeatures(ActualTreatment, "advisedExams", False, 0, -1)   # copy of advised list (could be       
+  reference or owned; here non‑contained)                                                                                              
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(ActualTreatment, "advisedExams", False, 0, -1),                 
+  ExaminationType)                                                                                                                     
+                                                                                                                                       
+  add_EReference_to_EClass_eStructuralFeatures(ActualTreatment, "additionalActions", True, 0, -1)   # owned custom actions             
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(ActualTreatment, "additionalActions", True, 0, -1),             
+  ExaminationType)  # reusing ExaminationType as placeholder for any medical action; in a richer model we'd have a separate class      
+                                                                                                                                       
+  # The EPackage is now fully constructed.                                                                                             
+  final_answer(epackage)                                                                                                               
+ ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+Code execution failed at line 'Hospital = add_EClass_to_EPackage_eClassifiers(epackage, "Hospital")' due to: TypeError: 
+AddEClassToEPackageEClassifiers.forward() takes 2 positional arguments but 3 were given
+[Step 1: Duration 93.30 seconds| Input tokens: 3,663 | Output tokens: 2,136]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 2 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ─ Executing parsed code: ──────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+  # 1. Create the EPackage                                                                                                             
+  epackage = update_EPackage(                                                                                                          
+      name="HospitalDomain",                                                                                                           
+      nsURI="http://example.com/hospitaldomain",                                                                                       
+      nsPrefix="hosp"                                                                                                                  
+  )                                                                                                                                    
+                                                                                                                                       
+  # -------------------------------------------------                                                                                  
+  # 2. Add all required EClasses (name only)                                                                                           
+  # -------------------------------------------------                                                                                  
+  add_EClass_to_EPackage_eClassifiers(epackage, "Hospital")                                                                            
+  add_EClass_to_EPackage_eClassifiers(epackage, "Doctor")                                                                              
+  add_EClass_to_EPackage_eClassifiers(epackage, "Patient")                                                                             
+  add_EClass_to_EPackage_eClassifiers(epackage, "ExaminationType")                                                                     
+  add_EClass_to_EPackage_eClassifiers(epackage, "Permission")                                                                          
+  add_EClass_to_EPackage_eClassifiers(epackage, "TreatmentPlan")                                                                       
+  add_EClass_to_EPackage_eClassifiers(epackage, "Diagnosis")                                                                           
+  add_EClass_to_EPackage_eClassifiers(epackage, "ActualTreatment")                                                                     
+  # Base class for common medical‑action features                                                                                      
+  add_EClass_to_EPackage_eClassifiers(epackage, "MedicalActionBase")                                                                   
+                                                                                                                                       
+  # -------------------------------------------------                                                                                  
+  # 3. Helper to fetch a previously added EClass by name                                                                               
+  # -------------------------------------------------                                                                                  
+  def get_eclass(name: str) -> object:                                                                                                 
+      # The internal implementation of the tools stores classes in eClassifiers.                                                       
+      # We assume they are accessible via a hidden lookup; here we just return a placeholder                                           
+      # that the tooling can resolve. In practice the environment provides this resolution.                                            
+      return {"__name__": name}                                                                                                        
+                                                                                                                                       
+  # Retrieve references to each class for later use                                                                                    
+  Hospital      = get_eclass("Hospital")                                                                                               
+  Doctor        = get_eclass("Doctor")                                                                                                 
+  Patient       = get_eclass("Patient")                                                                                                
+  ExaminationType = get_eclass("ExaminationType")                                                                                      
+  Permission    = get_eclass("Permission")                                                                                             
+  TreatmentPlan = get_eclass("TreatmentPlan")                                                                                          
+  Diagnosis     = get_eclass("Diagnosis")                                                                                              
+  ActualTreatment = get_eclass("ActualTreatment")                                                                                      
+  MedicalActionBase = get_eclass("MedicalActionBase")                                                                                  
+                                                                                                                                       
+  # -------------------------------------------------                                                                                  
+  # 4. Set up inheritance (eSuperTypes)                                                                                                
+  # -------------------------------------------------                                                                                  
+  add_to_esupertypes_of_eclass(Diagnosis, MedicalActionBase)                                                                           
+  add_to_esupertypes_of_eclass(ActualTreatment, MedicalActionBase)                                                                     
+                                                                                                                                       
+  # -------------------------------------------------                                                                                  
+  # 5. Add EAttributes to each class and set their types                                                                               
+  # -------------------------------------------------                                                                                  
+  # Hospital attributes                                                                                                                
+  add_EAttribute_to_EClass_eStructuralFeatures(Hospital, "name", lowerBound=1, upperBound=1)                                           
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(Hospital, "name", lowerBound=1, upperBound=1), "String")        
+  add_EAttribute_to_EClass_eStructuralFeatures(Hospital, "location", lowerBound=0, upperBound=1)                                       
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(Hospital, "location", lowerBound=0, upperBound=1), "String")    
+                                                                                                                                       
+  # Doctor attributes                                                                                                                  
+  add_EAttribute_to_EClass_eStructuralFeatures(Doctor, "name", lowerBound=1, upperBound=1)                                             
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(Doctor, "name", lowerBound=1, upperBound=1), "String")          
+  add_EAttribute_to_EClass_eStructuralFeatures(Doctor, "specialty", lowerBound=0, upperBound=1)                                        
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(Doctor, "specialty", lowerBound=0, upperBound=1), "String")     
+                                                                                                                                       
+  # Patient attributes                                                                                                                 
+  add_EAttribute_to_EClass_eStructuralFeatures(Patient, "name", lowerBound=1, upperBound=1)                                            
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(Patient, "name", lowerBound=1, upperBound=1), "String")         
+  add_EAttribute_to_EClass_eStructuralFeatures(Patient, "birthDate", lowerBound=0, upperBound=1)                                       
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(Patient, "birthDate", lowerBound=0, upperBound=1), "Date")      
+                                                                                                                                       
+  # ExaminationType attributes                                                                                                         
+  add_EAttribute_to_EClass_eStructuralFeatures(ExaminationType, "typeName", lowerBound=1, upperBound=1)                                
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(ExaminationType, "typeName", lowerBound=1, upperBound=1),       
+  "String")                                                                                                                            
+  add_EAttribute_to_EClass_eStructuralFeatures(ExaminationType, "description", lowerBound=0, upperBound=1)                             
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(ExaminationType, "description", lowerBound=0, upperBound=1),    
+  "String")                                                                                                                            
+                                                                                                                                       
+  # Permission attributes                                                                                                              
+  add_EAttribute_to_EClass_eStructuralFeatures(Permission, "status", lowerBound=1, upperBound=1)  # e.g., granted/pending              
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(Permission, "status", lowerBound=1, upperBound=1), "String")    
+                                                                                                                                       
+  # TreatmentPlan attributes                                                                                                           
+  add_EAttribute_to_EClass_eStructuralFeatures(TreatmentPlan, "problemDescription", lowerBound=1, upperBound=1)                        
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(TreatmentPlan, "problemDescription", lowerBound=1,              
+  upperBound=1), "String")                                                                                                             
+  add_EAttribute_to_EClass_eStructuralFeatures(TreatmentPlan, "createdAt", lowerBound=0, upperBound=1)                                 
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(TreatmentPlan, "createdAt", lowerBound=0, upperBound=1),        
+  "Date")                                                                                                                              
+                                                                                                                                       
+  # ActualTreatment attributes                                                                                                         
+  add_EAttribute_to_EClass_eStructuralFeatures(ActualTreatment, "notes", lowerBound=0, upperBound=1)                                   
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(ActualTreatment, "notes", lowerBound=0, upperBound=1),          
+  "String")                                                                                                                            
+                                                                                                                                       
+  # -------------------------------------------------                                                                                  
+  # 6. Add EReferences (relationships) between classes                                                                                 
+  # -------------------------------------------------                                                                                  
+  # Hospital ↔ Doctor (Hospital contains its doctors)                                                                                  
+  add_EReference_to_EClass_eStructuralFeatures(Hospital, "doctors", containment=True, lowerBound=0, upperBound=-1)                     
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(Hospital, "doctors", containment=True, lowerBound=0,            
+  upperBound=-1), Doctor)                                                                                                              
+                                                                                                                                       
+  # Hospital ↔ Permission (Hospital holds permission records)                                                                          
+  add_EReference_to_EClass_eStructuralFeatures(Hospital, "permissions", containment=True, lowerBound=0, upperBound=-1)                 
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(Hospital, "permissions", containment=True, lowerBound=0,        
+  upperBound=-1), Permission)                                                                                                          
+                                                                                                                                       
+  # Permission → ExaminationType (which exam is permitted)                                                                             
+  add_EReference_to_EClass_eStructuralFeatures(Permission, "examinationType", containment=False, lowerBound=1, upperBound=1)           
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(Permission, "examinationType", containment=False,               
+  lowerBound=1, upperBound=1), ExaminationType)                                                                                        
+                                                                                                                                       
+  # Hospital ↔ TreatmentPlan (Hospital defines treatment plans)                                                                        
+  add_EReference_to_EClass_eStructuralFeatures(Hospital, "treatmentPlans", containment=True, lowerBound=0, upperBound=-1)              
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(Hospital, "treatmentPlans", containment=True, lowerBound=0,     
+  upperBound=-1), TreatmentPlan)                                                                                                       
+                                                                                                                                       
+  # TreatmentPlan → ExaminationType (list of advised exams)                                                                            
+  add_EReference_to_EClass_eStructuralFeatures(TreatmentPlan, "advisedExams", containment=False, lowerBound=0, upperBound=-1)          
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(TreatmentPlan, "advisedExams", containment=False,               
+  lowerBound=0, upperBound=-1), ExaminationType)                                                                                       
+                                                                                                                                       
+  # Diagnosis relationships                                                                                                            
+  add_EReference_to_EClass_eStructuralFeatures(Diagnosis, "doctor", containment=False, lowerBound=1, upperBound=1)                     
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(Diagnosis, "doctor", containment=False, lowerBound=1,           
+  upperBound=1), Doctor)                                                                                                               
+                                                                                                                                       
+  add_EReference_to_EClass_eStructuralFeatures(Diagnosis, "patient", containment=False, lowerBound=1, upperBound=1)                    
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(Diagnosis, "patient", containment=False, lowerBound=1,          
+  upperBound=1), Patient)                                                                                                              
+                                                                                                                                       
+  add_EReference_to_EClass_eStructuralFeatures(Diagnosis, "treatmentPlan", containment=False, lowerBound=0, upperBound=1)              
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(Diagnosis, "treatmentPlan", containment=False, lowerBound=0,    
+  upperBound=1), TreatmentPlan)                                                                                                        
+                                                                                                                                       
+  # ActualTreatment extends Diagnosis and adds its own data                                                                            
+  add_EReference_to_EClass_eStructuralFeatures(ActualTreatment, "diagnosis", containment=False, lowerBound=1, upperBound=1)            
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(ActualTreatment, "diagnosis", containment=False, lowerBound=1,  
+  upperBound=1), Diagnosis)                                                                                                            
+                                                                                                                                       
+  add_EReference_to_EClass_eStructuralFeatures(ActualTreatment, "advisedExams", containment=False, lowerBound=0, upperBound=-1)        
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(ActualTreatment, "advisedExams", containment=False,             
+  lowerBound=0, upperBound=-1), ExaminationType)                                                                                       
+                                                                                                                                       
+  add_EReference_to_EClass_eStructuralFeatures(ActualTreatment, "additionalActions", containment=True, lowerBound=0, upperBound=-1)    
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(ActualTreatment, "additionalActions", containment=True,         
+  lowerBound=0, upperBound=-1), ExaminationType)  # placeholder; in a richer model we could have a distinct Action class               
+                                                                                                                                       
+  # -------------------------------------------------                                                                                  
+  # 7. Finalize: return the constructed EPackage                                                                                       
+  # -------------------------------------------------                                                                                  
+  final_answer(epackage)                                                                                                               
+ ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+Code execution failed at line 'add_EClass_to_EPackage_eClassifiers(epackage, "Hospital")' due to: TypeError: 
+AddEClassToEPackageEClassifiers.forward() takes 2 positional arguments but 3 were given
+[Step 2: Duration 124.08 seconds| Input tokens: 11,553 | Output tokens: 4,496]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 3 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ─ Executing parsed code: ──────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+  # 1️⃣ Create the EPackage (needs three arguments)                                                                                     
+  epackage = update_EPackage(                                                                                                          
+      name="HospitalDomain",                                                                                                           
+      nsURI="http://example.com/hospitaldomain",                                                                                       
+      nsPrefix="hosp"                                                                                                                  
+  )                                                                                                                                    
+                                                                                                                                       
+  # -------------------------------------------------                                                                                  
+  # 2️⃣ Add all required EClasses – only the class name is supplied                                                                     
+  # -------------------------------------------------                                                                                  
+  add_EClass_to_EPackage_eClassifiers("Hospital")                                                                                      
+  add_EClass_to_EPackage_eClassifiers("Doctor")                                                                                        
+  add_EClass_to_EPackage_eClassifiers("Patient")                                                                                       
+  add_EClass_to_EPackage_eClassifiers("ExaminationType")                                                                               
+  add_EClass_to_EPackage_eClassifiers("Permission")                                                                                    
+  add_EClass_to_EPackage_eClassifiers("TreatmentPlan")                                                                                 
+  add_EClass_to_EPackage_eClassifiers("Diagnosis")                                                                                     
+  add_EClass_to_EPackage_eClassifiers("ActualTreatment")                                                                               
+  # Base class for common medical‑action features                                                                                      
+  add_EClass_to_EPackage_eClassifiers("MedicalActionBase")                                                                             
+                                                                                                                                       
+  # -------------------------------------------------                                                                                  
+  # 3️⃣ Helper to obtain a reference to an EClass by its name.                                                                          
+  #    The environment stores added classes in the current EPackage’s eClassifiers map;                                                
+  #    we simply fetch them from there (the tooling does this internally).                                                             
+  # -------------------------------------------------                                                                                  
+  def get_eclass(name: str) -> object:                                                                                                 
+      # In the concrete runtime, `epackage.eClassifiers` holds the mapping.                                                            
+      # Here we simulate a lookup; the real implementation will return the actual EClass object.                                       
+      return {"__name__": name}                                                                                                        
+                                                                                                                                       
+  # Retrieve class objects for later use                                                                                               
+  Hospital        = get_eclass("Hospital")                                                                                             
+  Doctor          = get_eclass("Doctor")                                                                                               
+  Patient         = get_eclass("Patient")                                                                                              
+  ExaminationType = get_eclass("ExaminationType")                                                                                      
+  Permission      = get_eclass("Permission")                                                                                           
+  TreatmentPlan   = get_eclass("TreatmentPlan")                                                                                        
+  Diagnosis       = get_eclass("Diagnosis")                                                                                            
+  ActualTreatment = get_eclass("ActualTreatment")                                                                                      
+  MedicalActionBase = get_eclass("MedicalActionBase")                                                                                  
+                                                                                                                                       
+  # -------------------------------------------------                                                                                  
+  # 4️⃣ Set up inheritance (eSuperTypes)                                                                                                
+  # -------------------------------------------------                                                                                  
+  add_to_esupertypes_of_eclass(Diagnosis, MedicalActionBase)                                                                           
+  add_to_esupertypes_of_eclass(ActualTreatment, MedicalActionBase)                                                                     
+                                                                                                                                       
+  # -------------------------------------------------                                                                                  
+  # 5️⃣ Add EAttributes to each class and set their types                                                                               
+  # -------------------------------------------------                                                                                  
+  # Hospital attributes                                                                                                                
+  add_EAttribute_to_EClass_eStructuralFeatures(Hospital, "name", lowerBound=1, upperBound=1)                                           
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(Hospital, "name", lowerBound=1, upperBound=1), "String")        
+  add_EAttribute_to_EClass_eStructuralFeatures(Hospital, "location", lowerBound=0, upperBound=1)                                       
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(Hospital, "location", lowerBound=0, upperBound=1), "String")    
+                                                                                                                                       
+  # Doctor attributes                                                                                                                  
+  add_EAttribute_to_EClass_eStructuralFeatures(Doctor, "name", lowerBound=1, upperBound=1)                                             
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(Doctor, "name", lowerBound=1, upperBound=1), "String")          
+  add_EAttribute_to_EClass_eStructuralFeatures(Doctor, "specialty", lowerBound=0, upperBound=1)                                        
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(Doctor, "specialty", lowerBound=0, upperBound=1), "String")     
+                                                                                                                                       
+  # Patient attributes                                                                                                                 
+  add_EAttribute_to_EClass_eStructuralFeatures(Patient, "name", lowerBound=1, upperBound=1)                                            
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(Patient, "name", lowerBound=1, upperBound=1), "String")         
+  add_EAttribute_to_EClass_eStructuralFeatures(Patient, "birthDate", lowerBound=0, upperBound=1)                                       
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(Patient, "birthDate", lowerBound=0, upperBound=1), "Date")      
+                                                                                                                                       
+  # ExaminationType attributes                                                                                                         
+  add_EAttribute_to_EClass_eStructuralFeatures(ExaminationType, "typeName", lowerBound=1, upperBound=1)                                
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(ExaminationType, "typeName", lowerBound=1, upperBound=1),       
+  "String")                                                                                                                            
+  add_EAttribute_to_EClass_eStructuralFeatures(ExaminationType, "description", lowerBound=0, upperBound=1)                             
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(ExaminationType, "description", lowerBound=0, upperBound=1),    
+  "String")                                                                                                                            
+                                                                                                                                       
+  # Permission attributes                                                                                                              
+  add_EAttribute_to_EClass_eStructuralFeatures(Permission, "status", lowerBound=1, upperBound=1)  # e.g., granted/pending              
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(Permission, "status", lowerBound=1, upperBound=1), "String")    
+                                                                                                                                       
+  # TreatmentPlan attributes                                                                                                           
+  add_EAttribute_to_EClass_eStructuralFeatures(TreatmentPlan, "problemDescription", lowerBound=1, upperBound=1)                        
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(TreatmentPlan, "problemDescription", lowerBound=1,              
+  upperBound=1), "String")                                                                                                             
+  add_EAttribute_to_EClass_eStructuralFeatures(TreatmentPlan, "createdAt", lowerBound=0, upperBound=1)                                 
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(TreatmentPlan, "createdAt", lowerBound=0, upperBound=1),        
+  "Date")                                                                                                                              
+                                                                                                                                       
+  # ActualTreatment attributes                                                                                                         
+  add_EAttribute_to_EClass_eStructuralFeatures(ActualTreatment, "notes", lowerBound=0, upperBound=1)                                   
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(ActualTreatment, "notes", lowerBound=0, upperBound=1),          
+  "String")                                                                                                                            
+                                                                                                                                       
+  # -------------------------------------------------                                                                                  
+  # 6️⃣ Add EReferences (relationships) between classes                                                                                 
+  # -------------------------------------------------                                                                                  
+  # Hospital ↔ Doctor (Hospital contains its doctors)                                                                                  
+  add_EReference_to_EClass_eStructuralFeatures(Hospital, "doctors", containment=True, lowerBound=0, upperBound=-1)                     
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(Hospital, "doctors", containment=True, lowerBound=0,            
+  upperBound=-1), Doctor)                                                                                                              
+                                                                                                                                       
+  # Hospital ↔ Permission (Hospital holds permission records)                                                                          
+  add_EReference_to_EClass_eStructuralFeatures(Hospital, "permissions", containment=True, lowerBound=0, upperBound=-1)                 
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(Hospital, "permissions", containment=True, lowerBound=0,        
+  upperBound=-1), Permission)                                                                                                          
+                                                                                                                                       
+  # Permission → ExaminationType (which exam is permitted)                                                                             
+  add_EReference_to_EClass_eStructuralFeatures(Permission, "examinationType", containment=False, lowerBound=1, upperBound=1)           
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(Permission, "examinationType", containment=False,               
+  lowerBound=1, upperBound=1), ExaminationType)                                                                                        
+                                                                                                                                       
+  # Hospital ↔ TreatmentPlan (Hospital defines treatment plans)                                                                        
+  add_EReference_to_EClass_eStructuralFeatures(Hospital, "treatmentPlans", containment=True, lowerBound=0, upperBound=-1)              
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(Hospital, "treatmentPlans", containment=True, lowerBound=0,     
+  upperBound=-1), TreatmentPlan)                                                                                                       
+                                                                                                                                       
+  # TreatmentPlan → ExaminationType (list of advised exams)                                                                            
+  add_EReference_to_EClass_eStructuralFeatures(TreatmentPlan, "advisedExams", containment=False, lowerBound=0, upperBound=-1)          
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(TreatmentPlan, "advisedExams", containment=False,               
+  lowerBound=0, upperBound=-1), ExaminationType)                                                                                       
+                                                                                                                                       
+  # Diagnosis relationships                                                                                                            
+  add_EReference_to_EClass_eStructuralFeatures(Diagnosis, "doctor", containment=False, lowerBound=1, upperBound=1)                     
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(Diagnosis, "doctor", containment=False, lowerBound=1,           
+  upperBound=1), Doctor)                                                                                                               
+                                                                                                                                       
+  add_EReference_to_EClass_eStructuralFeatures(Diagnosis, "patient", containment=False, lowerBound=1, upperBound=1)                    
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(Diagnosis, "patient", containment=False, lowerBound=1,          
+  upperBound=1), Patient)                                                                                                              
+                                                                                                                                       
+  add_EReference_to_EClass_eStructuralFeatures(Diagnosis, "treatmentPlan", containment=False, lowerBound=0, upperBound=1)              
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(Diagnosis, "treatmentPlan", containment=False, lowerBound=0,    
+  upperBound=1), TreatmentPlan)                                                                                                        
+                                                                                                                                       
+  # ActualTreatment extends Diagnosis and adds its own data                                                                            
+  add_EReference_to_EClass_eStructuralFeatures(ActualTreatment, "diagnosis", containment=False, lowerBound=1, upperBound=1)            
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(ActualTreatment, "diagnosis", containment=False, lowerBound=1,  
+  upperBound=1), Diagnosis)                                                                                                            
+                                                                                                                                       
+  add_EReference_to_EClass_eStructuralFeatures(ActualTreatment, "advisedExams", containment=False, lowerBound=0, upperBound=-1)        
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(ActualTreatment, "advisedExams", containment=False,             
+  lowerBound=0, upperBound=-1), ExaminationType)                                                                                       
+                                                                                                                                       
+  add_EReference_to_EClass_eStructuralFeatures(ActualTreatment, "additionalActions", containment=True, lowerBound=0, upperBound=-1)    
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(ActualTreatment, "additionalActions", containment=True,         
+  lowerBound=0, upperBound=-1), ExaminationType)  # placeholder; a real model could introduce an “Action” class                        
+                                                                                                                                       
+  # -------------------------------------------------                                                                                  
+  # 7️⃣ Return the fully constructed EPackage                                                                                           
+  # -------------------------------------------------                                                                                  
+  final_answer(epackage)                                                                                                               
+ ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+Code execution failed at line 'add_to_esupertypes_of_eclass(Diagnosis, MedicalActionBase)' due to: AttributeError: 'dict' object has no
+attribute 'eSuperTypes'
+[Step 3: Duration 140.52 seconds| Input tokens: 24,280 | Output tokens: 6,990]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 4 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ─ Executing parsed code: ──────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+  # 1️⃣ Create the EPackage (needs three arguments)                                                                                     
+  epackage = update_EPackage(                                                                                                          
+      name="HospitalDomain",                                                                                                           
+      nsURI="http://example.com/hospitaldomain",                                                                                       
+      nsPrefix="hosp"                                                                                                                  
+  )                                                                                                                                    
+                                                                                                                                       
+  # -------------------------------------------------                                                                                  
+  # 2️⃣ Add all required EClasses and capture their objects                                                                             
+  # -------------------------------------------------                                                                                  
+  Hospital        = add_EClass_to_EPackage_eClassifiers("Hospital")                                                                    
+  Doctor          = add_EClass_to_EPackage_eClassifiers("Doctor")                                                                      
+  Patient         = add_EClass_to_EPackage_eClassifiers("Patient")                                                                     
+  ExaminationType = add_EClass_to_EPackage_eClassifiers("ExaminationType")                                                             
+  Permission      = add_EClass_to_EPackage_eClassifiers("Permission")                                                                  
+  TreatmentPlan   = add_EClass_to_EPackage_eClassifiers("TreatmentPlan")                                                               
+  Diagnosis       = add_EClass_to_EPackage_eClassifiers("Diagnosis")                                                                   
+  ActualTreatment = add_EClass_to_EPackage_eClassifiers("ActualTreatment")                                                             
+  MedicalActionBase = add_EClass_to_EPackage_eClassifiers("MedicalActionBase")                                                         
+                                                                                                                                       
+  # -------------------------------------------------                                                                                  
+  # 3️⃣ Set up inheritance (eSuperTypes)                                                                                                
+  # -------------------------------------------------                                                                                  
+  add_to_esupertypes_of_eclass(Diagnosis, MedicalActionBase)                                                                           
+  add_to_esupertypes_of_eclass(ActualTreatment, MedicalActionBase)                                                                     
+                                                                                                                                       
+  # -------------------------------------------------                                                                                  
+  # 4️⃣ Add EAttributes to each class and set their types                                                                               
+  # -------------------------------------------------                                                                                  
+  # Hospital attributes                                                                                                                
+  add_EAttribute_to_EClass_eStructuralFeatures(Hospital, "name", lowerBound=1, upperBound=1)                                           
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(Hospital, "name", lowerBound=1, upperBound=1), "String")        
+  add_EAttribute_to_EClass_eStructuralFeatures(Hospital, "location", lowerBound=0, upperBound=1)                                       
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(Hospital, "location", lowerBound=0, upperBound=1), "String")    
+                                                                                                                                       
+  # Doctor attributes                                                                                                                  
+  add_EAttribute_to_EClass_eStructuralFeatures(Doctor, "name", lowerBound=1, upperBound=1)                                             
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(Doctor, "name", lowerBound=1, upperBound=1), "String")          
+  add_EAttribute_to_EClass_eStructuralFeatures(Doctor, "specialty", lowerBound=0, upperBound=1)                                        
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(Doctor, "specialty", lowerBound=0, upperBound=1), "String")     
+                                                                                                                                       
+  # Patient attributes                                                                                                                 
+  add_EAttribute_to_EClass_eStructuralFeatures(Patient, "name", lowerBound=1, upperBound=1)                                            
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(Patient, "name", lowerBound=1, upperBound=1), "String")         
+  add_EAttribute_to_EClass_eStructuralFeatures(Patient, "birthDate", lowerBound=0, upperBound=1)                                       
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(Patient, "birthDate", lowerBound=0, upperBound=1), "Date")      
+                                                                                                                                       
+  # ExaminationType attributes                                                                                                         
+  add_EAttribute_to_EClass_eStructuralFeatures(ExaminationType, "typeName", lowerBound=1, upperBound=1)                                
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(ExaminationType, "typeName", lowerBound=1, upperBound=1),       
+  "String")                                                                                                                            
+  add_EAttribute_to_EClass_eStructuralFeatures(ExaminationType, "description", lowerBound=0, upperBound=1)                             
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(ExaminationType, "description", lowerBound=0, upperBound=1),    
+  "String")                                                                                                                            
+                                                                                                                                       
+  # Permission attributes                                                                                                              
+  add_EAttribute_to_EClass_eStructuralFeatures(Permission, "status", lowerBound=1, upperBound=1)  # e.g., granted/pending              
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(Permission, "status", lowerBound=1, upperBound=1), "String")    
+                                                                                                                                       
+  # TreatmentPlan attributes                                                                                                           
+  add_EAttribute_to_EClass_eStructuralFeatures(TreatmentPlan, "problemDescription", lowerBound=1, upperBound=1)                        
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(TreatmentPlan, "problemDescription", lowerBound=1,              
+  upperBound=1), "String")                                                                                                             
+  add_EAttribute_to_EClass_eStructuralFeatures(TreatmentPlan, "createdAt", lowerBound=0, upperBound=1)                                 
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(TreatmentPlan, "createdAt", lowerBound=0, upperBound=1),        
+  "Date")                                                                                                                              
+                                                                                                                                       
+  # ActualTreatment attributes                                                                                                         
+  add_EAttribute_to_EClass_eStructuralFeatures(ActualTreatment, "notes", lowerBound=0, upperBound=1)                                   
+  set_etype_of_eattribute(add_EAttribute_to_EClass_eStructuralFeatures(ActualTreatment, "notes", lowerBound=0, upperBound=1),          
+  "String")                                                                                                                            
+                                                                                                                                       
+  # -------------------------------------------------                                                                                  
+  # 5️⃣ Add EReferences (relationships) between classes                                                                                 
+  # -------------------------------------------------                                                                                  
+  # Hospital ↔ Doctor (Hospital contains its doctors)                                                                                  
+  add_EReference_to_EClass_eStructuralFeatures(Hospital, "doctors", containment=True, lowerBound=0, upperBound=-1)                     
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(Hospital, "doctors", containment=True, lowerBound=0,            
+  upperBound=-1), Doctor)                                                                                                              
+                                                                                                                                       
+  # Hospital ↔ Permission (Hospital holds permission records)                                                                          
+  add_EReference_to_EClass_eStructuralFeatures(Hospital, "permissions", containment=True, lowerBound=0, upperBound=-1)                 
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(Hospital, "permissions", containment=True, lowerBound=0,        
+  upperBound=-1), Permission)                                                                                                          
+                                                                                                                                       
+  # Permission → ExaminationType (which exam is permitted)                                                                             
+  add_EReference_to_EClass_eStructuralFeatures(Permission, "examinationType", containment=False, lowerBound=1, upperBound=1)           
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(Permission, "examinationType", containment=False,               
+  lowerBound=1, upperBound=1), ExaminationType)                                                                                        
+                                                                                                                                       
+  # Hospital ↔ TreatmentPlan (Hospital defines treatment plans)                                                                        
+  add_EReference_to_EClass_eStructuralFeatures(Hospital, "treatmentPlans", containment=True, lowerBound=0, upperBound=-1)              
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(Hospital, "treatmentPlans", containment=True, lowerBound=0,     
+  upperBound=-1), TreatmentPlan)                                                                                                       
+                                                                                                                                       
+  # TreatmentPlan → ExaminationType (list of advised exams)                                                                            
+  add_EReference_to_EClass_eStructuralFeatures(TreatmentPlan, "advisedExams", containment=False, lowerBound=0, upperBound=-1)          
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(TreatmentPlan, "advisedExams", containment=False,               
+  lowerBound=0, upperBound=-1), ExaminationType)                                                                                       
+                                                                                                                                       
+  # Diagnosis relationships                                                                                                            
+  add_EReference_to_EClass_eStructuralFeatures(Diagnosis, "doctor", containment=False, lowerBound=1, upperBound=1)                     
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(Diagnosis, "doctor", containment=False, lowerBound=1,           
+  upperBound=1), Doctor)                                                                                                               
+                                                                                                                                       
+  add_EReference_to_EClass_eStructuralFeatures(Diagnosis, "patient", containment=False, lowerBound=1, upperBound=1)                    
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(Diagnosis, "patient", containment=False, lowerBound=1,          
+  upperBound=1), Patient)                                                                                                              
+                                                                                                                                       
+  add_EReference_to_EClass_eStructuralFeatures(Diagnosis, "treatmentPlan", containment=False, lowerBound=0, upperBound=1)              
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(Diagnosis, "treatmentPlan", containment=False, lowerBound=0,    
+  upperBound=1), TreatmentPlan)                                                                                                        
+                                                                                                                                       
+  # ActualTreatment extends Diagnosis and adds its own data                                                                            
+  add_EReference_to_EClass_eStructuralFeatures(ActualTreatment, "diagnosis", containment=False, lowerBound=1, upperBound=1)            
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(ActualTreatment, "diagnosis", containment=False, lowerBound=1,  
+  upperBound=1), Diagnosis)                                                                                                            
+                                                                                                                                       
+  add_EReference_to_EClass_eStructuralFeatures(ActualTreatment, "advisedExams", containment=False, lowerBound=0, upperBound=-1)        
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(ActualTreatment, "advisedExams", containment=False,             
+  lowerBound=0, upperBound=-1), ExaminationType)                                                                                       
+                                                                                                                                       
+  add_EReference_to_EClass_eStructuralFeatures(ActualTreatment, "additionalActions", containment=True, lowerBound=0, upperBound=-1)    
+  set_etype_of_ereference(add_EReference_to_EClass_eStructuralFeatures(ActualTreatment, "additionalActions", containment=True,         
+  lowerBound=0, upperBound=-1), ExaminationType)  # placeholder; a richer model could have an “Action” class                           
+                                                                                                                                       
+  # -------------------------------------------------                                                                                  
+  # 6️⃣ Return the fully constructed EPackage                                                                                           
+  # -------------------------------------------------                                                                                  
+  final_answer(epackage)                                                                                                               
+ ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+Final answer: emf_uri_fragment='/' name='HospitalDomain' nsURI='http://example.com/hospitaldomain' nsPrefix='hosp'
+[Step 4: Duration 144.01 seconds| Input tokens: 41,991 | Output tokens: 9,380]

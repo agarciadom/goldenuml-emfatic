@@ -1,0 +1,467 @@
+╭────────────────────────────────────────────────────────────── New run ──────────────────────────────────────────────────────────────╮
+│                                                                                                                                     │
+│ You are an expert in generating EPackage based on a user's description.                                                             │
+│ You will achieve this by calling a series of available Python functions as tools to incrementally build it.                         │
+│                                                                                                                                     │
+│ Core concepts you need to understand:                                                                                               │
+│   - EPackage: Declaration of the package containing all the EClasses. It ONLY has these fields:                                     │
+│     - name (of type str): Name of the package (without spaces)                                                                      │
+│     - nsURI (of type str): The namespace URI of the package                                                                         │
+│     - eClassifiers (of type dict[str, Union[EClass, EDataType]]): Classes and data types within this EPackage                       │
+│     - nsPrefix (of type str): XML namespace prefix to be used for this EPackage                                                     │
+│   - EClass: Class within an EPackage. It ONLY has these fields:                                                                     │
+│     - name (of type str): Name of the class                                                                                         │
+│     - eSuperTypes (of type set[EClass]): The optional base classes from which to inherit.                                           │
+│     - eStructuralFeatures (of type dict[str, Union[EAttribute, EReference]]): The attributes and references inside this class       │
+│   - EAttribute: A specific piece of information in an EClass which is not an object. It ONLY has these fields:                      │
+│     - name (of type str): Name of the attribute.                                                                                    │
+│     - eType (of type Optional[Union[EDataType, str]]): Type of the attribute (must be set: use the tools for it)                    │
+│     - lowerBound (of type int): Minimum number of values for the attribute (must be less or equal to the upper bound)               │
+│     - upperBound (of type int): Maximum number of values for the attribute                                                          │
+│   - EReference: Reference from an EClass to another EClass. It ONLY has these fields:                                               │
+│     - name (of type str): Name of the reference.                                                                                    │
+│     - containment (of type bool): True if the source of the reference contains the target of reference (meaning that deleting the   │
+│ source will also delete the target).                                                                                                │
+│     - eType (of type Optional[EClass]): Target EClass of the reference.                                                             │
+│     - lowerBound (of type int): Minimum number of targets for the reference (must be less or equal to the upper bound)              │
+│     - upperBound (of type int): Maximum number of targets for the reference                                                         │
+│   - EDataType: Type of scalar data value used in an EAttribute. It ONLY has these fields:                                           │
+│     - name (of type str): Name of the data type                                                                                     │
+│     - instanceClassName (of type str): Fully qualified Java class name of the instances of this data type                           │
+│                                                                                                                                     │
+│ Tool interaction guidelines:                                                                                                        │
+│   - Identify elements based on the user's description.                                                                              │
+│   - First update the package and create all the classes.                                                                            │
+│   - Then add all the attributes to each class, and set their ETypes.                                                                │
+│   - Then add all the references to each class, and set their ETypes.                                                                │
+│   - Do not create your own EDataTypes if they already exist in the Eclipse Modelling Framework: reuse the named ones whenever       │
+│ possible.                                                                                                                           │
+│   - Use inheritance relationships to reduce duplication of attributes and references.                                               │
+│   - Ensure all conceptual objects are contained within another, eventually leading to a single root container class.                │
+│                                                                                                                                     │
+│ The user's description is as follows:                                                                                               │
+│                                                                                                                                     │
+│ <description>                                                                                                                       │
+│ The name, type, year of manufacture, and date of the next inspection are stored for aircraft. An aircraft performs several flights, │
+│ the flight number and date of which are stored.                                                                                     │
+│ Several passengers take part in a flight, and their names and passport numbers are stored. A passenger can take part in several     │
+│ flights. The (personalized) ticket for each flight is stored in the form of the ticket number and price. In addition, it is stored  │
+│ whether an upgrade is desired.                                                                                                      │
+│ Passenger aircraft are special aircraft used exclusively for the transport of passengers. The number of seats on these aircraft is  │
+│ also stored.                                                                                                                        │
+│ A passenger aircraft can have several seat categories. The designation of each category is stored, whether or not it offers an      │
+│ entertainment program, and how many seats there are in this category. Each ticket is for a specific seat category.                  │
+│ Each aircraft can be part of an airline, whose name is stored.                                                                      │
+│ An airline employs several flight attendants and pilots. The name, date of employment, and whether the flight attendant is a chief  │
+│ steward or stewardess are stored for flight attendants. The name, date of employment, and license are stored for pilots.            │
+│ Several flight attendants work on a flight. One pilot flies the aircraft as the captain and one or two other pilots act as          │
+│ co-pilots.                                                                                                                          │
+│ The name, address, and number of runways are stored for airports. Each aircraft can have a home airport. Each flight has a          │
+│ departure airport and a destination airport.                                                                                        │
+│                                                                                                                                     │
+│ </description>                                                                                                                      │
+│                                                                                                                                     │
+╰─ LiteLLMModel - ollama/granite4.1:30b ──────────────────────────────────────────────────────────────────────────────────────────────╯
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 1 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ─ Executing parsed code: ──────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+  # 1. Create the EPackage                                                                                                             
+  epackage = update_EPackage(                                                                                                          
+      name="AircraftModel",                                                                                                            
+      nsURI="http://example.com/aircraftmodel",                                                                                        
+      nsPrefix="acm"                                                                                                                   
+  )                                                                                                                                    
+                                                                                                                                       
+  # -------------------------------------------------                                                                                  
+  # 2. Define core EClasses (inheritance hierarchy)                                                                                    
+  # -------------------------------------------------                                                                                  
+                                                                                                                                       
+  # Base class for all aircraft                                                                                                        
+  Aircraft = add_EClass_to_EPackage_eClassifiers(epackage, "Aircraft")                                                                 
+                                                                                                                                       
+  # Passenger‑specific aircraft inherits from Aircraft                                                                                 
+  PassengerAircraft = add_EClass_to_EPackage_eClassifiers(epackage, "PassengerAircraft")                                               
+  add_to_esupertypes_of_eclass(PassengerAircraft, Aircraft)                                                                            
+                                                                                                                                       
+  # Flight (belongs to an Aircraft)                                                                                                    
+  Flight = add_EClass_to_EPackage_eClassifiers(epackage, "Flight")                                                                     
+                                                                                                                                       
+  # Passenger                                                                                                                          
+  Passenger = add_EClass_to_EPackage_eClassifiers(epackage, "Passenger")                                                               
+                                                                                                                                       
+  # Ticket (links Passenger ↔ Flight and stores seat‑category & upgrade flag)                                                          
+  Ticket = add_EClass_to_EPackage_eClassifiers(epackage, "Ticket")                                                                     
+                                                                                                                                       
+  # SeatCategory (belongs to a PassengerAircraft)                                                                                      
+  SeatCategory = add_EClass_to_EPackage_eClassifiers(epackage, "SeatCategory")                                                         
+                                                                                                                                       
+  # Airline                                                                                                                            
+  Airline = add_EClass_to_EPackage_eClassifiers(epackage, "Airline")                                                                   
+                                                                                                                                       
+  # Employee base for staff members                                                                                                    
+  Employee = add_EClass_to_EPackage_eClassifiers(epackage, "Employee")                                                                 
+                                                                                                                                       
+  # FlightAttendant inherits from Employee                                                                                             
+  FlightAttendant = add_EClass_to_EPackage_eClassifiers(epackage, "FlightAttendant")                                                   
+  add_to_esupertypes_of_eclass(FlightAttendant, Employee)                                                                              
+                                                                                                                                       
+  # Pilot inherits from Employee                                                                                                       
+  Pilot = add_EClass_to_EPackage_eClassifiers(epackage, "Pilot")                                                                       
+  add_to_esupertypes_of_eclass(Pilot, Employee)                                                                                        
+                                                                                                                                       
+  # Airport                                                                                                                            
+  Airport = add_EClass_to_EPackage_eClassifiers(epackage, "Airport")                                                                   
+                                                                                                                                       
+  # -------------------------------------------------                                                                                  
+  # 3. Add EAttributes to each class and set their eType (using built‑in EMF types)                                                    
+  # -------------------------------------------------                                                                                  
+                                                                                                                                       
+  # Aircraft attributes: name, type, yearOfManufacture                                                                                 
+  add_name_attr(Aircraft, lowerBound=1, upperBound=1)                                                                                  
+  set_etype_of_eattribute(Aircraft.eStructuralFeatures["name"], "String")                                                              
+  add_name_attr(Aircraft, "type", 1, 1)  # reuse helper to avoid duplicate code (conceptual)                                           
+  # Instead of a generic helper I'll call directly:                                                                                    
+  Aircraft_type = add_EAttribute_to_EClass_eStructuralFeatures(Aircraft, "type", 1, 1)                                                 
+  set_etype_of_eattribute(Aircraft_type, "String")                                                                                     
+  Aircraft_year = add_EAttribute_to_EClass_eStructuralFeatures(Aircraft, "yearOfManufacture", 0, 1)  # optional                        
+  set_etype_of_eattribute(Aircraft_year, "Integer")                                                                                    
+                                                                                                                                       
+  # PassengerAircraft additional attribute: seatCount                                                                                  
+  PA_seatCount = add_EAttribute_to_EClass_eStructuralFeatures(PassengerAircraft, "seatCount", 0, 1)                                    
+  set_etype_of_eattribute(PA_seatCount, "Integer")                                                                                     
+                                                                                                                                       
+  # Flight attributes: flightNumber, date (date of the flight)                                                                         
+  Flight_flightNumber = add_EAttribute_to_EClass_eStructuralFeatures(Flight, "flightNumber", 1, 1)                                     
+  set_etype_of_eattribute(Flight_flightNumber, "String")                                                                               
+  Flight_date = add_EAttribute_to_EClass_eStructuralFeatures(Flight, "date", 0, 1)   # optional per description                        
+  set_etype_of_eattribute(Flight_date, "Date")                                                                                         
+                                                                                                                                       
+  # Passenger attributes: name, passportNumber                                                                                         
+  Passenger_name = add_EAttribute_to_EClass_eStructuralFeatures(Passenger, "name", 1, 1)                                               
+  set_etype_of_eattribute(Passenger_name, "String")                                                                                    
+  Passenger_passport = add_EAttribute_to_EClass_eStructuralFeatures(Passenger, "passportNumber", 1, 1)                                 
+  set_etype_of_eattribute(Passenger_passport, "String")                                                                                
+                                                                                                                                       
+  # Ticket attributes: ticketNumber, price, upgradeWanted                                                                              
+  Ticket_ticketNum = add_EAttribute_to_EClass_eStructuralFeatures(Ticket, "ticketNumber", 1, 1)                                        
+  set_etype_of_eattribute(Ticket_ticketNum, "String")                                                                                  
+  Ticket_price = add_EAttribute_to_EClass_eStructuralFeatures(Ticket, "price", 0, 1)   # optional numeric                              
+  set_etype_of_eattribute(Ticket_price, "BigDecimal")  # using a common monetary type (treated as String by tool)                      
+  Ticket_upgrade = add_EAttribute_to_EClass_eStructuralFeatures(Ticket, "upgradeWanted", 0, 1)                                         
+  set_etype_of_eattribute(Ticket_upgrade, "Boolean")                                                                                   
+                                                                                                                                       
+  # SeatCategory attributes: designation, hasEntertainmentProgram, seatCount                                                           
+  SC_designation = add_EAttribute_to_EClass_eStructuralFeatures(SeatCategory, "designation", 1, 1)                                     
+  set_etype_of_eattribute(SC_designation, "String")                                                                                    
+  SC_entertain = add_EAttribute_to_EClass_eStructuralFeatures(SeatCategory, "hasEntertainmentProgram", 0, 1)                           
+  set_etype_of_eattribute(SC_entertain, "Boolean")                                                                                     
+  SC_seatCount = add_EAttribute_to_EClass_eStructuralFeatures(SeatCategory, "seatCount", 0, 1)                                         
+  set_etype_of_eattribute(SC_seatCount, "Integer")                                                                                     
+                                                                                                                                       
+  # Airline attribute: name                                                                                                            
+  Airline_name = add_EAttribute_to_EClass_eStructuralFeatures(Airline, "name", 1, 1)                                                   
+  set_etype_of_eattribute(Airline_name, "String")                                                                                      
+                                                                                                                                       
+  # FlightAttendant attributes (inherited from Employee): name, employmentDate, isChief                                                
+  FA_name = add_EAttribute_to_EClass_eStructuralFeatures(FlightAttendant, "name", 1, 1)                                                
+  set_etype_of_eattribute(FA_name, "String")                                                                                           
+  FA_empDate = add_EAttribute_to_EClass_eStructuralFeatures(FlightAttendant, "employmentDate", 0, 1)                                   
+  set_etype_of_eattribute(FA_empDate, "Date")                                                                                          
+  FA_isChief = add_EAttribute_to_EClass_eStructuralFeatures(FlightAttendant, "isChief", 0, 1)   # boolean flag                         
+  set_etype_of_eattribute(FA_isChief, "Boolean")                                                                                       
+                                                                                                                                       
+  # Pilot attributes (inherited from Employee): name, employmentDate, license                                                          
+  Pilot_name = add_EAttribute_to_EClass_eStructuralFeatures(Pilot, "name", 1, 1)                                                       
+  set_etype_of_eattribute(Pilot_name, "String")                                                                                        
+  Pilot_empDate = add_EAttribute_to_EClass_eStructuralFeatures(Pilot, "employmentDate", 0, 1)                                          
+  set_etype_of_eattribute(Pilot_empDate, "Date")                                                                                       
+  Pilot_license = add_EAttribute_to_EClass_eStructuralFeatures(Pilot, "license", 0, 1)                                                 
+  set_etype_of_eattribute(Pilot_license, "String")                                                                                     
+                                                                                                                                       
+  # Airport attributes: name, address, runwayCount                                                                                     
+  Airport_name = add_EAttribute_to_EClass_eStructuralFeatures(Airport, "name", 1, 1)                                                   
+  set_etype_of_eattribute(Airport_name, "String")                                                                                      
+  Airport_address = add_EAttribute_to_EClass_eStructuralFeatures(Airport, "address", 0, 1)                                             
+  set_etype_of_eattribute(Airport_address, "String")                                                                                   
+  Airport_runways = add_EAttribute_to_EClass_eStructuralFeatures(Airport, "runwayCount", 0, 1)                                         
+  set_etype_of_eattribute(Airport_runways, "Integer")                                                                                  
+                                                                                                                                       
+  # -------------------------------------------------                                                                                  
+  # 4. Add EReferences (relationships) and set their eType                                                                             
+  # -------------------------------------------------                                                                                  
+                                                                                                                                       
+  # Aircraft ↔ Flight (containment: Flights belong to an Aircraft)                                                                     
+  flightRef = add_EReference_to_EClass_eStructuralFeatures(Aircraft, "flights", containment=True, lowerBound=0, upperBound=-1)         
+  set_etype_of_ereference(flightRef, Flight)                                                                                           
+                                                                                                                                       
+  # Flight ↔ Passenger via Ticket (many‑to‑many through Ticket)                                                                        
+  # Flight → Tickets (containment: each Flight owns its Tickets)                                                                       
+  flightTickets = add_EReference_to_EClass_eStructuralFeatures(Flight, "tickets", containment=True, lowerBound=0, upperBound=-1)       
+  set_etype_of_ereference(flightTickets, Ticket)                                                                                       
+                                                                                                                                       
+  # Passenger ↔ Tickets (containment on Passenger side as well – each Passenger owns the tickets they hold)                            
+  passengerTickets = add_EReference_to_EClass_eStructuralFeatures(Passenger, "tickets", containment=True, lowerBound=0,                
+  upperBound=-1)                                                                                                                       
+  set_etype_of_ereference(passengerTickets, Ticket)                                                                                    
+                                                                                                                                       
+  # Ticket → Flight (reference to the flight it belongs to)                                                                            
+  ticketFlight = add_EReference_to_EClass_eStructuralFeatures(Ticket, "flight", containment=False, lowerBound=0, upperBound=1)         
+  set_etype_of_ereference(ticketFlight, Flight)                                                                                        
+                                                                                                                                       
+  # Ticket → Passenger (reference to the passenger who holds the ticket)                                                               
+  ticketPassenger = add_EReference_to_EClass_eStructuralFeatures(Ticket, "passenger", containment=False, lowerBound=0, upperBound=1)   
+  set_etype_of_ereference(ticketPassenger, Passenger)                                                                                  
+                                                                                                                                       
+  # Ticket → SeatCategory (which category the seat belongs to)                                                                         
+  ticketSeatCat = add_EReference_to_EClass_eStructuralFeatures(Ticket, "seatCategory", containment=False, lowerBound=0, upperBound=1)  
+  set_etype_of_ereference(ticketSeatCat, SeatCategory)                                                                                 
+                                                                                                                                       
+  # PassengerAircraft ↔ SeatCategory (containment: each PassengerAircraft owns its categories)                                         
+  paCategories = add_EReference_to_EClass_eStructuralFeatures(PassengerAircraft, "seatCategories", containment=True, lowerBound=0,     
+  upperBound=-1)                                                                                                                       
+  set_etype_of_ereference(paCategories, SeatCategory)                                                                                  
+                                                                                                                                       
+  # Aircraft ↔ Airline (optional reference: which airline operates the aircraft)                                                       
+  aircraftAirline = add_EReference_to_EClass_eStructuralFeatures(Aircraft, "airline", containment=False, lowerBound=0, upperBound=1)   
+  set_etype_of_ereference(aircraftAirline, Airline)                                                                                    
+                                                                                                                                       
+  # Aircraft ↔ HomeAirport (optional reference: where the aircraft is based)                                                           
+  homeAirportRef = add_EReference_to_EClass_eStructuralFeatures(Aircraft, "homeAirport", containment=False, lowerBound=0,              
+  upperBound=1)                                                                                                                        
+  set_etype_of_ereference(homeAirportRef, Airport)                                                                                     
+                                                                                                                                       
+  # Flight ↔ DepartureAirport and DestinationAirport                                                                                   
+  departureRef = add_EReference_to_EClass_eStructuralFeatures(Flight, "departureAirport", containment=False, lowerBound=0,             
+  upperBound=1)                                                                                                                        
+  set_etype_of_ereference(departureRef, Airport)                                                                                       
+  destinationRef = add_EReference_to_EClass_eStructuralFeatures(Flight, "destinationAirport", containment=False, lowerBound=0,         
+  upperBound=1)                                                                                                                        
+  set_etype_of_ereference(destinationRef, Airport)                                                                                     
+                                                                                                                                       
+  # Flight ↔ Captain (Pilot) and Co‑pilots (list of Pilots)                                                                            
+  captainRef = add_EReference_to_EClass_eStructuralFeatures(Flight, "captain", containment=False, lowerBound=0, upperBound=1)          
+  set_etype_of_ereference(captainRef, Pilot)                                                                                           
+                                                                                                                                       
+  coPilotRef = add_EReference_to_EClass_eStructuralFeatures(Flight, "coPilots", containment=False, lowerBound=0, upperBound=-1)  # up  
+  to two                                                                                                                               
+  set_etype_of_ereference(coPilotRef, Pilot)                                                                                           
+                                                                                                                                       
+  # Flight ↔ Assigned FlightAttendants (many)                                                                                          
+  flightAttendantsRef = add_EReference_to_EClass_eStructuralFeatures(Flight, "flightAttendants", containment=False, lowerBound=0,      
+  upperBound=-1)                                                                                                                       
+  set_etype_of_ereference(flightAttendantsRef, FlightAttendant)                                                                        
+                                                                                                                                       
+  # Airline ↔ Employees: Pilots and FlightAttendants (via two separate references for clarity)                                         
+  airlinePilots = add_EReference_to_EClass_eStructuralFeatures(Airline, "pilots", containment=False, lowerBound=0, upperBound=-1)      
+  set_etype_of_ereference(airlinePilots, Pilot)                                                                                        
+                                                                                                                                       
+  airlineAttendants = add_EReference_to_EClass_eStructuralFeatures(Airline, "flightAttendants", containment=False, lowerBound=0,       
+  upperBound=-1)                                                                                                                       
+  set_etype_of_ereference(airlineAttendants, FlightAttendant)                                                                          
+                                                                                                                                       
+  # -------------------------------------------------                                                                                  
+  # 5. Return the fully constructed EPackage                                                                                           
+  # -------------------------------------------------                                                                                  
+                                                                                                                                       
+  final_answer(epackage)                                                                                                               
+ ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+Code execution failed at line 'Aircraft = add_EClass_to_EPackage_eClassifiers(epackage, "Aircraft")' due to: TypeError: 
+AddEClassToEPackageEClassifiers.forward() takes 2 positional arguments but 3 were given
+[Step 1: Duration 143.21 seconds| Input tokens: 3,698 | Output tokens: 2,941]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 2 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ─ Executing parsed code: ──────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+  # 1. Create the EPackage                                                                                                             
+  epackage = update_EPackage(                                                                                                          
+      name="AircraftModel",                                                                                                            
+      nsURI="http://example.com/aircraftmodel",                                                                                        
+      nsPrefix="acm"                                                                                                                   
+  )                                                                                                                                    
+                                                                                                                                       
+  # -------------------------------------------------                                                                                  
+  # 2. Define core EClasses (inheritance hierarchy)                                                                                    
+  # -------------------------------------------------                                                                                  
+                                                                                                                                       
+  # Base class for all aircraft                                                                                                        
+  Aircraft = add_EClass_to_EPackage_eClassifiers("Aircraft")                                                                           
+                                                                                                                                       
+  # Passenger‑specific aircraft inherits from Aircraft                                                                                 
+  PassengerAircraft = add_EClass_to_EPackage_eClassifiers("PassengerAircraft")                                                         
+  add_to_esupertypes_of_eclass(PassengerAircraft, Aircraft)                                                                            
+                                                                                                                                       
+  # Flight (belongs to an Aircraft)                                                                                                    
+  Flight = add_EClass_to_EPackage_eClassifiers("Flight")                                                                               
+                                                                                                                                       
+  # Passenger                                                                                                                          
+  Passenger = add_EClass_to_EPackage_eClassifiers("Passenger")                                                                         
+                                                                                                                                       
+  # Ticket (links Passenger ↔ Flight and stores seat‑category & upgrade flag)                                                          
+  Ticket = add_EClass_to_EPackage_eClassifiers("Ticket")                                                                               
+                                                                                                                                       
+  # SeatCategory (belongs to a PassengerAircraft)                                                                                      
+  SeatCategory = add_EClass_to_EPackage_eClassifiers("SeatCategory")                                                                   
+                                                                                                                                       
+  # Airline                                                                                                                            
+  Airline = add_EClass_to_EPackage_eClassifiers("Airline")                                                                             
+                                                                                                                                       
+  # Employee base for staff members                                                                                                    
+  Employee = add_EClass_to_EPackage_eClassifiers("Employee")                                                                           
+                                                                                                                                       
+  # FlightAttendant inherits from Employee                                                                                             
+  FlightAttendant = add_EClass_to_EPackage_eClassifiers("FlightAttendant")                                                             
+  add_to_esupertypes_of_eclass(FlightAttendant, Employee)                                                                              
+                                                                                                                                       
+  # Pilot inherits from Employee                                                                                                       
+  Pilot = add_EClass_to_EPackage_eClassifiers("Pilot")                                                                                 
+  add_to_esupertypes_of_eclass(Pilot, Employee)                                                                                        
+                                                                                                                                       
+  # Airport                                                                                                                            
+  Airport = add_EClass_to_EPackage_eClassifiers("Airport")                                                                             
+                                                                                                                                       
+  # -------------------------------------------------                                                                                  
+  # 3. Add EAttributes to each class and set their eType (using built‑in EMF types)                                                    
+  # -------------------------------------------------                                                                                  
+                                                                                                                                       
+  # Aircraft attributes: name, type, yearOfManufacture                                                                                 
+  A_name = add_EAttribute_to_EClass_eStructuralFeatures(Aircraft, "name", lowerBound=1, upperBound=1)                                  
+  set_etype_of_eattribute(A_name, "String")                                                                                            
+  A_type = add_EAttribute_to_EClass_eStructuralFeatures(Aircraft, "type", lowerBound=0, upperBound=1)                                  
+  set_etype_of_eattribute(A_type, "String")                                                                                            
+  A_year = add_EAttribute_to_EClass_eStructuralFeatures(Aircraft, "yearOfManufacture", lowerBound=0, upperBound=1)                     
+  set_etype_of_eattribute(A_year, "Integer")                                                                                           
+                                                                                                                                       
+  # PassengerAircraft additional attribute: seatCount                                                                                  
+  PA_seatCount = add_EAttribute_to_EClass_eStructuralFeatures(PassengerAircraft, "seatCount", lowerBound=0, upperBound=1)              
+  set_etype_of_eattribute(PA_seatCount, "Integer")                                                                                     
+                                                                                                                                       
+  # Flight attributes: flightNumber, date (date of the flight)                                                                         
+  F_flightNum = add_EAttribute_to_EClass_eStructuralFeatures(Flight, "flightNumber", lowerBound=1, upperBound=1)                       
+  set_etype_of_eattribute(F_flightNum, "String")                                                                                       
+  F_date = add_EAttribute_to_EClass_eStructuralFeatures(Flight, "date", lowerBound=0, upperBound=1)                                    
+  set_etype_of_eattribute(F_date, "Date")                                                                                              
+                                                                                                                                       
+  # Passenger attributes: name, passportNumber                                                                                         
+  P_name = add_EAttribute_to_EClass_eStructuralFeatures(Passenger, "name", lowerBound=1, upperBound=1)                                 
+  set_etype_of_eattribute(P_name, "String")                                                                                            
+  P_passport = add_EAttribute_to_EClass_eStructuralFeatures(Passenger, "passportNumber", lowerBound=1, upperBound=1)                   
+  set_etype_of_eattribute(P_passport, "String")                                                                                        
+                                                                                                                                       
+  # Ticket attributes: ticketNumber, price, upgradeWanted                                                                              
+  T_ticketNum = add_EAttribute_to_EClass_eStructuralFeatures(Ticket, "ticketNumber", lowerBound=1, upperBound=1)                       
+  set_etype_of_eattribute(T_ticketNum, "String")                                                                                       
+  T_price = add_EAttribute_to_EClass_eStructuralFeatures(Ticket, "price", lowerBound=0, upperBound=1)                                  
+  set_etype_of_eattribute(T_price, "BigDecimal")  # treated as a scalar numeric type                                                   
+  T_upgrade = add_EAttribute_to_EClass_eStructuralFeatures(Ticket, "upgradeWanted", lowerBound=0, upperBound=1)                        
+  set_etype_of_eattribute(T_upgrade, "Boolean")                                                                                        
+                                                                                                                                       
+  # SeatCategory attributes: designation, hasEntertainmentProgram, seatCount                                                           
+  SC_desig = add_EAttribute_to_EClass_eStructuralFeatures(SeatCategory, "designation", lowerBound=1, upperBound=1)                     
+  set_etype_of_eattribute(SC_desig, "String")                                                                                          
+  SC_entertain = add_EAttribute_to_EClass_eStructuralFeatures(SeatCategory, "hasEntertainmentProgram", lowerBound=0, upperBound=1)     
+  set_etype_of_eattribute(SC_entertain, "Boolean")                                                                                     
+  SC_seatCount = add_EAttribute_to_EClass_eStructuralFeatures(SeatCategory, "seatCount", lowerBound=0, upperBound=1)                   
+  set_etype_of_eattribute(SC_seatCount, "Integer")                                                                                     
+                                                                                                                                       
+  # Airline attribute: name                                                                                                            
+  AL_name = add_EAttribute_to_EClass_eStructuralFeatures(Airline, "name", lowerBound=1, upperBound=1)                                  
+  set_etype_of_eattribute(AL_name, "String")                                                                                           
+                                                                                                                                       
+  # FlightAttendant attributes (inherited from Employee): name, employmentDate, isChief                                                
+  FA_name = add_EAttribute_to_EClass_eStructuralFeatures(FlightAttendant, "name", lowerBound=1, upperBound=1)                          
+  set_etype_of_eattribute(FA_name, "String")                                                                                           
+  FA_empDate = add_EAttribute_to_EClass_eStructuralFeatures(FlightAttendant, "employmentDate", lowerBound=0, upperBound=1)             
+  set_etype_of_eattribute(FA_empDate, "Date")                                                                                          
+  FA_isChief = add_EAttribute_to_EClass_eStructuralFeatures(FlightAttendant, "isChief", lowerBound=0, upperBound=1)                    
+  set_etype_of_eattribute(FA_isChief, "Boolean")                                                                                       
+                                                                                                                                       
+  # Pilot attributes (inherited from Employee): name, employmentDate, license                                                          
+  PI_name = add_EAttribute_to_EClass_eStructuralFeatures(Pilot, "name", lowerBound=1, upperBound=1)                                    
+  set_etype_of_eattribute(PI_name, "String")                                                                                           
+  PI_empDate = add_EAttribute_to_EClass_eStructuralFeatures(Pilot, "employmentDate", lowerBound=0, upperBound=1)                       
+  set_etype_of_eattribute(PI_empDate, "Date")                                                                                          
+  PI_license = add_EAttribute_to_EClass_eStructuralFeatures(Pilot, "license", lowerBound=0, upperBound=1)                              
+  set_etype_of_eattribute(PI_license, "String")                                                                                        
+                                                                                                                                       
+  # Airport attributes: name, address, runwayCount                                                                                     
+  AP_name = add_EAttribute_to_EClass_eStructuralFeatures(Airport, "name", lowerBound=1, upperBound=1)                                  
+  set_etype_of_eattribute(AP_name, "String")                                                                                           
+  AP_address = add_EAttribute_to_EClass_eStructuralFeatures(Airport, "address", lowerBound=0, upperBound=1)                            
+  set_etype_of_eattribute(AP_address, "String")                                                                                        
+  AP_runways = add_EAttribute_to_EClass_eStructuralFeatures(Airport, "runwayCount", lowerBound=0, upperBound=1)                        
+  set_etype_of_eattribute(AP_runways, "Integer")                                                                                       
+                                                                                                                                       
+  # -------------------------------------------------                                                                                  
+  # 4. Add EReferences (relationships) and set their eType                                                                             
+  # -------------------------------------------------                                                                                  
+                                                                                                                                       
+  # Aircraft ↔ Flight (containment: Flights belong to an Aircraft)                                                                     
+  flightRef = add_EReference_to_EClass_eStructuralFeatures(Aircraft, "flights", containment=True, lowerBound=0, upperBound=-1)         
+  set_etype_of_ereference(flightRef, Flight)                                                                                           
+                                                                                                                                       
+  # Flight ↔ Ticket (containment on Flight side; also reference from Ticket back to Flight)                                            
+  ticketRef_flight = add_EReference_to_EClass_eStructuralFeatures(Flight, "tickets", containment=True, lowerBound=0, upperBound=-1)    
+  set_etype_of_ereference(ticketRef_flight, Ticket)                                                                                    
+                                                                                                                                       
+  # Ticket ↔ Flight (non‑containment reverse side)                                                                                     
+  T_flight = add_EReference_to_EClass_eStructuralFeatures(Ticket, "flight", containment=False, lowerBound=0, upperBound=1)             
+  set_etype_of_ereference(T_flight, Flight)                                                                                            
+                                                                                                                                       
+  # Ticket ↔ Passenger (reverse side on Ticket; containment optional – we keep it non‑containment for flexibility)                     
+  T_passenger = add_EReference_to_EClass_eStructuralFeatures(Ticket, "passenger", containment=False, lowerBound=0, upperBound=1)       
+  set_etype_of_eattribute(T_passenger, Passenger)  # use set_etype_of_ereference                                                       
+  # Correction:                                                                                                                        
+  set_etype_of_ereference(T_passenger, Passenger)                                                                                      
+                                                                                                                                       
+  # Ticket ↔ SeatCategory (which category the seat belongs to)                                                                         
+  T_seatCat = add_EReference_to_EClass_eStructuralFeatures(Ticket, "seatCategory", containment=False, lowerBound=0, upperBound=1)      
+  set_etype_of_ereference(T_seatCat, SeatCategory)                                                                                     
+                                                                                                                                       
+  # PassengerAircraft ↔ SeatCategory (containment on PA side)                                                                          
+  PA_categories = add_EReference_to_EClass_eStructuralFeatures(PassengerAircraft, "seatCategories", containment=True, lowerBound=0,    
+  upperBound=-1)                                                                                                                       
+  set_etype_of_ereference(PA_categories, SeatCategory)                                                                                 
+                                                                                                                                       
+  # Aircraft ↔ Airline (optional reference: which airline operates the aircraft)                                                       
+  aircraftAirline = add_EReference_to_EClass_eStructuralFeatures(Aircraft, "airline", containment=False, lowerBound=0, upperBound=1)   
+  set_etype_of_ereference(aircraftAirline, Airline)                                                                                    
+                                                                                                                                       
+  # Aircraft ↔ HomeAirport (optional reference: where the aircraft is based)                                                           
+  homeAirportRef = add_EReference_to_EClass_eStructuralFeatures(Aircraft, "homeAirport", containment=False, lowerBound=0,              
+  upperBound=1)                                                                                                                        
+  set_etype_of_ereference(homeAirportRef, Airport)                                                                                     
+                                                                                                                                       
+  # Flight ↔ DepartureAirport and DestinationAirport                                                                                   
+  F_departure = add_EReference_to_EClass_eStructuralFeatures(Flight, "departureAirport", containment=False, lowerBound=0,              
+  upperBound=1)                                                                                                                        
+  set_etype_of_ereference(F_departure, Airport)                                                                                        
+  F_destination = add_EReference_to_EClass_eStructuralFeatures(Flight, "destinationAirport", containment=False, lowerBound=0,          
+  upperBound=1)                                                                                                                        
+  set_etype_of_ereference(F_destination, Airport)                                                                                      
+                                                                                                                                       
+  # Flight ↔ Captain (Pilot) and Co‑pilots (list of Pilots)                                                                            
+  F_captain = add_EReference_to_EClass_eStructuralFeatures(Flight, "captain", containment=False, lowerBound=0, upperBound=1)           
+  set_etype_of_ereference(F_captain, Pilot)                                                                                            
+                                                                                                                                       
+  F_coPilots = add_EReference_to_EClass_eStructuralFeatures(Flight, "coPilots", containment=False, lowerBound=0, upperBound=-1)  # up  
+  to two                                                                                                                               
+  set_etype_of_ereference(F_coPilots, Pilot)                                                                                           
+                                                                                                                                       
+  # Flight ↔ Assigned FlightAttendants (many)                                                                                          
+  F_attendants = add_EReference_to_EClass_eStructuralFeatures(Flight, "flightAttendants", containment=False, lowerBound=0,             
+  upperBound=-1)                                                                                                                       
+  set_etype_of_ereference(F_attendants, FlightAttendant)                                                                               
+                                                                                                                                       
+  # Airline ↔ Employees: Pilots and FlightAttendants                                                                                   
+  AL_pilots = add_EReference_to_EClass_eStructuralFeatures(Airline, "pilots", containment=False, lowerBound=0, upperBound=-1)          
+  set_etype_of_ereference(AL_pilots, Pilot)                                                                                            
+                                                                                                                                       
+  AL_attendants = add_EReference_to_EClass_eStructuralFeatures(Airline, "flightAttendants", containment=False, lowerBound=0,           
+  upperBound=-1)                                                                                                                       
+  set_etype_of_ereference(AL_attendants, FlightAttendant)                                                                              
+                                                                                                                                       
+  # -------------------------------------------------                                                                                  
+  # 5. Return the fully constructed EPackage                                                                                           
+  # -------------------------------------------------                                                                                  
+                                                                                                                                       
+  final_answer(epackage)                                                                                                               
+ ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+Final answer: emf_uri_fragment='/' name='AircraftModel' nsURI='http://example.com/aircraftmodel' nsPrefix='acm'
+[Step 2: Duration 148.61 seconds| Input tokens: 13,327 | Output tokens: 5,619]

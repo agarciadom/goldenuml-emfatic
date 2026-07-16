@@ -1,0 +1,308 @@
+╭────────────────────────────────────────────────────────────── New run ──────────────────────────────────────────────────────────────╮
+│                                                                                                                                     │
+│ You are an expert in generating EPackage based on a user's description.                                                             │
+│ You will achieve this by calling a series of available Python functions as tools to incrementally build it.                         │
+│                                                                                                                                     │
+│ Core concepts you need to understand:                                                                                               │
+│   - EPackage: Declaration of the package containing all the EClasses. It ONLY has these fields:                                     │
+│     - name (of type str): Name of the package (without spaces)                                                                      │
+│     - nsURI (of type str): The namespace URI of the package                                                                         │
+│     - eClassifiers (of type dict[str, Union[EClass, EDataType]]): Classes and data types within this EPackage                       │
+│     - nsPrefix (of type str): XML namespace prefix to be used for this EPackage                                                     │
+│   - EClass: Class within an EPackage. It ONLY has these fields:                                                                     │
+│     - name (of type str): Name of the class                                                                                         │
+│     - eSuperTypes (of type set[EClass]): The optional base classes from which to inherit.                                           │
+│     - eStructuralFeatures (of type dict[str, Union[EAttribute, EReference]]): The attributes and references inside this class       │
+│   - EAttribute: A specific piece of information in an EClass which is not an object. It ONLY has these fields:                      │
+│     - name (of type str): Name of the attribute.                                                                                    │
+│     - eType (of type Optional[Union[EDataType, str]]): Type of the attribute (must be set: use the tools for it)                    │
+│     - lowerBound (of type int): Minimum number of values for the attribute (must be less or equal to the upper bound)               │
+│     - upperBound (of type int): Maximum number of values for the attribute                                                          │
+│   - EReference: Reference from an EClass to another EClass. It ONLY has these fields:                                               │
+│     - name (of type str): Name of the reference.                                                                                    │
+│     - containment (of type bool): True if the source of the reference contains the target of reference (meaning that deleting the   │
+│ source will also delete the target).                                                                                                │
+│     - eType (of type Optional[EClass]): Target EClass of the reference.                                                             │
+│     - lowerBound (of type int): Minimum number of targets for the reference (must be less or equal to the upper bound)              │
+│     - upperBound (of type int): Maximum number of targets for the reference                                                         │
+│   - EDataType: Type of scalar data value used in an EAttribute. It ONLY has these fields:                                           │
+│     - name (of type str): Name of the data type                                                                                     │
+│     - instanceClassName (of type str): Fully qualified Java class name of the instances of this data type                           │
+│                                                                                                                                     │
+│ Tool interaction guidelines:                                                                                                        │
+│   - Identify elements based on the user's description.                                                                              │
+│   - First update the package and create all the classes.                                                                            │
+│   - Then add all the attributes to each class, and set their ETypes.                                                                │
+│   - Then add all the references to each class, and set their ETypes.                                                                │
+│   - Do not create your own EDataTypes if they already exist in the Eclipse Modelling Framework: reuse the named ones whenever       │
+│ possible.                                                                                                                           │
+│   - Use inheritance relationships to reduce duplication of attributes and references.                                               │
+│   - Ensure all conceptual objects are contained within another, eventually leading to a single root container class.                │
+│                                                                                                                                     │
+│ The user's description is as follows:                                                                                               │
+│                                                                                                                                     │
+│ <description>                                                                                                                       │
+│ A transport company wants to modernize its operations and switch to a computerized solution. To this end, the structure and         │
+│ organization of the company were discussed in a meeting with the managing director. The following minutes are available to you:     │
+│ I currently employ around 60 drivers and 6-7 other employees (planners and administrative staff) in my company. I need to be able   │
+│ to store their names and social security numbers. Planners and administrative staff should be able to log into the system with a    │
+│ username and password. The administrative staff's field of activity is known. I also need to store my customers' details. The       │
+│ customer's name and billing address are important. In addition to customers and employees, I also want to manage my vehicles. I     │
+│ distinguish between different types of vehicles, such as refrigerated trucks, small vans, loading platforms, and box trucks. I want │
+│ to store the license plate number and mileage for the vehicles. Of course, it can happen that a vehicle needs to be repaired or     │
+│ inspected. For this purpose, I want to store the repair shop (name and address are known), the employee who took the vehicle to the │
+│ repair shop, and the duration and cost of the repair.                                                                               │
+│ Orders can be assigned to each driver. Usually, a customer calls and tells us when they need a transport vehicle and how big the    │
+│ package is. Based on this, the planner knows which type of vehicle is needed for the order. I always want to know which planner has │
+│ assigned an order to a vehicle. It must also be possible to save a comment with additional information about the order, and I need  │
+│ to know when the driver starts and finishes the order. It is also important that I always know which driver has completed which     │
+│ order with which vehicle. For each order, there is always a customer who is the client, and both the pick-up and delivery addresses │
+│ are known. The order can be placed directly with an administrative employee or with a partner company whose name and address are    │
+│ known.                                                                                                                              │
+│ </description>                                                                                                                      │
+│                                                                                                                                     │
+╰─ LiteLLMModel - ollama/granite4.1:30b ──────────────────────────────────────────────────────────────────────────────────────────────╯
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 1 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ─ Executing parsed code: ──────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+  # 1. Create the EPackage                                                                                                             
+  epackage = update_EPackage(                                                                                                          
+      name="TransportCompany",                                                                                                         
+      nsURI="http://www.transportcompany/model",                                                                                       
+      nsPrefix="tc"                                                                                                                    
+  )                                                                                                                                    
+                                                                                                                                       
+  # 2. Define core classes                                                                                                             
+  Employee = add_EClass_to_EPackage_eClassifiers(epackage, "Employee")                                                                 
+  Driver = add_EClass_to_EPackage_eClassifiers(epackage, "Driver")                                                                     
+  Planner = add_EClass_to_EPackage_eClassifiers(epackage, "Planner")                                                                   
+  AdministrativeStaff = add_EClass_to_EPackage_eClassifiers(epackage, "AdministrativeStaff")                                           
+  Customer = add_EClass_to_EPackage_eClassifiers(epackage, "Customer")                                                                 
+  Vehicle = add_EClass_to_EPackage_eClassifiers(epackage, "Vehicle")                                                                   
+  RefrigeratedTruck = add_EClass_to_EPackage_eClassifiers(epackage, "RefrigeratedTruck")                                               
+  SmallVan = add_EClass_to_EPackage_eClassifiers(epackage, "SmallVan")                                                                 
+  LoadingPlatform = add_EClass_to_EPackage_eClassifiers(epackage, "LoadingPlatform")                                                   
+  BoxTruck = add_EClass_to_EPackage_eClassifiers(epackage, "BoxTruck")                                                                 
+  RepairShop = add_EClass_to_EPackage_eClassifiers(epackage, "RepairShop")                                                             
+  Order = add_EClass_to_EPackage_eClassifiers(epackage, "Order")                                                                       
+  PartnerCompany = add_EClass_to_EPackage_eClassifiers(epackage, "PartnerCompany")                                                     
+                                                                                                                                       
+  # 3. Set inheritance (eSuperTypes)                                                                                                   
+  add_to_esupertypes_of_eclass(Driver, Employee)                                                                                       
+  add_to_esupertypes_of_eclass(Planner, Employee)                                                                                      
+  add_to_esupertypes_of_eclass(AdministrativeStaff, Employee)                                                                          
+  add_to_esupertypes_of_eclass(RefrigeratedTruck, Vehicle)                                                                             
+  add_to_esupertypes_of_eclass(SmallVan, Vehicle)                                                                                      
+  add_to_esupertypes_of_eclass(LoadingPlatform, Vehicle)                                                                               
+  add_to_esupertypes_of_eclass(BoxTruck, Vehicle)                                                                                      
+                                                                                                                                       
+  # 4. Add attributes to Employee and derived classes                                                                                  
+  add_EAttribute_to_EClass_eStructuralFeatures(Employee, "name", 1, 1)                                                                 
+  set_etype_of_eattribute(add_to_esupertypes_of_eclass(Employee, None), "String")  # using tool wrapper; actual call:                  
+  set_etype_of_eattribute(attr, "String")                                                                                              
+  # To keep code clean we'll assign attributes via variables:                                                                          
+  name_attr_emp = add_EAttribute_to_EClass_eStructuralFeatures(Employee, "name", 1, 1)                                                 
+  set_etype_of_eattribute(name_attr_emp, "String")                                                                                     
+                                                                                                                                       
+  socialSecurityNumber_attr = add_EAttribute_to_EClass_eStructuralFeatures(Employee, "socialSecurityNumber", 0, 1)  # optional         
+  set_etype_of_eattribute(socialSecurityNumber_attr, "String")                                                                         
+                                                                                                                                       
+  # Planner specific (login)                                                                                                           
+  username_attr = add_EAttribute_to_EClass_eStructuralFeatures(Planner, "username", 0, 1)                                              
+  set_etype_of_eattribute(username_attr, "String")                                                                                     
+  password_attr = add_EAttribute_to_EClass_eStructuralFeatures(Planner, "password", 0, 1)                                              
+  set_etype_of_eattribute(password_attr, "String")                                                                                     
+                                                                                                                                       
+  # AdministrativeStaff activity field                                                                                                 
+  activityField_attr = add_EAttribute_to_EClass_eStructuralFeatures(AdministrativeStaff, "activityField", 0, 1)                        
+  set_etype_of_eattribute(activityField_attr, "String")                                                                                
+                                                                                                                                       
+  # Customer attributes                                                                                                                
+  name_attr_cust = add_EAttribute_to_EClass_eStructuralFeatures(Customer, "name", 1, 1)                                                
+  set_etype_of_eattribute(name_attr_cust, "String")                                                                                    
+  billingAddress_attr = add_EAttribute_to_EClass_eStructuralFeatures(Customer, "billingAddress", 0, 1)                                 
+  set_etype_of_eattribute(billingAddress_attr, "String")                                                                               
+                                                                                                                                       
+  # Vehicle base attributes                                                                                                            
+  licensePlate_attr = add_EAttribute_to_EClass_eStructuralFeatures(Vehicle, "licensePlate", 1, 1)                                      
+  set_etype_of_eattribute(licensePlate_attr, "String")                                                                                 
+  mileage_attr = add_EAttribute_to_EClass_eStructuralFeatures(Vehicle, "mileage", 0, 1)                                                
+  set_etype_of_eattribute(mileage_attr, "Integer")                                                                                     
+                                                                                                                                       
+  # RepairShop attributes                                                                                                              
+  name_attr_rs = add_EAttribute_to_EClass_eStructuralFeatures(RepairShop, "name", 1, 1)                                                
+  set_etype_of_eattribute(name_attr_rs, "String")                                                                                      
+  address_attr_rs = add_EAttribute_to_EClass_eStructuralFeatures(RepairShop, "address", 0, 1)                                          
+  set_etype_of_eattribute(address_attr_rs, "String")                                                                                   
+                                                                                                                                       
+  # Order attributes                                                                                                                   
+  orderID_attr = add_EAttribute_to_EClass_eStructuralFeatures(Order, "orderID", 0, 1)                                                  
+  set_etype_of_eattribute(orderID_attr, "String")                                                                                      
+  customer_ref = add_EReference_to_EClass_eStructuralFeatures(Order, "customer", False, 1, 1)  # each order has one customer           
+  set_etype_of_ereference(customer_ref, Customer)                                                                                      
+  planner_ref = add_EReference_to_EClass_eStructuralFeatures(Order, "planner", False, 0, 1)  # optional planner assignment             
+  set_etype_of_ereference(planner_ref, Planner)                                                                                        
+  driver_ref = add_EReference_to_EClass_eStructuralFeatures(Order, "driver", False, 0, 1)                                              
+  set_etype_of_ereference(driver_ref, Driver)                                                                                          
+  vehicle_ref = add_EReference_to_EClass_eStructuralFeatures(Order, "vehicle", False, 0, 1)                                            
+  set_etype_of_ereference(vehicle_ref, Vehicle)                                                                                        
+  pickupAddress_attr = add_EAttribute_to_EClass_eStructuralFeatures(Order, "pickupAddress", 0, 1)                                      
+  set_etype_of_eattribute(pickupAddress_attr, "String")                                                                                
+  deliveryAddress_attr = add_EAttribute_to_EClass_eStructuralFeatures(Order, "deliveryAddress", 0, 1)                                  
+  set_etype_of_eattribute(deliveryAddress_attr, "String")                                                                              
+  comment_attr = add_EAttribute_to_EClass_eStructuralFeatures(Order, "comment", 0, 1)                                                  
+  set_etype_of_eattribute(comment_attr, "String")                                                                                      
+  startTime_attr = add_EAttribute_to_EClass_eStructuralFeatures(Order, "startTime", 0, 1)                                              
+  set_etype_of_eattribute(startTime_attr, "Date")                                                                                      
+  finishTime_attr = add_EAttribute_to_EClass_eStructuralFeatures(Order, "finishTime", 0, 1)                                            
+  set_etype_of_eattribute(finishTime_attr, "Date")                                                                                     
+                                                                                                                                       
+  # PartnerCompany attributes                                                                                                          
+  partnerName_attr = add_EAttribute_to_EClass_eStructuralFeatures(PartnerCompany, "name", 1, 1)                                        
+  set_etype_of_eattribute(partnerName_attr, "String")                                                                                  
+  partnerAddress_attr = add_EAttribute_to_EClass_eStructuralFeatures(PartnerCompany, "address", 0, 1)                                  
+  set_etype_of_eattribute(partnerAddress_attr, "String")                                                                               
+                                                                                                                                       
+  # Add repair-related references to Vehicle                                                                                           
+  repairShop_ref = add_EReference_to_EClass_eStructuralFeatures(Vehicle, "repairShop", False, 0, 1)                                    
+  set_etype_of_ereference(repairShop_ref, RepairShop)                                                                                  
+  employeeForRepair_ref = add_EReference_to_EClass_eStructuralFeatures(Vehicle, "employeeForRepair", False, 0, 1)                      
+  set_etype_of_ereference(employeeForRepair_ref, Employee)  # could be any employee who took it in                                     
+  repairDuration_attr = add_EAttribute_to_EClass_eStructuralFeatures(Vehicle, "repairDuration", 0, 1)                                  
+  set_etype_of_eattribute(repairDuration_attr, "Integer")   # e.g., days or hours                                                      
+  repairCost_attr = add_EAttribute_to_EClass_eStructuralFeatures(Vehicle, "repairCost", 0, 1)                                          
+  set_etype_of_eattribute(repairCost_attr, "BigDecimal")                                                                               
+                                                                                                                                       
+  # Containment: Orders are contained by Vehicle (or Driver) – we'll use containment on Vehicle for simplicity                         
+  order_containment = add_EReference_to_EClass_eStructuralFeatures(Vehicle, "orders", True, 0, -1)  # -1 means * (unbounded)           
+  set_etype_of_ereference(order_containment, Order)                                                                                    
+                                                                                                                                       
+  # Partner reference on Order (optional placement source)                                                                             
+  partner_ref = add_EReference_to_EClass_eStructuralFeatures(Order, "partnerCompany", False, 0, 1)                                     
+  set_etype_of_ereference(partner_ref, PartnerCompany)                                                                                 
+                                                                                                                                       
+  # Finalize by returning the constructed EPackage object                                                                              
+  final_answer(epackage)                                                                                                               
+ ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+Code execution failed at line 'Employee = add_EClass_to_EPackage_eClassifiers(epackage, "Employee")' due to: TypeError: 
+AddEClassToEPackageEClassifiers.forward() takes 2 positional arguments but 3 were given
+[Step 1: Duration 94.51 seconds| Input tokens: 3,799 | Output tokens: 2,144]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 2 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ─ Executing parsed code: ──────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+  # 1. Create the EPackage                                                                                                             
+  epackage = update_EPackage(                                                                                                          
+      name="TransportCompany",                                                                                                         
+      nsURI="http://www.transportcompany/model",                                                                                       
+      nsPrefix="tc"                                                                                                                    
+  )                                                                                                                                    
+                                                                                                                                       
+  # 2. Define core classes (only class name is required)                                                                               
+  Employee = add_EClass_to_EPackage_eClassifiers("Employee")                                                                           
+  Driver = add_EClass_to_EPackage_eClassifiers("Driver")                                                                               
+  Planner = add_EClass_to_EPackage_eClassifiers("Planner")                                                                             
+  AdministrativeStaff = add_EClass_to_EPackage_eClassifiers("AdministrativeStaff")                                                     
+  Customer = add_EClass_to_EPackage_eClassifiers("Customer")                                                                           
+  Vehicle = add_EClass_to_EPackage_eClassifiers("Vehicle")                                                                             
+  RefrigeratedTruck = add_EClass_to_EPackage_eClassifiers("RefrigeratedTruck")                                                         
+  SmallVan = add_EClass_to_EPackage_eClassifiers("SmallVan")                                                                           
+  LoadingPlatform = add_EClass_to_EPackage_eClassifiers("LoadingPlatform")                                                             
+  BoxTruck = add_EClass_to_EPackage_eClassifiers("BoxTruck")                                                                           
+  RepairShop = add_EClass_to_EPackage_eClassifiers("RepairShop")                                                                       
+  Order = add_EClass_to_EPackage_eClassifiers("Order")                                                                                 
+  PartnerCompany = add_EClass_to_EPackage_eClassifiers("PartnerCompany")                                                               
+                                                                                                                                       
+  # 3. Set inheritance (eSuperTypes)                                                                                                   
+  add_to_esupertypes_of_eclass(Driver, Employee)                                                                                       
+  add_to_esupertypes_of_eclass(Planner, Employee)                                                                                      
+  add_to_esupertypes_of_eclass(AdministrativeStaff, Employee)                                                                          
+  add_to_esupertypes_of_eclass(RefrigeratedTruck, Vehicle)                                                                             
+  add_to_esupertypes_of_eclass(SmallVan, Vehicle)                                                                                      
+  add_to_esupertypes_of_eclass(LoadingPlatform, Vehicle)                                                                               
+  add_to_esupertypes_of_eclass(BoxTruck, Vehicle)                                                                                      
+                                                                                                                                       
+  # 4. Add attributes and set their ETypes                                                                                             
+                                                                                                                                       
+  # Employee attributes                                                                                                                
+  name_attr_emp = add_EAttribute_to_EClass_eStructuralFeatures(Employee, "name", 1, 1)                                                 
+  set_etype_of_eattribute(name_attr_emp, "String")                                                                                     
+  socialSecurityNumber_attr = add_EAttribute_to_EClass_eStructuralFeatures(Employee, "socialSecurityNumber", 0, 1)                     
+  set_etype_of_eattribute(socialSecurityNumber_attr, "String")                                                                         
+                                                                                                                                       
+  # Planner login credentials                                                                                                          
+  username_attr = add_EAttribute_to_EClass_eStructuralFeatures(Planner, "username", 0, 1)                                              
+  set_etype_of_eattribute(username_attr, "String")                                                                                     
+  password_attr = add_EAttribute_to_EClass_eStructuralFeatures(Planner, "password", 0, 1)                                              
+  set_etype_of_eattribute(password_attr, "String")                                                                                     
+                                                                                                                                       
+  # AdministrativeStaff activity field                                                                                                 
+  activityField_attr = add_EAttribute_to_EClass_eStructuralFeatures(AdministrativeStaff, "activityField", 0, 1)                        
+  set_etype_of_eattribute(activityField_attr, "String")                                                                                
+                                                                                                                                       
+  # Customer attributes                                                                                                                
+  name_attr_cust = add_EAttribute_to_EClass_eStructuralFeatures(Customer, "name", 1, 1)                                                
+  set_etype_of_eattribute(name_attr_cust, "String")                                                                                    
+  billingAddress_attr = add_EAttribute_to_EClass_eStructuralFeatures(Customer, "billingAddress", 0, 1)                                 
+  set_etype_of_eattribute(billingAddress_attr, "String")                                                                               
+                                                                                                                                       
+  # Vehicle base attributes                                                                                                            
+  licensePlate_attr = add_EAttribute_to_EClass_eStructuralFeatures(Vehicle, "licensePlate", 1, 1)                                      
+  set_etype_of_eattribute(licensePlate_attr, "String")                                                                                 
+  mileage_attr = add_EAttribute_to_EClass_eStructuralFeatures(Vehicle, "mileage", 0, 1)                                                
+  set_etype_of_eattribute(mileage_attr, "Integer")                                                                                     
+                                                                                                                                       
+  # RepairShop attributes                                                                                                              
+  name_attr_rs = add_EAttribute_to_EClass_eStructuralFeatures(RepairShop, "name", 1, 1)                                                
+  set_etype_of_eattribute(name_attr_rs, "String")                                                                                      
+  address_attr_rs = add_EAttribute_to_EClass_eStructuralFeatures(RepairShop, "address", 0, 1)                                          
+  set_etype_of_eattribute(address_attr_rs, "String")                                                                                   
+                                                                                                                                       
+  # Order attributes                                                                                                                   
+  orderID_attr = add_EAttribute_to_EClass_eStructuralFeatures(Order, "orderID", 0, 1)                                                  
+  set_etype_of_eattribute(orderID_attr, "String")                                                                                      
+  pickupAddress_attr = add_EAttribute_to_EClass_eStructuralFeatures(Order, "pickupAddress", 0, 1)                                      
+  set_etype_of_eattribute(pickupAddress_attr, "String")                                                                                
+  deliveryAddress_attr = add_EAttribute_to_EClass_eStructuralFeatures(Order, "deliveryAddress", 0, 1)                                  
+  set_etype_of_eattribute(deliveryAddress_attr, "String")                                                                              
+  comment_attr = add_EAttribute_to_EClass_eStructuralFeatures(Order, "comment", 0, 1)                                                  
+  set_etype_of_eattribute(comment_attr, "String")                                                                                      
+  startTime_attr = add_EAttribute_to_EClass_eStructuralFeatures(Order, "startTime", 0, 1)                                              
+  set_etype_of_eattribute(startTime_attr, "Date")                                                                                      
+  finishTime_attr = add_EAttribute_to_EClass_eStructuralFeatures(Order, "finishTime", 0, 1)                                            
+  set_etype_of_eattribute(finishTime_attr, "Date")                                                                                     
+                                                                                                                                       
+  # PartnerCompany attributes                                                                                                          
+  partnerName_attr = add_EAttribute_to_EClass_eStructuralFeatures(PartnerCompany, "name", 1, 1)                                        
+  set_etype_of_eattribute(partnerName_attr, "String")                                                                                  
+  partnerAddress_attr = add_EAttribute_to_EClass_eStructuralFeatures(PartnerCompany, "address", 0, 1)                                  
+  set_etype_of_eattribute(partnerAddress_attr, "String")                                                                               
+                                                                                                                                       
+  # Repair‑related fields on Vehicle                                                                                                   
+  repairShop_ref = add_EReference_to_EClass_eStructuralFeatures(Vehicle, "repairShop", False, 0, 1)                                    
+  set_etype_of_ereference(repairShop_ref, RepairShop)                                                                                  
+  employeeForRepair_ref = add_EReference_to_EClass_eStructuralFeatures(Vehicle, "employeeForRepair", False, 0, 1)                      
+  set_etype_of_ereference(employeeForRepair_ref, Employee)   # could be any employee who took it in                                    
+  repairDuration_attr = add_EAttribute_to_EClass_eStructuralFeatures(Vehicle, "repairDuration", 0, 1)                                  
+  set_etype_of_eattribute(repairDuration_attr, "Integer")    # e.g., days or hours                                                     
+  repairCost_attr = add_EAttribute_to_EClass_eStructuralFeatures(Vehicle, "repairCost", 0, 1)                                          
+  set_etype_of_eattribute(repairCost_attr, "BigDecimal")                                                                               
+                                                                                                                                       
+  # Order references (relationships)                                                                                                   
+  customer_ref = add_EReference_to_EClass_eStructuralFeatures(Order, "customer", False, 1, 1)   # each order has one customer          
+  set_etype_of_ereference(customer_ref, Customer)                                                                                      
+  planner_ref = add_EReference_to_EClass_eStructuralFeatures(Order, "planner", False, 0, 1)    # optional planner assignment           
+  set_etype_of_ereference(planner_ref, Planner)                                                                                        
+  driver_ref = add_EReference_to_EClass_eStructuralFeatures(Order, "driver", False, 0, 1)                                              
+  set_etype_of_ereference(driver_ref, Driver)                                                                                          
+  vehicle_ref = add_EReference_to_EClass_eStructuralFeatures(Order, "vehicle", False, 0, 1)                                            
+  set_etype_of_ereference(vehicle_ref, Vehicle)                                                                                        
+  partner_ref = add_EReference_to_EClass_eStructuralFeatures(Order, "partnerCompany", False, 0, 1)   # optional placement source       
+  set_etype_of_ereference(partner_ref, PartnerCompany)                                                                                 
+                                                                                                                                       
+  # Containment: Orders are owned by a Vehicle (could also be Driver; using Vehicle for simplicity)                                    
+  order_containment = add_EReference_to_EClass_eStructuralFeatures(Vehicle, "orders", True, 0, -1)   # * cardinality                   
+  set_etype_of_ereference(order_containment, Order)                                                                                    
+                                                                                                                                       
+  # 5. Return the constructed EPackage object                                                                                          
+  final_answer(epackage)                                                                                                               
+ ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+Final answer: emf_uri_fragment='/' name='TransportCompany' nsURI='http://www.transportcompany/model' nsPrefix='tc'
+[Step 2: Duration 103.81 seconds| Input tokens: 11,812 | Output tokens: 4,053]

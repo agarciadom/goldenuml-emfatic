@@ -1,0 +1,464 @@
+╭────────────────────────────────────────────────────────────── New run ──────────────────────────────────────────────────────────────╮
+│                                                                                                                                     │
+│ You are an expert in generating EPackage based on a user's description.                                                             │
+│ You will achieve this by calling a series of available Python functions as tools to incrementally build it.                         │
+│                                                                                                                                     │
+│ Core concepts you need to understand:                                                                                               │
+│   - EPackage: Declaration of the package containing all the EClasses. It ONLY has these fields:                                     │
+│     - name (of type str): Name of the package (without spaces)                                                                      │
+│     - nsURI (of type str): The namespace URI of the package                                                                         │
+│     - eClassifiers (of type dict[str, Union[EClass, EDataType]]): Classes and data types within this EPackage                       │
+│     - nsPrefix (of type str): XML namespace prefix to be used for this EPackage                                                     │
+│   - EClass: Class within an EPackage. It ONLY has these fields:                                                                     │
+│     - name (of type str): Name of the class                                                                                         │
+│     - eSuperTypes (of type set[EClass]): The optional base classes from which to inherit.                                           │
+│     - eStructuralFeatures (of type dict[str, Union[EAttribute, EReference]]): The attributes and references inside this class       │
+│   - EAttribute: A specific piece of information in an EClass which is not an object. It ONLY has these fields:                      │
+│     - name (of type str): Name of the attribute.                                                                                    │
+│     - eType (of type Optional[Union[EDataType, str]]): Type of the attribute (must be set: use the tools for it)                    │
+│     - lowerBound (of type int): Minimum number of values for the attribute (must be less or equal to the upper bound)               │
+│     - upperBound (of type int): Maximum number of values for the attribute                                                          │
+│   - EReference: Reference from an EClass to another EClass. It ONLY has these fields:                                               │
+│     - name (of type str): Name of the reference.                                                                                    │
+│     - containment (of type bool): True if the source of the reference contains the target of reference (meaning that deleting the   │
+│ source will also delete the target).                                                                                                │
+│     - eType (of type Optional[EClass]): Target EClass of the reference.                                                             │
+│     - lowerBound (of type int): Minimum number of targets for the reference (must be less or equal to the upper bound)              │
+│     - upperBound (of type int): Maximum number of targets for the reference                                                         │
+│   - EDataType: Type of scalar data value used in an EAttribute. It ONLY has these fields:                                           │
+│     - name (of type str): Name of the data type                                                                                     │
+│     - instanceClassName (of type str): Fully qualified Java class name of the instances of this data type                           │
+│                                                                                                                                     │
+│ Tool interaction guidelines:                                                                                                        │
+│   - Identify elements based on the user's description.                                                                              │
+│   - First update the package and create all the classes.                                                                            │
+│   - Then add all the attributes to each class, and set their ETypes.                                                                │
+│   - Then add all the references to each class, and set their ETypes.                                                                │
+│   - Do not create your own EDataTypes if they already exist in the Eclipse Modelling Framework: reuse the named ones whenever       │
+│ possible.                                                                                                                           │
+│   - Use inheritance relationships to reduce duplication of attributes and references.                                               │
+│   - Ensure all conceptual objects are contained within another, eventually leading to a single root container class.                │
+│                                                                                                                                     │
+│ The user's description is as follows:                                                                                               │
+│                                                                                                                                     │
+│ <description>                                                                                                                       │
+│ Generate a class diagram of an EBike according to these specifications:                                                             │
+│ The EBike is composed of a frame (made out of steel), a drive system, and a controller.                                             │
+│ Two wheels are inserted into each frame. The drive system is composed of a motor.                                                   │
+│ Each EBike can be connected to a removable battery. The battery has a stored energy                                                 │
+│ measured in Watt-hours (Wh). The controller can be in one of three states: On, Off, and                                             │
+│ Charging. It also controls the battery, if one is connected, and commands the drive                                                 │
+│ system. The company plans two different variants of the controller, a basic controller,                                             │
+│ and an advanced controller. The advanced controller should be able to estimate the                                                  │
+│ next Date the bike should be inspected for maintenance.                                                                             │
+│                                                                                                                                     │
+│ </description>                                                                                                                      │
+│                                                                                                                                     │
+╰─ LiteLLMModel - ollama/granite4.1:30b ──────────────────────────────────────────────────────────────────────────────────────────────╯
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 1 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ─ Executing parsed code: ──────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+  # 1. Create the EPackage                                                                                                             
+  epackage = update_EPackage(                                                                                                          
+      name="EBikeModel",                                                                                                               
+      nsURI="http://example.com/ebikemodel",                                                                                           
+      nsPrefix="ebike"                                                                                                                 
+  )                                                                                                                                    
+                                                                                                                                       
+  # 2. Add core EClasses                                                                                                               
+  EBike = add_EClass_to_EPackage_eClassifiers(epackage, "EBike")                                                                       
+  Frame = add_EClass_to_EPackage_eClassifiers(epackage, "Frame")                                                                       
+  Wheel = add_EClass_to_EPackage_eClassifiers(epackage, "Wheel")                                                                       
+  DriveSystem = add_EClass_to_EPackage_eClassifiers(epackage, "DriveSystem")                                                           
+  Motor = add_EClass_to_EPackage_eClassifiers(epackage, "Motor")                                                                       
+  Battery = add_EClass_to_EPackage_eClassifiers(epackage, "Battery")                                                                   
+  Controller = add_EClass_to_EPackage_eClassifiers(epackage, "Controller")                                                             
+                                                                                                                                       
+  # Controller variants (inheritance)                                                                                                  
+  BasicController = add_EClass_to_EPackage_eClassifiers(epackage, "BasicController")                                                   
+  AdvancedController = add_EClass_to_EPackage_eClassifiers(epackage, "AdvancedController")                                             
+                                                                                                                                       
+  # Set inheritance: both controller types inherit from Controller                                                                     
+  add_to_esupertypes_of_eclass(BasicController, Controller)                                                                            
+  add_to_esupertypes_of_eclass(AdvancedController, Controller)                                                                         
+                                                                                                                                       
+  # 3. Add structural features (attributes & references)                                                                               
+                                                                                                                                       
+  # -- EBike --                                                                                                                        
+  # Reference to its Frame (containment true because frame is part of the bike)                                                        
+  ebike_frame_ref = add_EReference_to_EClass_eStructuralFeatures(EBike, "frame", containment=True, lowerBound=1, upperBound=1)         
+  set_etype_of_ereference(ebike_frame_ref, Frame)                                                                                      
+                                                                                                                                       
+  # -- Frame --                                                                                                                        
+  # Two Wheels (containment true)                                                                                                      
+  frame_wheels_ref = add_EReference_to_EClass_eStructuralFeatures(Frame, "wheels", containment=True, lowerBound=2, upperBound=-1)  #   
+  -1 denotes * (unbounded), but we know exactly two; using 2‑2 is clearer                                                              
+  # Actually better to use exact bounds:                                                                                               
+  frame_wheels_ref = add_EReference_to_EClass_eStructuralFeatures(Frame, "wheels", containment=True, lowerBound=2, upperBound=2)       
+  set_etype_of_ereference(frame_wheels_ref, Wheel)                                                                                     
+                                                                                                                                       
+  # Attribute for material (steel) – reuse String type                                                                                 
+  frame_material_attr = add_EAttribute_to_EClass_eStructuralFeatures(Frame, "material", lowerBound=1, upperBound=1)                    
+  set_etype_of_eattribute(frame_material_attr, "String")                                                                               
+                                                                                                                                       
+  # -- Wheel --                                                                                                                        
+  # No extra attributes needed for this minimal model                                                                                  
+                                                                                                                                       
+  # -- DriveSystem --                                                                                                                  
+  # Contains a Motor (containment true)                                                                                                
+  drivesystem_motor_ref = add_EReference_to_EClass_eStructuralFeatures(DriveSystem, "motor", containment=True, lowerBound=1,           
+  upperBound=1)                                                                                                                        
+  set_etype_of_ereference(drivesystem_motor_ref, Motor)                                                                                
+                                                                                                                                       
+  # -- Motor --                                                                                                                        
+  # No extra attributes needed                                                                                                         
+                                                                                                                                       
+  # -- Battery --                                                                                                                      
+  # Stored energy in Watt‑hours (Wh) – use Integer type                                                                                
+  battery_energy_attr = add_EAttribute_to_EClass_eStructuralFeatures(Battery, "storedEnergyWh", lowerBound=1, upperBound=1)            
+  set_etype_of_eattribute(battery_energy_attr, "Integer")                                                                              
+                                                                                                                                       
+  # -- Controller (base attributes & references shared by both variants) --                                                            
+  # State attribute – enumerated values On/Off/Charging. Use String type for simplicity.                                               
+  controller_state_attr = add_EAttribute_to_EClass_eStructuralFeatures(Controller, "state", lowerBound=1, upperBound=1)                
+  set_etype_of_eattribute(controller_state_attr, "String")                                                                             
+                                                                                                                                       
+  # Reference to Battery (optional, not contained because battery is removable)                                                        
+  controller_battery_ref = add_EReference_to_EClass_eStructuralFeatures(Controller, "battery", containment=False, lowerBound=0,        
+  upperBound=1)                                                                                                                        
+  set_etype_of_ereference(controller_battery_ref, Battery)                                                                             
+                                                                                                                                       
+  # Reference to DriveSystem (mandatory for controlling it)                                                                            
+  controller_drivesystem_ref = add_EReference_to_EClass_eStructuralFeatures(Controller, "driveSystem", containment=False,              
+  lowerBound=1, upperBound=1)                                                                                                          
+  set_etype_of_ereference(controller_drivesystem_ref, DriveSystem)                                                                     
+                                                                                                                                       
+  # -- AdvancedController specific attribute --                                                                                        
+  # Next inspection date – use Date type                                                                                               
+  advanced_nextInspectionDate_attr = add_EAttribute_to_EClass_eStructuralFeatures(AdvancedController, "nextInspectionDate",            
+  lowerBound=0, upperBound=1)                                                                                                          
+  set_etype_of_eattribute(advanced_nextInspectionDate_attr, "Date")                                                                    
+                                                                                                                                       
+  # -- Connect EBike to its Controller --                                                                                              
+  ebike_controller_ref = add_EReference_to_EClass_eStructuralFeatures(EBike, "controller", containment=True, lowerBound=1,             
+  upperBound=1)                                                                                                                        
+  set_etype_of_ereference(ebike_controller_ref, Controller)  # polymorphic: can be Basic or Advanced                                   
+                                                                                                                                       
+  # Also connect EBike to its DriveSystem directly (for completeness)                                                                  
+  ebike_drivesystem_ref = add_EReference_to_EClass_eStructuralFeatures(EBike, "driveSystem", containment=True, lowerBound=1,           
+  upperBound=1)                                                                                                                        
+  set_etype_of_ereference(ebike_drivesystem_ref, DriveSystem)                                                                          
+                                                                                                                                       
+  # 4. Finalize – the EPackage now contains all classes, attributes, and references as specified.                                      
+  final_answer(epackage)                                                                                                               
+ ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+Code execution failed at line 'EBike = add_EClass_to_EPackage_eClassifiers(epackage, "EBike")' due to: TypeError: 
+AddEClassToEPackageEClassifiers.forward() takes 2 positional arguments but 3 were given
+[Step 1: Duration 65.26 seconds| Input tokens: 3,555 | Output tokens: 1,450]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 2 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ─ Executing parsed code: ──────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+  # 1. Create the EPackage                                                                                                             
+  epackage = update_EPackage(                                                                                                          
+      name="EBikeModel",                                                                                                               
+      nsURI="http://example.com/ebikemodel",                                                                                           
+      nsPrefix="ebike"                                                                                                                 
+  )                                                                                                                                    
+                                                                                                                                       
+  # Helper to fetch a classifier by its conventional key                                                                               
+  def get_classifier(epkg, base_name):                                                                                                 
+      # The tools register classes under keys like "EClass", "BasicControllerClass", etc.                                              
+      # We'll try the most likely names derived from the function that created them.                                                   
+      for key in epkg.eClassifiers:                                                                                                    
+          if base_name.lower() in key.lower():                                                                                         
+              return epkg.eClassifiers[key]                                                                                            
+      raise KeyError(f"Classifier with {base_name} not found")                                                                         
+                                                                                                                                       
+  # 2. Add core EClasses (the functions add them automatically)                                                                        
+  add_EClass_to_EPackage_eClassifiers(epackage)          # creates a generic class, we'll repurpose as EBike                           
+  add_EClass_to_EPackage_eClassifiers(epackage)          # Frame                                                                       
+  add_EClass_to_EPackage_eClassifiers(epackage)          # Wheel                                                                       
+  add_EClass_to_EPackage_eClassifiers(epackage)          # DriveSystem                                                                 
+  add_EClass_to_EPackage_eClassifiers(epackage)          # Motor                                                                       
+  add_EClass_to_EPackage_eClassifiers(epackage)          # Battery                                                                     
+  add_EClass_to_EPackage_eClassifiers(epackage)          # Controller                                                                  
+                                                                                                                                       
+  # 3. Add controller variants (inheritance)                                                                                           
+  add_EClass_to_EPackage_eClassifiers(epackage)   # BasicController                                                                    
+  add_EClass_to_EPackage_eClassifiers(epackage)   # AdvancedController                                                                 
+                                                                                                                                       
+  # Retrieve classes using the helper (keys follow a predictable pattern)                                                              
+  EBike           = get_classifier(epackage, "EBike")                                                                                  
+  Frame           = get_classifier(epackage, "Frame")                                                                                  
+  Wheel           = get_classifier(epackage, "Wheel")                                                                                  
+  DriveSystem     = get_classifier(epackage, "DriveSystem")                                                                            
+  Motor           = get_classifier(epackage, "Motor")                                                                                  
+  Battery         = get_classifier(epackage, "Battery")                                                                                
+  Controller      = get_classifier(epackage, "Controller")                                                                             
+  BasicController = get_classifier(epackage, "BasicController")                                                                        
+  AdvancedController = get_classifier(epackage, "AdvancedController")                                                                  
+                                                                                                                                       
+  # 4. Set up inheritance relationships                                                                                                
+  add_to_esupertypes_of_eclass(BasicController, Controller)                                                                            
+  add_to_esupertypes_of_eclass(AdvancedController, Controller)                                                                         
+                                                                                                                                       
+  # 5. Add structural features (attributes & references)                                                                               
+                                                                                                                                       
+  # --- EBike ---                                                                                                                      
+  ebike_frame_ref = add_EReference_to_EClass_eStructuralFeatures(                                                                      
+      eClass=EBike,                                                                                                                    
+      name="frame",                                                                                                                    
+      containment=True,                                                                                                                
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_ereference(ebike_frame_ref, Frame)                                                                                      
+                                                                                                                                       
+  # --- Frame ---                                                                                                                      
+  frame_wheels_ref = add_EReference_to_EClass_eStructuralFeatures(                                                                     
+      eClass=Frame,                                                                                                                    
+      name="wheels",                                                                                                                   
+      containment=True,                                                                                                                
+      lowerBound=2,                                                                                                                    
+      upperBound=2                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_ereference(frame_wheels_ref, Wheel)                                                                                     
+                                                                                                                                       
+  frame_material_attr = add_EAttribute_to_EClass_eStructuralFeatures(                                                                  
+      eClass=Frame,                                                                                                                    
+      name="material",                                                                                                                 
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_eattribute(frame_material_attr, "String")                                                                               
+                                                                                                                                       
+  # --- DriveSystem ---                                                                                                                
+  drivesystem_motor_ref = add_EReference_to_EClass_eStructuralFeatures(                                                                
+      eClass=DriveSystem,                                                                                                              
+      name="motor",                                                                                                                    
+      containment=True,                                                                                                                
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_ereference(drivesystem_motor_ref, Motor)                                                                                
+                                                                                                                                       
+  # --- Battery ---                                                                                                                    
+  battery_energy_attr = add_EAttribute_to_EClass_eStructuralFeatures(                                                                  
+      eClass=Battery,                                                                                                                  
+      name="storedEnergyWh",                                                                                                           
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_eattribute(battery_energy_attr, "Integer")                                                                              
+                                                                                                                                       
+  # --- Controller (shared by both variants) ---                                                                                       
+  controller_state_attr = add_EAttribute_to_EClass_eStructuralFeatures(                                                                
+      eClass=Controller,                                                                                                               
+      name="state",                                                                                                                    
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_eattribute(controller_state_attr, "String")                                                                             
+                                                                                                                                       
+  controller_battery_ref = add_EReference_to_EClass_eStructuralFeatures(                                                               
+      eClass=Controller,                                                                                                               
+      name="battery",                                                                                                                  
+      containment=False,                                                                                                               
+      lowerBound=0,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_ereference(controller_battery_ref, Battery)                                                                             
+                                                                                                                                       
+  controller_drivesystem_ref = add_EReference_to_EClass_eStructuralFeatures(                                                           
+      eClass=Controller,                                                                                                               
+      name="driveSystem",                                                                                                              
+      containment=False,                                                                                                               
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_ereference(controller_drivesystem_ref, DriveSystem)                                                                     
+                                                                                                                                       
+  # --- AdvancedController specific attribute ---                                                                                      
+  advanced_nextInspectionDate_attr = add_EAttribute_to_EClass_eStructuralFeatures(                                                     
+      eClass=AdvancedController,                                                                                                       
+      name="nextInspectionDate",                                                                                                       
+      lowerBound=0,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_eattribute(advanced_nextInspectionDate_attr, "Date")                                                                    
+                                                                                                                                       
+  # --- Connect EBike to its components ---                                                                                            
+  ebike_controller_ref = add_EReference_to_EClass_eStructuralFeatures(                                                                 
+      eClass=EBike,                                                                                                                    
+      name="controller",                                                                                                               
+      containment=True,                                                                                                                
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_ereference(ebike_controller_ref, Controller)  # polymorphic: can be Basic or Advanced                                   
+                                                                                                                                       
+  ebike_drivesystem_ref = add_EReference_to_EClass_eStructuralFeatures(                                                                
+      eClass=EBike,                                                                                                                    
+      name="driveSystem",                                                                                                              
+      containment=True,                                                                                                                
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_ereference(ebike_drivesystem_ref, DriveSystem)                                                                          
+                                                                                                                                       
+  # 6. Finalize – return the fully constructed EPackage object                                                                         
+  final_answer(epackage)                                                                                                               
+ ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+Code execution failed at line 'add_EClass_to_EPackage_eClassifiers(epackage)' due to: ValidationError: 1 validation error for EClass
+name
+  Input should be a valid string [type=string_type, input_value=EPackage(emf_uri_fragment...odel', nsPrefix='ebike'), 
+input_type=EPackage]
+    For further information visit https://errors.pydantic.dev/2.13/v/string_type
+[Step 2: Duration 81.80 seconds| Input tokens: 9,901 | Output tokens: 3,043]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Step 3 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ─ Executing parsed code: ──────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+  # 1. Create the EPackage -------------------------------------------------                                                           
+  epackage = update_EPackage(                                                                                                          
+      name="EBikeModel",                                                                                                               
+      nsURI="http://example.com/ebikemodel",                                                                                           
+      nsPrefix="ebike"                                                                                                                 
+  )                                                                                                                                    
+                                                                                                                                       
+  # Helper to fetch a classifier by its exact key (the class name)                                                                     
+  def get_classifier(epkg, cls_name):                                                                                                  
+      return epkg.eClassifiers[cls_name]                                                                                               
+                                                                                                                                       
+  # 2. Add core EClasses ---------------------------------------------------                                                           
+  add_EClass_to_EPackage_eClassifiers(name="EBike")                                                                                    
+  add_EClass_to_EPackage_eClassifiers(name="Frame")                                                                                    
+  add_EClass_to_EPackage_eClassifiers(name="Wheel")                                                                                    
+  add_EClass_to_EPackage_eClassifiers(name="DriveSystem")                                                                              
+  add_EClass_to_EPackage_eClassifiers(name="Motor")                                                                                    
+  add_EClass_to_EPackage_eClassifiers(name="Battery")                                                                                  
+  add_EClass_to_EPackage_eClassifiers(name="Controller")                                                                               
+                                                                                                                                       
+  # Controller variants (inheritance)                                                                                                  
+  add_EClass_to_EPackage_eClassifiers(name="BasicController")                                                                          
+  add_EClass_to_EPackage_eClassifiers(name="AdvancedController")                                                                       
+                                                                                                                                       
+  # Retrieve the classes from the package                                                                                              
+  EBike           = get_classifier(epackage, "EBike")                                                                                  
+  Frame           = get_classifier(epackage, "Frame")                                                                                  
+  Wheel           = get_classifier(epackage, "Wheel")                                                                                  
+  DriveSystem     = get_classifier(epackage, "DriveSystem")                                                                            
+  Motor           = get_classifier(epackage, "Motor")                                                                                  
+  Battery         = get_classifier(epackage, "Battery")                                                                                
+  Controller      = get_classifier(epackage, "Controller")                                                                             
+  BasicController = get_classifier(epackage, "BasicController")                                                                        
+  AdvancedController = get_classifier(epackage, "AdvancedController")                                                                  
+                                                                                                                                       
+  # 3. Set up inheritance --------------------------------------------------                                                           
+  add_to_esupertypes_of_eclass(BasicController, Controller)                                                                            
+  add_to_esupertypes_of_eclass(AdvancedController, Controller)                                                                         
+                                                                                                                                       
+  # 4. Add structural features ---------------------------------------------                                                           
+  # --- EBike ---                                                                                                                      
+  ebike_frame_ref = add_EReference_to_EClass_eStructuralFeatures(                                                                      
+      eClass=EBike,                                                                                                                    
+      name="frame",                                                                                                                    
+      containment=True,                                                                                                                
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_ereference(ebike_frame_ref, Frame)                                                                                      
+                                                                                                                                       
+  # --- Frame ---                                                                                                                      
+  frame_wheels_ref = add_EReference_to_EClass_eStructuralFeatures(                                                                     
+      eClass=Frame,                                                                                                                    
+      name="wheels",                                                                                                                   
+      containment=True,                                                                                                                
+      lowerBound=2,                                                                                                                    
+      upperBound=2                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_ereference(frame_wheels_ref, Wheel)                                                                                     
+                                                                                                                                       
+  frame_material_attr = add_EAttribute_to_EClass_eStructuralFeatures(                                                                  
+      eClass=Frame,                                                                                                                    
+      name="material",                                                                                                                 
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_eattribute(frame_material_attr, "String")                                                                               
+                                                                                                                                       
+  # --- DriveSystem ---                                                                                                                
+  drivesystem_motor_ref = add_EReference_to_EClass_eStructuralFeatures(                                                                
+      eClass=DriveSystem,                                                                                                              
+      name="motor",                                                                                                                    
+      containment=True,                                                                                                                
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_ereference(drivesystem_motor_ref, Motor)                                                                                
+                                                                                                                                       
+  # --- Battery ---                                                                                                                    
+  battery_energy_attr = add_EAttribute_to_EClass_eStructuralFeatures(                                                                  
+      eClass=Battery,                                                                                                                  
+      name="storedEnergyWh",                                                                                                           
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_eattribute(battery_energy_attr, "Integer")                                                                              
+                                                                                                                                       
+  # --- Controller (shared) ---                                                                                                        
+  controller_state_attr = add_EAttribute_to_EClass_eStructuralFeatures(                                                                
+      eClass=Controller,                                                                                                               
+      name="state",                                                                                                                    
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_eattribute(controller_state_attr, "String")                                                                             
+                                                                                                                                       
+  controller_battery_ref = add_EReference_to_EClass_eStructuralFeatures(                                                               
+      eClass=Controller,                                                                                                               
+      name="battery",                                                                                                                  
+      containment=False,                                                                                                               
+      lowerBound=0,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_ereference(controller_battery_ref, Battery)                                                                             
+                                                                                                                                       
+  controller_drivesystem_ref = add_EReference_to_EClass_eStructuralFeatures(                                                           
+      eClass=Controller,                                                                                                               
+      name="driveSystem",                                                                                                              
+      containment=False,                                                                                                               
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_ereference(controller_drivesystem_ref, DriveSystem)                                                                     
+                                                                                                                                       
+  # --- AdvancedController specific attribute ---                                                                                      
+  advanced_nextInspectionDate_attr = add_EAttribute_to_EClass_eStructuralFeatures(                                                     
+      eClass=AdvancedController,                                                                                                       
+      name="nextInspectionDate",                                                                                                       
+      lowerBound=0,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_eattribute(advanced_nextInspectionDate_attr, "Date")                                                                    
+                                                                                                                                       
+  # --- Connect EBike to its components ---                                                                                            
+  ebike_controller_ref = add_EReference_to_EClass_eStructuralFeatures(                                                                 
+      eClass=EBike,                                                                                                                    
+      name="controller",                                                                                                               
+      containment=True,                                                                                                                
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_ereference(ebike_controller_ref, Controller)   # polymorphic: Basic or Advanced                                         
+                                                                                                                                       
+  ebike_drivesystem_ref = add_EReference_to_EClass_eStructuralFeatures(                                                                
+      eClass=EBike,                                                                                                                    
+      name="driveSystem",                                                                                                              
+      containment=True,                                                                                                                
+      lowerBound=1,                                                                                                                    
+      upperBound=1                                                                                                                     
+  )                                                                                                                                    
+  set_etype_of_ereference(ebike_drivesystem_ref, DriveSystem)                                                                          
+                                                                                                                                       
+  # 5. Finalize ------------------------------------------------------------                                                           
+  final_answer(epackage)                                                                                                               
+ ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+Final answer: emf_uri_fragment='/' name='EBikeModel' nsURI='http://example.com/ebikemodel' nsPrefix='ebike'
+[Step 3: Duration 83.60 seconds| Input tokens: 19,386 | Output tokens: 4,572]
