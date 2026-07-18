@@ -25,8 +25,6 @@ Each case directory under `modelset` (e.g. `modelset/AirTravel`) contains:
 * `a2a-stream/`: results of generating Emfatic from `description.md` via the MOSAICO A2A agent (`metamodel.emf` and logs).
 * `raw-llm-stdout.txt`: logs from the original PlantUML-to-Ecore conversion.
 
-`modelset/ECORE_NOTES.md` tracks known issues and quirks observed in individual cases across these conversions.
-
 ## Building and running puml2emfatic
 
 First, build the all-in-one JAR:
