@@ -17,25 +17,26 @@ flexmi_models = sorted(
 )
 
 fig, axes = plt.subplots(1, 2, figsize=(12, 5), sharey=True)
-fig.suptitle("Set vs. multi-set Jaccard similarity by model", fontsize=13)
 
 SET_COLOR = "tab:blue"
+SET_EDGE_COLOR = "tab:blue"
 MULTISET_COLOR = "tab:red"
+MULTISET_EDGE_COLOR = "darkred"
 MULTISET_HATCH = "//"
 OFFSET = 0.18
 WIDTH = 0.32
 
 
-def style_violin(parts, color, hatch=None):
+def style_violin(parts, face_color, edge_color, hatch=None):
     for pc in parts["bodies"]:
-        pc.set_facecolor(color)
-        pc.set_edgecolor(color)
+        pc.set_facecolor(face_color)
+        pc.set_edgecolor(edge_color)
         pc.set_alpha(0.7)
         if hatch:
             pc.set_hatch(hatch)
             pc.set_alpha(0.5)
     for key in ("cmedians", "cmaxes", "cmins", "cbars"):
-        parts[key].set_color(color)
+        parts[key].set_color(edge_color)
 
 
 def collect_series(df, models, column):
@@ -58,7 +59,7 @@ def add_violin(ax, df, models, title):
         widths=WIDTH,
         showmedians=True,
     )
-    style_violin(set_parts, SET_COLOR)
+    style_violin(set_parts, SET_COLOR, SET_EDGE_COLOR)
 
     multiset_data, multiset_positions = collect_series(df, models, "multiset_jaccard")
     multiset_parts = ax.violinplot(
@@ -67,7 +68,7 @@ def add_violin(ax, df, models, title):
         widths=WIDTH,
         showmedians=True,
     )
-    style_violin(multiset_parts, MULTISET_COLOR, hatch=MULTISET_HATCH)
+    style_violin(multiset_parts, MULTISET_COLOR, MULTISET_EDGE_COLOR, hatch=MULTISET_HATCH)
 
     ax.set_xticks(list(positions))
     ax.set_xticklabels(models, rotation=20, ha="right", fontsize=9)
@@ -88,6 +89,7 @@ legend_handles = [
         1,
         1,
         facecolor=MULTISET_COLOR,
+        edgecolor=MULTISET_EDGE_COLOR,
         alpha=0.5,
         hatch=MULTISET_HATCH,
         label="Multi-set Jaccard",

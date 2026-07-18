@@ -53,7 +53,7 @@ def to_latex(summary: dict[str, dict], dataset: str) -> str:
         r"\centering",
         r"\begin{tabular}{lrrrrr}",
         r"\toprule",
-        r"LLM & Input & Output & Successful & $J$ & $J_{\text{multi}}$ \\",
+        r"LLM & Input & Output & $C$ & $J$ & $J_{\text{multi}}$ \\",
         r"\midrule",
     ]
     for model in sorted(summary):
@@ -69,7 +69,7 @@ def to_latex(summary: dict[str, dict], dataset: str) -> str:
     lines += [
         r"\bottomrule",
         r"\end{tabular}",
-        rf"\caption{{Summary of \file{{{dataset}}} results by model: mean input and output tokens, number of outputs successfully converted to Emfatic, and mean Jaccard set and multi-set scores.}}",
+        rf"\caption{{Summary of \file{{{dataset}}} results by model: mean input and output tokens, number of outputs successfully converted to Emfatic ($C$), and mean Jaccard set ($J$) and multi-set ($J_{{multi}}$) scores.}}",
         rf"\label{{tab:{dataset}-summary}}",
         r"\end{table}",
     ]

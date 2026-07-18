@@ -9,7 +9,6 @@ ecore_models = sorted(nl2ecore["model"].unique())
 flexmi_models = sorted(nl2flexmi["model"].unique())
 
 fig, axes = plt.subplots(1, 2, figsize=(12, 5))
-fig.suptitle("Input token counts by model", fontsize=13)
 
 
 def add_violin(ax, df, models, token_col, title):
