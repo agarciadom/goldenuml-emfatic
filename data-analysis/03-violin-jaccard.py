@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
@@ -25,6 +26,7 @@ MULTISET_EDGE_COLOR = "darkred"
 MULTISET_HATCH = "//"
 OFFSET = 0.18
 WIDTH = 0.32
+LABEL_Y_OFFSET = 0.02
 
 
 def style_violin(parts, face_color, edge_color, hatch=None):
@@ -49,6 +51,22 @@ def collect_series(df, models, column):
     return data, positions
 
 
+def annotate_medians(ax, data, positions, side, color):
+    x_offset = -OFFSET if side == "left" else OFFSET
+    for values, p in zip(data, positions):
+        median = np.median(values)
+        ax.text(
+            p + x_offset,
+            median + LABEL_Y_OFFSET,
+            f"{median:.2f}",
+            fontsize=7,
+            ha="center",
+            va="bottom",
+            color=color,
+            bbox=dict(facecolor="white", edgecolor="none", alpha=1.0, pad=1),
+        )
+
+
 def add_violin(ax, df, models, title):
     positions = range(len(models))
 
@@ -60,6 +78,7 @@ def add_violin(ax, df, models, title):
         showmedians=True,
     )
     style_violin(set_parts, SET_COLOR, SET_EDGE_COLOR)
+    annotate_medians(ax, set_data, set_positions, "left", SET_EDGE_COLOR)
 
     multiset_data, multiset_positions = collect_series(df, models, "multiset_jaccard")
     multiset_parts = ax.violinplot(
@@ -69,6 +88,7 @@ def add_violin(ax, df, models, title):
         showmedians=True,
     )
     style_violin(multiset_parts, MULTISET_COLOR, MULTISET_EDGE_COLOR, hatch=MULTISET_HATCH)
+    annotate_medians(ax, multiset_data, multiset_positions, "right", MULTISET_EDGE_COLOR)
 
     ax.set_xticks(list(positions))
     ax.set_xticklabels(models, rotation=20, ha="right", fontsize=9)

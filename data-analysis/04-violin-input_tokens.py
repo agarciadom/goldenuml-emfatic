@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
@@ -16,6 +17,18 @@ def add_violin(ax, df, models, token_col, title):
     parts = ax.violinplot(data, positions=range(len(models)), showmedians=True)
     for pc in parts["bodies"]:
         pc.set_alpha(0.7)
+    label_y_offset = max(values.max() for values in data) * 0.02
+    for i, values in enumerate(data):
+        median = np.median(values)
+        ax.text(
+            i,
+            median + label_y_offset,
+            f"{median:,.0f}",
+            fontsize=7,
+            ha="center",
+            va="bottom",
+            bbox=dict(facecolor="white", edgecolor="none", alpha=1.0, pad=1),
+        )
     ax.set_xticks(range(len(models)))
     ax.set_xticklabels(models, rotation=20, ha="right", fontsize=9)
     ax.set_title(title)
