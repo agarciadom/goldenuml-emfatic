@@ -1,0 +1,238 @@
+<model xmlns="http://www.eclipse.org/emf/2003/XMI"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       ecore="http://www.eclipse.org/emf/2002/Ecore"
+       xsi:schemaLocation="
+           http://www.eclipse.org/emf/2003/XMI
+           https://raw.githubusercontent.com/eclipse/emf/main/plugins/org.eclipse.emf.ecore/model/emf.ecore.xsd">
+  <!-- Root container that owns all top‑level elements -->
+  <Model xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:type="ecore:EClass" name="Model">
+    <!-- Departments of the home -->
+    <departments xsi:type="ecore:EReference" name="departments"
+                  type="Department" containment="true"/>
+    <!-- Waiting‑list entries (position derived from registration date) -->
+    <waitingListEntries xsi:type="ecore:EReference" name="waitingListEntries"
+                         type="WaitingListEntry" containment="true"/>
+    <!-- Monthly invoices -->
+    <invoices xsi:type="ecore:EReference" name="invoices"
+               type="Invoice" containment="true"/>
+  </Model>
+
+  <!-- ---------------------------------------------------- Department ----------------------------------- -->
+  <Department xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:type="ecore:EClass" name="Department">
+    <!-- Human‑readable identifier of the department -->
+    <name xsi:type="ecore:EAttribute" name="name" type="ecore:EString"/>
+    <!-- Rooms that belong to this department (owned) -->
+    <rooms xsi:type="ecore:EReference" name="rooms"
+           type="Room" containment="true"/>
+  </Department>
+
+  <!-- ---------------------------------------------------- Room ----------------------------------- -->
+  <Room xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:type="ecore:EClass" name="Room">
+    <!-- Bedroom number (e.g., “101A”) -->
+    <number xsi:type="ecore:EAttribute" name="number" type="ecore:EString"/>
+    <!-- Beds that are physically placed in the room (owned) -->
+    <beds xsi:type="ecore:EReference" name="beds"
+          type="Bed" containment="true"/>
+  </Room>
+
+  <!-- ---------------------------------------------------- Bed ----------------------------------- -->
+  <Bed xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:type="ecore:EClass" name="Bed">
+    <!-- Physical bed identifier -->
+    <number xsi:type="ecore:EAttribute" name="number" type="ecore:EString"/>
+    <!-- Category (price & stay‑type) that the bed belongs to – non‑containing reference -->
+    <category xsi:type="ecore:EReference" name="category"
+              type="StayCategory" containment="false"/>
+    <!-- When a stay occupies this bed, this side points back to it – opposite end is Stay.bed -->
+    <currentStay xsi:type="ecore:EReference" name="currentStay"
+                  type="Stay" eOpposite="bed" containment="false"/>
+  </Bed>
+
+  <!-- ---------------------------------------------------- Person ----------------------------------- -->
+  <Person xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:type="ecore:EClass" name="Person">
+    <!-- Full name of the inhabitant -->
+    <name xsi:type="ecore:EAttribute" name="name" type="ecore:EString"/>
+    <!-- Date when the registration process started (used for waiting‑list ordering) -->
+    <registrationDate xsi:type="ecore:EAttribute"
+                       name="registrationDate" type="ecore:EDate"/>
+    <!-- All stays this person has ever had, including suspended ones -->
+    <stays xsi:type="ecore:EReference" name="stays"
+           type="Stay" lowerBound="0" upperBound="-1"
+           eOpposite="person"/>
+    <!-- The assessment that was performed after registration (owned) -->
+    <assessmentResult xsi:type="ecore:EReference"
+                       name="assessmentResult"
+                       type="AssessmentResult" containment="true"/>
+  </Person>
+
+  <!-- ---------------------------------------------------- StayType ----------------------------------- -->
+  <StayType xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:type="ecore:EClass" name="StayType">
+    <!-- Human‑readable identifier (e.g., “RestHome”) -->
+    <name xsi:type="ecore:EAttribute" name="name" type="ecore:EString"/>
+    <!-- Operation that calculates the monthly price for a concrete Stay instance -->
+    <calculateMonthlyPrice xsi:type="ecore:EOperation"
+                           name="calculateMonthlyPrice"
+                           returnType="ecore:EDouble">
+      <eParameters>
+        <stay xsi:type="ecore:EParameter" name="stay" type="Stay"/>
+      </eParameters>
+    </calculateMonthlyPrice>
+  </StayType>
+
+  <!-- ---------------------------------------------------- Concrete StayTypes ----------------------------------- -->
+  <!-- RestHome – pure rest‑home stay (no nursing care) -->
+  <RestHome xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:type="ecore:EClass" name="RestHome"
+            eSuperTypes="StayType"/>
+  <!-- RestNursingHome – combination of rest and nursing services -->
+  <RestNursingHome xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:type="ecore:EClass" name="RestNursingHome"
+                   eSuperTypes="StayType"/>
+  <!-- ServiceFlat – independent flat style accommodation -->
+  <ServiceFlat xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:type="ecore:EClass" name="ServiceFlat"
+               eSuperTypes="StayType"/>
+
+  <!-- ---------------------------------------------------- StayCategory ----------------------------------- -->
+  <StayCategory xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                xsi:type="ecore:EClass" name="StayCategory">
+    <!-- Identifier (e.g., “RH”, “RNH”, “SF”) -->
+    <name xsi:type="ecore:EAttribute" name="name" type="ecore:EString"/>
+    <!-- Monthly monetary price for the category -->
+    <price xsi:type="ecore:EAttribute" name="price" type="ecore:EDouble"/>
+    <!-- Reference to the abstract stay‑type it implements (non‑containing) -->
+    <stayType xsi:type="ecore:EReference"
+              name="stayType"
+              type="StayType"
+              containment="false"/>
+  </StayCategory>
+
+  <!-- ---------------------------------------------------- Stay ----------------------------------- -->
+  <Stay xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:type="ecore:EClass" name="Stay">
+    <!-- When the stay became active -->
+    <startDate xsi:type="ecore:EAttribute"
+                name="startDate" type="ecore:EDate"/>
+    <!-- Optional end date (may be null while the stay is still running) -->
+    <endDate xsi:type="ecore:EAttribute"
+              name="endDate" type="java.time.LocalDate"/>
+    <!-- Flag indicating that the stay has been suspended (e.g., moved to RNH temporarily) -->
+    <isSuspended xsi:type="ecore:EAttribute"
+                  name="isSuspended" type="ecore:EBoolean"/>
+
+    <!-- Relations -->
+    <person xsi:type="ecore:EReference"
+            name="person"
+            type="Person"
+            eOpposite="stays"/>
+    <bed xsi:type="ecore:EReference"
+         name="bed"
+         type="Bed"
+         eOpposite="currentStay"/>
+    <category xsi:type="ecore:EReference"
+               name="category"
+               type="StayCategory"
+               containment="false"/>
+  </Stay>
+
+  <!-- ---------------------------------------------------- AssessmentResult ----------------------------------- -->
+  <AssessmentResult xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:type="ecore:EClass" name="AssessmentResult">
+    <!-- Date when the assessment was completed -->
+    <date xsi:type="ecore:EAttribute" name="date" type="ecore:EDate"/>
+    <!-- The person to whom this result belongs (non‑containing) -->
+    <person xsi:type="ecore:EReference"
+            name="person"
+            type="Person"
+            eOpposite="assessmentResult"/>
+    <!-- Recommendation produced by the assessment – abstract stay‑type -->
+    <recommendedStayType xsi:type="ecore:EReference"
+                         name="recommendedStayType"
+                         type="StayType"
+                         containment="false"/>
+  </AssessmentResult>
+
+  <!-- ---------------------------------------------------- WaitingListEntry ----------------------------------- -->
+  <WaitingListEntry xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:type="ecore:EClass" name="WaitingListEntry">
+    <!-- Position is derived from the person's registrationDate (not stored) -->
+    <position xsi:type="ecore:EAttribute"
+               name="position" type="ecore:ENumber"/>
+    <!-- The resident awaiting a bed -->
+    <person xsi:type="ecore:EReference"
+            name="person"
+            type="Person"
+            containment="false"/>
+    <!-- Type of stay the person is waiting for -->
+    <requestedStayType xsi:type="ecore:EReference"
+                       name="requestedStayType"
+                       type="StayType"
+                       containment="false"/>
+  </WaitingListEntry>
+
+  <!-- ---------------------------------------------------- Proposal ----------------------------------- -->
+  <Proposal xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:type="ecore:EClass" name="Proposal">
+    <!-- When the proposal was sent to the person -->
+    <dateSent xsi:type="ecore:EAttribute"
+               name="dateSent" type="ecore:EDate"/>
+    <!-- Deadline (e.g., three days later) for the person to reply -->
+    <decisionDeadline xsi:type="ecore:EAttribute"
+                       name="decisionDeadline" type="ecore:EDate"/>
+    <!-- Current status – one of “SENT”, “ACCEPTED”, “REFUSED”, “INVALIDATED” -->
+    <status xsi:type="ecore:EAttribute"
+             name="status" type="ecore:EString"/>
+    <!-- Person to whom the proposal was addressed (non‑containing) -->
+    <person xsi:type="ecore:EReference"
+            name="person"
+            type="Person"
+            containment="false"/>
+    <!-- Bed that is being offered (non‑containing) -->
+    <bed xsi:type="ecore:EReference"
+         name="bed"
+         type="Bed"
+         containment="false"/>
+  </Proposal>
+
+  <!-- ---------------------------------------------------- Invoice ----------------------------------- -->
+  <Invoice xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:type="ecore:EClass" name="Invoice">
+    <!-- When the invoice was generated -->
+    <invoiceDate xsi:type="ecore:EAttribute"
+                  name="invoiceDate" type="ecore:EDate"/>
+    <!-- Date by which payment must be received -->
+    <dueDate xsi:type="ecore:EAttribute"
+              name="dueDate" type="ecore:EDate"/>
+    <!-- Original total amount for the month -->
+    <totalAmount xsi:type="ecore:EAttribute"
+                  name="totalAmount" type="ecore:EDouble"/>
+    <!-- Amount still outstanding after any payments -->
+    <outstandingAmount xsi:type="ecore:EAttribute"
+                        name="outstandingAmount" type="ecore:EDouble"/>
+    <!-- Current status – “OPEN”, “PAID”, or “OVERPAID” -->
+    <status xsi:type="ecore:EAttribute"
+             name="status" type="ecore:EString"/>
+    <!-- The stay to which this invoice applies (non‑containing) -->
+    <stay xsi:type="ecore:EReference"
+          name="stay"
+          type="Stay"
+          containment="false"/>
+
+    <!-- ------------------------------------------------ Operation registerPayment ----------------------------- -->
+    <!-- Records a received payment, updates outstanding amount,
+         marks the invoice as paid or creates an overpayment credit. -->
+    <registerPayment xsi:type="ecore:EOperation"
+                      name="registerPayment"
+                      returnType="void">
+      <eParameters>
+        <amount xsi:type="ecore:EParameter"
+                 name="amount" type="ecore:EDouble"/>
+      </eParameters>
+    </registerPayment>
+  </Invoice>
+</model>
