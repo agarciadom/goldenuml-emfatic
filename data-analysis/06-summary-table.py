@@ -37,14 +37,18 @@ def summarize(rows: list[dict]) -> dict[str, dict]:
             "avg_input_tokens": mean(input_tokens),
             "avg_output_tokens": mean(output_tokens),
             "num_successful": len(jaccard_rows),
-            "avg_set_jaccard": mean(set_jaccards) if set_jaccards else float("nan"),
-            "avg_multiset_jaccard": mean(multiset_jaccards) if multiset_jaccards else float("nan"),
+            "avg_set_jaccard": mean(set_jaccards) if set_jaccards else None,
+            "avg_multiset_jaccard": mean(multiset_jaccards) if multiset_jaccards else None,
         }
     return summary
 
 
 def escape_latex(text: str) -> str:
     return text.replace("_", r"\_")
+
+
+def format_jaccard(value: float | None) -> str:
+    return "N/A" if value is None else f"{value:.4f}"
 
 
 def to_latex(summary: dict[str, dict], dataset: str) -> str:
@@ -63,8 +67,8 @@ def to_latex(summary: dict[str, dict], dataset: str) -> str:
             f"{s['avg_input_tokens']:.2f} & "
             f"{s['avg_output_tokens']:.2f} & "
             f"{s['num_successful']} & "
-            f"{s['avg_set_jaccard']:.4f} & "
-            f"{s['avg_multiset_jaccard']:.4f} \\\\"
+            f"{format_jaccard(s['avg_set_jaccard'])} & "
+            f"{format_jaccard(s['avg_multiset_jaccard'])} \\\\"
         )
     lines += [
         r"\bottomrule",
