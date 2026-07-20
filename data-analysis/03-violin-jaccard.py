@@ -26,7 +26,10 @@ MULTISET_EDGE_COLOR = "darkred"
 MULTISET_HATCH = "//"
 OFFSET = 0.18
 WIDTH = 0.32
+JITTER_WIDTH = WIDTH * 0.35
 LABEL_Y_OFFSET = 0.02
+
+rng = np.random.default_rng(0)
 
 
 def style_violin(parts, face_color, edge_color, hatch=None):
@@ -49,6 +52,12 @@ def collect_series(df, models, column):
             data.append(values)
             positions.append(i)
     return data, positions
+
+
+def add_jitter(ax, data, positions, color):
+    for values, p in zip(data, positions):
+        x = p + rng.uniform(-JITTER_WIDTH, JITTER_WIDTH, size=len(values))
+        ax.scatter(x, values, color=color, s=8, alpha=0.6, edgecolors="none", zorder=3)
 
 
 def annotate_medians(ax, data, positions, side, color):
@@ -78,6 +87,7 @@ def add_violin(ax, df, models, title):
         showmedians=True,
     )
     style_violin(set_parts, SET_COLOR, SET_EDGE_COLOR)
+    add_jitter(ax, set_data, [p - OFFSET for p in set_positions], SET_EDGE_COLOR)
     annotate_medians(ax, set_data, set_positions, "left", SET_EDGE_COLOR)
 
     multiset_data, multiset_positions = collect_series(df, models, "multiset_jaccard")
@@ -88,6 +98,7 @@ def add_violin(ax, df, models, title):
         showmedians=True,
     )
     style_violin(multiset_parts, MULTISET_COLOR, MULTISET_EDGE_COLOR, hatch=MULTISET_HATCH)
+    add_jitter(ax, multiset_data, [p + OFFSET for p in multiset_positions], MULTISET_EDGE_COLOR)
     annotate_medians(ax, multiset_data, multiset_positions, "right", MULTISET_EDGE_COLOR)
 
     ax.set_xticks(list(positions))

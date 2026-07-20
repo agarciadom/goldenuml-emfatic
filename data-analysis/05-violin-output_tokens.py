@@ -11,12 +11,18 @@ flexmi_models = sorted(nl2flexmi["model"].unique())
 
 fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
+JITTER_WIDTH = 0.12
+rng = np.random.default_rng(0)
+
 
 def add_violin(ax, df, models, token_col, title):
     data = [df.loc[df["model"] == m, token_col].values for m in models]
     parts = ax.violinplot(data, positions=range(len(models)), showmedians=True)
     for pc in parts["bodies"]:
         pc.set_alpha(0.7)
+    for i, values in enumerate(data):
+        x = i + rng.uniform(-JITTER_WIDTH, JITTER_WIDTH, size=len(values))
+        ax.scatter(x, values, color="black", s=8, alpha=0.4, edgecolors="none", zorder=3)
     label_y_offset = max(values.max() for values in data) * 0.02
     for i, values in enumerate(data):
         median = np.median(values)
