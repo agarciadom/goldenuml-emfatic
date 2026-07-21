@@ -17,3 +17,6 @@ uv run 04-violin-input_tokens.py
 uv run 05-violin-output_tokens.py
 uv run 06-summary-table.py nl2ecore.csv -o nl2ecore-summary.tex
 uv run 06-summary-table.py nl2flexmi.csv -o nl2flexmi-summary.tex
+
+# Statistical significance tests
+uv run 07-mannwhitney-jaccard.py -o mann-whitney.txt
