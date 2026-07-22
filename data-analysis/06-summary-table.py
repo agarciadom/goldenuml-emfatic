@@ -64,8 +64,8 @@ def to_latex(summary: dict[str, dict], dataset: str) -> str:
         s = summary[model]
         lines.append(
             f"{escape_latex(model)} & "
-            f"{s['avg_input_tokens']:.2f} & "
-            f"{s['avg_output_tokens']:.2f} & "
+            f"{round(s['avg_input_tokens']):,} & "
+            f"{round(s['avg_output_tokens']):,} & "
             f"{s['num_successful']} & "
             f"{format_jaccard(s['avg_set_jaccard'])} & "
             f"{format_jaccard(s['avg_multiset_jaccard'])} \\\\"
