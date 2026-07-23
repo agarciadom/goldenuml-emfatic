@@ -125,3 +125,4 @@ This runs, in order:
 1. `01-nl2ecore.py` / `02-nl2flexmi.py`: collate token counts and comparison metrics from `modelset` into `nl2ecore.csv` and `nl2flexmi.csv`.
 2. `03-violin-jaccard.py`, `04-violin-input_tokens.py`, `05-violin-output_tokens.py`: produce violin-plot figures (PNG/PDF) comparing Jaccard similarity and token usage across models and approaches.
 3. `06-summary-table.py`: produce LaTeX booktabs summary tables (`nl2ecore-summary.tex`, `nl2flexmi-summary.tex`) from each results CSV.
+4. `07-mannwhitney-jaccard.py`: conduct Mann-Whitney U tests to perform statistical significance tests across the Jaccard scores of the selected frontier model (using direct prompting) and the selected local LLMs.
