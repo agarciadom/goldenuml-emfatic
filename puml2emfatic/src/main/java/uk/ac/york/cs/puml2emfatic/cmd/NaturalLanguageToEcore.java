@@ -90,7 +90,9 @@ public class NaturalLanguageToEcore extends LLMCommand {
         Files.write(xmiFile.toPath(), xmiOutput.getBytes());
 
         try {
-          List<String> diagnostics = new EPackageValidator(true).validate(xmiFile);
+          var validator = new EPackageValidator();
+          validator.setRunEVL(true);
+          List<String> diagnostics = validator.validate(xmiFile);
           if (!diagnostics.isEmpty()) {
             feedback = String.join("\n", diagnostics);
           } else {

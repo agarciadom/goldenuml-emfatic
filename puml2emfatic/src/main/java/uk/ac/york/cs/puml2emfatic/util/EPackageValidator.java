@@ -23,12 +23,25 @@ import java.util.Map;
 
 public class EPackageValidator {
 
-  private final boolean runEVL;
+  private boolean runEVL = false;
+  private boolean failIfNoClasses = true;
 
-  public EPackageValidator(boolean runEVL) {
+  public boolean isRunEVL() {
+    return runEVL;
+  }
+
+  public void setRunEVL(boolean runEVL) {
     this.runEVL = runEVL;
   }
-  
+
+  public boolean isFailIfNoClasses() {
+    return failIfNoClasses;
+  }
+
+  public void setFailIfNoClasses(boolean failIfNoClasses) {
+    this.failIfNoClasses = failIfNoClasses;
+  }
+
   public List<String> validate(File ecoreFile) {
       Resource ecoreResource = EmfUtilities.loadModel(ecoreFile);
       return validate((EPackage) ecoreResource.getContents().get(0));
@@ -38,6 +51,9 @@ public class EPackageValidator {
     List<String> results = new ArrayList<>(validateBuiltIn(ePackage));
     if (runEVL) {
       results.addAll(validateEVL(ePackage));
+    }
+    if (failIfNoClasses && ePackage.getEClassifiers().isEmpty()) {
+      results.add("EPackage has no classifiers");
     }
     return results;
   }
