@@ -1,7 +1,10 @@
 import numpy as np
 import pandas as pd
+import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
+
+matplotlib.rcParams["pdf.fonttype"] = 42
 
 nl2ecore = pd.read_csv("nl2ecore.csv").dropna(subset=["input_tokens"])
 nl2flexmi = pd.read_csv("nl2flexmi.csv").dropna(subset=["total_input_tokens"])
