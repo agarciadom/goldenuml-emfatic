@@ -1,5 +1,9 @@
 # goldenuml-emfatic
 
+NOTE: this project is archived. Development will continue from this Eclipse Gitlab project:
+
+https://gitlab.eclipse.org/eclipse-research-labs/mosaico-project/goldenuml-emfatic
+
 This research artifact extends the Golden UML ModelSet with Ecore metamodels and their [Emfatic](https://eclipse.dev/emfatic/) equivalents, and studies how well LLMs (directly called, or as part of a code-based agent) can derive Ecore metamodels from PlantUML class diagrams and natural-language domain descriptions.
 
 The Golden UML ModelSet is available from Zenodo:
